@@ -1,0 +1,80 @@
+name: Debug Token Reset
+on:
+  workflow_dispatch: # Manual trigger only for debugging
+
+jobs:
+  debug-reset:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check Secrets
+        run: |
+          echo "🔍 Checking if secrets are configured..."
+          if [ -z "${{ secrets.SUPABASE_URL }}" ]; then
+            echo "❌ SUPABASE_URL secret is missing"
+          else
+            echo "✅ SUPABASE_URL is configured"
+            echo "URL: ${{ secrets.SUPABASE_URL }}"
+          fi
+          
+          if [ -z "${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" ]; then
+            echo "❌ SUPABASE_SERVICE_ROLE_KEY secret is missing"
+          else
+            echo "✅ SUPABASE_SERVICE_ROLE_KEY is configured (length: ${#SUPABASE_SERVICE_ROLE_KEY})"
+          fi
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+
+      - name: Test Function Endpoint
+        run: |
+          echo "🧪 Testing token reset function endpoint..."
+          
+          # First, let's see what the actual response is
+          response=$(curl -s -w "\nHTTP_CODE:%{http_code}" -X POST "${{ secrets.SUPABASE_URL }}/functions/v1/process-anniversary-resets" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
+            -H "Content-Type: application/json")
+          
+          echo "📋 Full Response:"
+          echo "$response"
+          
+          # Extract HTTP code
+          http_code=$(echo "$response" | grep "HTTP_CODE:" | cut -d: -f2)
+          response_body=$(echo "$response" | sed '/HTTP_CODE:/d')
+          
+          echo ""
+          echo "🌐 HTTP Status Code: $http_code"
+          echo "📄 Response Body: $response_body"
+          
+          # Check if function exists
+          if [ "$http_code" = "404" ]; then
+            echo "❌ Function not found - the Edge Function doesn't exist"
+            exit 1
+          elif [ "$http_code" = "401" ] || [ "$http_code" = "403" ]; then
+            echo "❌ Authentication failed - check your service role key"
+            exit 1
+          elif [ "$http_code" = "500" ]; then
+            echo "❌ Server error - function exists but has an error"
+            echo "Response: $response_body"
+            exit 1
+          elif [ "$http_code" = "200" ]; then
+            echo "✅ Function called successfully"
+            
+            # Check if it's actually successful
+            if echo "$response_body" | grep -q '"success":true'; then
+              echo "✅ Token reset completed successfully"
+            else
+              echo "⚠️ Function ran but may have issues"
+              echo "Response: $response_body"
+            fi
+          else
+            echo "❓ Unexpected HTTP code: $http_code"
+            echo "Response: $response_body"
+          fi
+
+      - name: List Available Functions
+        run: |
+          echo "📋 Checking what Edge Functions are available..."
+          
+          # Try to list functions (this might not work but worth trying)
+          curl -s -X GET "${{ secrets.SUPABASE_URL }}/functions/v1/" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
+            -H "Content-Type: application/json" || echo "Could not list functions"

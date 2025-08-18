@@ -1,0 +1,105 @@
+name: Daily Token Reset
+on:
+  schedule:
+    # Run daily at 2:00 AM UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  reset-tokens:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check Environment Variables
+        run: |
+          echo "🔍 Checking environment variables..."
+          if [ -z "${{ secrets.SUPABASE_URL }}" ]; then
+            echo "❌ SUPABASE_URL secret is missing"
+            exit 1
+          fi
+          
+          if [ -z "${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" ]; then
+            echo "❌ SUPABASE_SERVICE_ROLE_KEY secret is missing"
+            exit 1
+          fi
+          
+          echo "✅ Environment variables are configured"
+
+      - name: Call Token Reset Function
+        run: |
+          echo "🚀 Starting token reset process..."
+          
+          response=$(curl -s -w "\nHTTP_CODE:%{http_code}" -X POST "${{ secrets.SUPABASE_URL }}/functions/v1/process-anniversary-resets" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
+            -H "Content-Type: application/json" \
+            --max-time 60)
+          
+          # Extract HTTP code and response body
+          http_code=$(echo "$response" | grep "HTTP_CODE:" | cut -d: -f2)
+          response_body=$(echo "$response" | sed '/HTTP_CODE:/d')
+          
+          echo "📋 HTTP Status Code: $http_code"
+          echo "📄 Response Body: $response_body"
+          
+          # Check if function exists and is accessible
+          if [ "$http_code" = "404" ]; then
+            echo "❌ Function not found - the Edge Function doesn't exist or isn't deployed"
+            echo "💡 Deploy with: supabase functions deploy process-anniversary-resets"
+            exit 1
+          elif [ "$http_code" = "401" ] || [ "$http_code" = "403" ]; then
+            echo "❌ Authentication failed - check your service role key"
+            echo "💡 Get service role key from Supabase Dashboard → Settings → API"
+            exit 1
+          elif [ "$http_code" = "500" ]; then
+            echo "❌ Server error - function exists but has an internal error"
+            echo "💡 Check Edge Function logs in Supabase Dashboard"
+            echo "Error details: $response_body"
+            exit 1
+          elif [ "$http_code" = "200" ]; then
+            echo "✅ Function called successfully"
+            
+            # Check if the response indicates success
+            if echo "$response_body" | grep -q '"success":true'; then
+              echo "🎉 Token reset completed successfully"
+              
+              # Extract and display results
+              processed_count=$(echo "$response_body" | grep -o '"processed_count":[0-9]*' | cut -d: -f2)
+              if [ -n "$processed_count" ] && [ "$processed_count" -gt 0 ]; then
+                echo "📊 Processed $processed_count user token resets"
+              else
+                echo "ℹ️ No users were due for token reset today"
+              fi
+            else
+              echo "⚠️ Function ran but returned an error"
+              echo "Response: $response_body"
+              exit 1
+            fi
+          else
+            echo "❓ Unexpected HTTP code: $http_code"
+            echo "Response: $response_body"
+            exit 1
+          fi
+
+      - name: Verify Function Deployment
+        if: failure()
+        run: |
+          echo "🔍 Troubleshooting steps:"
+          echo ""
+          echo "1. Check if Edge Function is deployed:"
+          echo "   - Go to Supabase Dashboard → Edge Functions"
+          echo "   - Look for 'process-anniversary-resets' function"
+          echo ""
+          echo "2. If function is missing, deploy it:"
+          echo "   supabase functions deploy process-anniversary-resets"
+          echo ""
+          echo "3. Test manually:"
+          echo "   curl -X POST \"${{ secrets.SUPABASE_URL }}/functions/v1/process-anniversary-resets\" \\"
+          echo "     -H \"Authorization: Bearer YOUR_SERVICE_ROLE_KEY\" \\"
+          echo "     -H \"Content-Type: application/json\""
+          echo ""
+          echo "4. Check function logs in Supabase Dashboard for errors"
+
+      - name: Log Results
+        if: always()
+        run: |
+          echo "🏁 Token reset job completed at $(date)"
+          echo "📊 Job status: ${{ job.status }}"

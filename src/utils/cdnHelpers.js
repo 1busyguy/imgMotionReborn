@@ -1,0 +1,83 @@
+// src/utils/cdnHelpers.js
+
+const SUPABASE_STORAGE_BASE_URL = `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/`;
+const CDN_BASE_URL = import.meta.env.VITE_CDN_URL;
+
+/**
+ * Transforms a Supabase Storage URL to a CDN URL.
+ * Assumes the CDN is configured to serve the 'user-files' bucket directly under its root.
+ * Example:
+ * https://<project_ref>.supabase.co/storage/v1/object/public/user-files/path/to/file.jpg
+ * becomes
+ * https://cdn.imgmotionmagic.com/user-files/path/to/file.jpg
+ *
+ * @param {string} supabaseUrl The original Supabase Storage URL.
+ * @returns {string} The transformed CDN URL, or the original URL if transformation fails.
+ */
+export const toCdnUrl = (supabaseUrl) => {
+  if (!supabaseUrl || !CDN_BASE_URL) {
+    return supabaseUrl;
+  }
+
+  // Check if the URL is already a CDN URL
+  if (supabaseUrl.startsWith(CDN_BASE_URL)) {
+    return supabaseUrl;
+  }
+
+  // Replace the Supabase Storage base path with the CDN base path
+  const cdnUrl = supabaseUrl.replace(SUPABASE_STORAGE_BASE_URL, `${CDN_BASE_URL}/`);
+
+  // Basic validation to ensure the transformation was successful
+  if (cdnUrl.startsWith(`${CDN_BASE_URL}/user-files/`)) {
+    return cdnUrl;
+  }
+
+  // Fallback to original URL if transformation logic doesn't match
+  console.warn(`Failed to transform URL to CDN: ${supabaseUrl}. Returning original.`);
+  return supabaseUrl;
+};
+
+/**
+ * Get thumbnail URL for a video generation
+ * @param {Object} generation - Generation object
+ * @returns {string|null} - Thumbnail URL or null
+ */
+export const getThumbnailUrl = (generation) => {
+  // Check for thumbnail_url column first
+  if (generation.thumbnail_url) {
+    return toCdnUrl(generation.thumbnail_url);
+  }
+  
+  // Check metadata for thumbnail
+  if (generation.metadata?.thumbnail_url) {
+    return toCdnUrl(generation.metadata.thumbnail_url);
+  }
+  
+  // Fallback to input image for video generations
+  if (generation.input_data?.imageUrl) {
+    return toCdnUrl(generation.input_data.imageUrl);
+  }
+  
+  return null;
+};
+
+/**
+ * Get the appropriate content URL (watermarked for free users, original for paid)
+ * @param {Object} generation - Generation object
+ * @param {Object} profile - User profile
+ * @returns {string} - Content URL to display
+ */
+export const getContentUrl = (generation, profile) => {
+  // Check if user should see watermarked content
+  const needsWatermark = !profile || 
+                        profile.subscription_status === 'free' || 
+                        profile.subscription_tier === 'free';
+  
+  // If watermarked version exists and user should see it
+  if (needsWatermark && generation.metadata?.watermarked_url) {
+    return toCdnUrl(generation.metadata.watermarked_url);
+  }
+  
+  // Otherwise return original content
+  return toCdnUrl(generation.output_file_url);
+};

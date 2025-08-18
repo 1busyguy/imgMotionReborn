@@ -1,0 +1,230 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+const corsHeaders = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS'
+};
+
+serve(async (req) => {
+    if (req.method === 'OPTIONS') {
+        return new Response('ok', { headers: corsHeaders });
+    }
+
+    let generationId;
+
+    try {
+        const supabase = createClient(
+            Deno.env.get('SUPABASE_URL') ?? '',
+            Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+        );
+
+        // Authenticate user
+        const authHeader = req.headers.get('Authorization');
+        const token = authHeader.replace('Bearer ', '');
+        const { data: { user } } = await supabase.auth.getUser(token);
+
+        if (!user) {
+            throw new Error('Unauthorized');
+        }
+
+        // Parse request body
+        const {
+            generationId: reqGenerationId,
+            imageUrl,
+            prompt,
+            numFrames = 81,
+            framesPerSecond = 16,
+            negativePrompt,
+            resolution = '720p',
+            aspectRatio = "auto",
+            numInferenceSteps = 30,
+            enableSafetyChecker = false,
+            enablePromptExpansion = false,
+            guidanceScale = 3.5,
+            guidanceScale2 = 3.5,
+            shift = 5,
+            interpolatorModel = "film",
+            numInterpolatedFrames = 1,
+            adjustFpsForInterpolation = true,
+            promptExtend = false,
+            seed = -1
+        } = await req.json();
+
+        generationId = reqGenerationId;
+
+        console.log('🎬 WAN v2.2-a14b generation request:', {
+            generationId,
+            hasImageUrl: !!imageUrl,
+            prompt: prompt?.substring(0, 50) + '...',
+            resolution,
+            numFrames,
+            framesPerSecond
+        });
+
+        // Validate required parameters
+        if (!generationId || !imageUrl || !prompt?.trim()) {
+            throw new Error('Missing required parameters: generationId, imageUrl, and prompt are required');
+        }
+
+        // Update generation status to processing
+        await supabase
+            .from('ai_generations')
+            .update({
+                status: 'processing',
+                updated_at: new Date().toISOString()
+            })
+            .eq('id', generationId)
+            .eq('user_id', user.id);
+
+        // Get FAL API key
+        const falApiKey = Deno.env.get('FAL_API_KEY');
+        if (!falApiKey) {
+            throw new Error('FAL_API_KEY not configured');
+        }
+
+        // CORRECT WEBHOOK URL CONSTRUCTION
+        // Get the Supabase project reference from the URL
+        const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
+        const projectRef = supabaseUrl.split('.')[0].replace('https://', '');
+        const webhookUrl = `https://${projectRef}.supabase.co/functions/v1/fal-webhook`;
+
+        console.log('🔗 Webhook URL:', webhookUrl);
+
+        // Prepare FAL.ai parameters
+        const falParams = {
+            image_url: imageUrl,
+            prompt: prompt.trim(),
+            num_frames: numFrames,
+            frames_per_second: framesPerSecond,
+            resolution: resolution,
+            aspect_ratio: aspectRatio,
+            num_inference_steps: numInferenceSteps,
+            enable_safety_checker: enableSafetyChecker,
+            enable_prompt_expansion: enablePromptExpansion,
+            guidance_scale: guidanceScale,
+            guidance_scale_2: guidanceScale2,
+            shift: shift,
+            interpolator_model: interpolatorModel,
+            num_interpolated_frames: numInterpolatedFrames,
+            adjust_fps_for_interpolation: adjustFpsForInterpolation,
+            prompt_extend: promptExtend
+        };
+
+        // Add optional parameters
+        if (negativePrompt && negativePrompt.trim()) {
+            falParams.negative_prompt = negativePrompt.trim();
+        }
+        if (seed && seed > 0) {
+            falParams.seed = seed;
+        }
+
+        console.log('📡 Submitting to FAL.ai with params:', JSON.stringify(falParams, null, 2));
+
+        // OPTION 1: Using webhook in URL (your current approach)
+        const queueUrl = `https://queue.fal.run/fal-ai/wan/v2.2-a14b/image-to-video?fal_webhook=${encodeURIComponent(webhookUrl)}`;
+
+        // OPTION 2: Alternative - webhook in body (try this if URL doesn't work)
+        // const queueUrl = 'https://queue.fal.run/fal-ai/wan/v2.2-a14b/image-to-video';
+        // falParams.webhook_url = webhookUrl;
+
+        // Submit to FAL.ai queue
+        const falResponse = await fetch(queueUrl, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Key ${falApiKey}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(falParams)
+        });
+
+        if (!falResponse.ok) {
+            const errorText = await falResponse.text();
+            console.error('❌ FAL.ai error:', falResponse.status, errorText);
+            throw new Error(`FAL.ai error: ${falResponse.status} - ${errorText}`);
+        }
+
+        const queueResult = await falResponse.json();
+        console.log('✅ FAL.ai queue response:', JSON.stringify(queueResult, null, 2));
+
+        const requestId = queueResult.request_id;
+        if (!requestId) {
+            throw new Error('No request_id received from FAL.ai');
+        }
+
+        // Update generation with request ID
+        const { error: updateError } = await supabase
+            .from('ai_generations')
+            .update({
+                metadata: {
+                    fal_request_id: requestId,
+                    gateway_request_id: queueResult.gateway_request_id,
+                    webhook_url: webhookUrl,
+                    processing_started: new Date().toISOString(),
+                    status: 'queued_at_fal',
+                    model: 'wan-v2.2-a14b',
+                    webhook_enabled: true,
+                    queue_submission_time: new Date().toISOString()
+                }
+            })
+            .eq('id', generationId);
+
+        if (updateError) {
+            console.error('❌ Error updating generation metadata:', updateError);
+        }
+
+        console.log('✅ Request queued, webhook URL:', webhookUrl);
+
+        return new Response(JSON.stringify({
+            success: true,
+            status: 'queued',
+            generation_id: generationId,
+            message: 'Video generation queued successfully',
+            fal_request_id: requestId,
+            webhook_url: webhookUrl,
+            estimated_time: '1-3 minutes'
+        }), {
+            headers: {
+                ...corsHeaders,
+                'Content-Type': 'application/json'
+            }
+        });
+
+    } catch (error) {
+        console.error('❌ Error:', error);
+
+        // Update generation as failed
+        if (generationId) {
+            try {
+                const supabase = createClient(
+                    Deno.env.get('SUPABASE_URL') ?? '',
+                    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+                );
+
+                await supabase
+                    .from('ai_generations')
+                    .update({
+                        status: 'failed',
+                        completed_at: new Date().toISOString(),
+                        error_message: error.message
+                    })
+                    .eq('id', generationId);
+            } catch (updateError) {
+                console.error('❌ Error updating failed generation:', updateError);
+            }
+        }
+
+        return new Response(JSON.stringify({
+            success: false,
+            error: error.message,
+            generation_id: generationId
+        }), {
+            headers: {
+                ...corsHeaders,
+                'Content-Type': 'application/json'
+            },
+            status: 500
+        });
+    }
+});
