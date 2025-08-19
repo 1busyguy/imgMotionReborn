@@ -118,10 +118,25 @@ const AdminRoute = ({ children }: { children: React.ReactNode }) => {
 function App() {
   useEffect(() => {
     // Handle email confirmation redirects
-    const handleAuthStateChange = (event: string, session: any) => {
+    const handleAuthStateChange = async (event: string, session: any) => {
       if (event === 'SIGNED_IN' && session?.user?.email_confirmed_at) {
         // User just confirmed their email
         console.log('Email confirmed successfully!');
+        
+        // Check if this is a Google OAuth sign-in and redirect to dashboard
+        if (session?.user?.app_metadata?.provider === 'google') {
+          console.log('Google OAuth sign-in detected, redirecting to dashboard...');
+          window.location.href = '/dashboard';
+        }
+      }
+      
+      // Handle Google OAuth completion
+      if (event === 'SIGNED_IN' && session?.user?.app_metadata?.provider === 'google') {
+        console.log('Google OAuth completed, redirecting to dashboard...');
+        // Small delay to ensure auth state is fully processed
+        setTimeout(() => {
+          window.location.href = '/dashboard';
+        }, 100);
       }
     };
 

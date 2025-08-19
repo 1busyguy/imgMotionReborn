@@ -31,7 +31,17 @@ export const useAuth = () => {
               email: session.user.email,
               metadata: session.user.user_metadata,
               email_confirmed: !!session.user.email_confirmed_at
+              provider: session.user.app_metadata?.provider
             });
+            
+            // Handle Google OAuth redirect after successful authentication
+            if (session.user.app_metadata?.provider === 'google' && 
+                window.location.pathname !== '/dashboard' && 
+                window.location.hash.includes('access_token')) {
+              console.log('Google OAuth detected, redirecting to dashboard...');
+              window.location.href = '/dashboard';
+              return;
+            }
           }
         }
         
@@ -61,6 +71,14 @@ export const useAuth = () => {
         } else if (event === 'SIGNED_OUT') {
           console.log('User signed out');
           setAuthProcessed(false);
+        } else if (event === 'SIGNED_IN' && session?.user?.app_metadata?.provider === 'google') {
+          console.log('Google OAuth sign-in completed');
+          // Redirect to dashboard after Google OAuth
+          setTimeout(() => {
+            if (window.location.pathname !== '/dashboard') {
+              window.location.href = '/dashboard';
+            }
+          }, 500);
         }
         
         setUser(session?.user ?? null);
@@ -70,7 +88,8 @@ export const useAuth = () => {
             id: session.user.id,
             email: session.user.email,
             metadata: session.user.user_metadata,
-            email_confirmed: !!session.user.email_confirmed_at
+            email_confirmed: !!session.user.email_confirmed_at,
+            provider: session.user.app_metadata?.provider
           });
           
           // Check if user is banned when they sign in
