@@ -19,11 +19,11 @@ const AdminLoraManager = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   
-  // ADD THESE NEW SECURITY STATES
+  // Security states
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [checkingAuth, setCheckingAuth] = useState(true);
   
-  // KEEP ALL YOUR EXISTING STATES
+  // Existing states
   const [loras, setLoras] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editingLora, setEditingLora] = useState(null);
@@ -45,28 +45,34 @@ const AdminLoraManager = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  // ADD NEW SECURITY useEffect (this runs first)
+  // Security check - wait for user to load first
   useEffect(() => {
-    verifyAdminAccess();
+    if (user !== null) {
+      // User is loaded (either authenticated user object or null)
+      verifyAdminAccess();
+    }
+    // If user is still undefined, keep waiting
   }, [user]);
 
-  // MODIFY EXISTING useEffect to also check isAuthorized
+  // Fetch data only after authorization is confirmed
   useEffect(() => {
     if (user && isAuthorized) {
       fetchLoras();
     }
   }, [user, isAuthorized]);
 
-  // ADD THIS NEW SECURITY FUNCTION
+  // Admin verification function
   const verifyAdminAccess = async () => {
+    console.log('🔍 LoRA Manager - verifying admin access for user:', user?.id);
+    
     if (!user) {
-      console.log('No user found, waiting for auth...');
-      setCheckingAuth(false);
+      console.log('❌ LoRA Manager - No user found, redirecting to login');
+      navigate('/login', { replace: true });
       return;
     }
 
     try {
-      // Check if user is admin using UUID (same method as Admin.jsx)
+      // Use the same admin check as your working Admin component
       const adminUUIDs = [
         '991e17a6-c1a8-4496-8b28-cc83341c028a' // jim@1busyguy.com
       ];
@@ -77,23 +83,30 @@ const AdminLoraManager = () => {
         user.user_metadata?.email === 'jim@1busyguy.com'
       );
 
+      console.log('🔍 LoRA Manager - Admin check result:', {
+        userId: user.id,
+        email: user.email,
+        isAdmin,
+        isInAdminUUIDs: adminUUIDs.includes(user.id)
+      });
+
       if (!isAdmin) {
-        console.error('Unauthorized access attempt by:', user.email || user.id);
-        alert('You do not have permission to access this page.');
+        console.error('❌ LoRA Manager - Unauthorized access attempt by:', user.email || user.id);
         navigate('/dashboard', { replace: true });
         return;
       }
 
+      console.log('✅ LoRA Manager - Admin access verified');
       setIsAuthorized(true);
     } catch (error) {
-      console.error('Auth check failed:', error);
+      console.error('❌ LoRA Manager - Auth check failed:', error);
       navigate('/dashboard', { replace: true });
     } finally {
       setCheckingAuth(false);
     }
   };
 
-  // KEEP ALL YOUR EXISTING FUNCTIONS UNCHANGED
+  // Existing functions remain unchanged
   const fetchLoras = async () => {
     try {
       setLoading(true);
