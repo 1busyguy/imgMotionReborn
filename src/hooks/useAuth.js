@@ -30,7 +30,7 @@ export const useAuth = () => {
               id: session.user.id,
               email: session.user.email,
               metadata: session.user.user_metadata,
-              email_confirmed: !!session.user.email_confirmed_at
+              email_confirmed: !!session.user.email_confirmed_at,
               provider: session.user.app_metadata?.provider
             });
             
