@@ -19,11 +19,6 @@ const AdminLoraManager = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   
-  // Security states
-  const [isAuthorized, setIsAuthorized] = useState(false);
-  const [checkingAuth, setCheckingAuth] = useState(true);
-  
-  // Existing states
   const [loras, setLoras] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editingLora, setEditingLora] = useState(null);
@@ -45,66 +40,22 @@ const AdminLoraManager = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  // Security check - wait for user to load first
-  useEffect(() => {
-    if (user !== null) {
-      // User is loaded (either authenticated user object or null)
-      verifyAdminAccess();
-    }
-    // If user is still undefined, keep waiting
-  }, [user]);
+  // Simple admin check - same as your working Admin component
+  const adminUUIDs = [
+    '991e17a6-c1a8-4496-8b28-cc83341c028a' // jim@1busyguy.com
+  ];
+  
+  const isAdmin = user && (
+    adminUUIDs.includes(user.id) || 
+    user.email === 'jim@1busyguy.com' || 
+    user.user_metadata?.email === 'jim@1busyguy.com'
+  );
 
-  // Fetch data only after authorization is confirmed
   useEffect(() => {
-    if (user && isAuthorized) {
+    if (user) {
       fetchLoras();
     }
-  }, [user, isAuthorized]);
-
-  // Admin verification function
-  const verifyAdminAccess = async () => {
-    console.log('🔍 LoRA Manager - verifying admin access for user:', user?.id);
-    
-    if (!user) {
-      console.log('❌ LoRA Manager - No user found, redirecting to login');
-      navigate('/login', { replace: true });
-      return;
-    }
-
-    try {
-      // Use the same admin check as your working Admin component
-      const adminUUIDs = [
-        '991e17a6-c1a8-4496-8b28-cc83341c028a' // jim@1busyguy.com
-      ];
-      
-      const isAdmin = user && (
-        adminUUIDs.includes(user.id) || 
-        user.email === 'jim@1busyguy.com' || 
-        user.user_metadata?.email === 'jim@1busyguy.com'
-      );
-
-      console.log('🔍 LoRA Manager - Admin check result:', {
-        userId: user.id,
-        email: user.email,
-        isAdmin,
-        isInAdminUUIDs: adminUUIDs.includes(user.id)
-      });
-
-      if (!isAdmin) {
-        console.error('❌ LoRA Manager - Unauthorized access attempt by:', user.email || user.id);
-        navigate('/dashboard', { replace: true });
-        return;
-      }
-
-      console.log('✅ LoRA Manager - Admin access verified');
-      setIsAuthorized(true);
-    } catch (error) {
-      console.error('❌ LoRA Manager - Auth check failed:', error);
-      navigate('/dashboard', { replace: true });
-    } finally {
-      setCheckingAuth(false);
-    }
-  };
+  }, [user]);
 
   // Existing functions remain unchanged
   const fetchLoras = async () => {
@@ -249,23 +200,8 @@ const AdminLoraManager = () => {
     setFormData(prev => ({ ...prev, trigger_words: words }));
   };
 
-  // ADD THESE SECURITY CHECKS BEFORE YOUR MAIN RENDER
-  if (checkingAuth) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center">
-        <div className="text-white text-xl">Verifying admin access...</div>
-      </div>
-    );
-  }
-
-  if (!isAuthorized) {
-    return null;
-  }
-
-  // YOUR EXISTING RETURN STATEMENT WITH ADDED HEADER AND ALERTS
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
-      {/* ADDED HEADER WITH BACK BUTTON */}
       <header className="bg-white/10 backdrop-blur-md border-b border-white/20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
@@ -293,7 +229,6 @@ const AdminLoraManager = () => {
       </header>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* ADDED ALERTS */}
         {error && (
           <div className="mb-4 p-4 bg-red-500/20 border border-red-500/50 rounded-lg">
             <div className="flex items-center space-x-2">
@@ -348,7 +283,7 @@ const AdminLoraManager = () => {
             )}
           </div>
 
-          {/* Add/Edit Form - KEEPING YOUR EXISTING FORM */}
+          {/* Add/Edit Form */}
           {showAddForm && (
             <div className="mb-6 p-6 bg-white/5 rounded-lg border border-violet-500/30">
               <div className="flex items-center justify-between mb-4">
@@ -586,7 +521,7 @@ const AdminLoraManager = () => {
             </div>
           )}
 
-          {/* LoRA List - KEEPING YOUR EXISTING TABLE */}
+          {/* LoRA List */}
           {loading ? (
             <div className="text-center py-8">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-violet-400 mx-auto"></div>

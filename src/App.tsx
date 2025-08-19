@@ -395,9 +395,9 @@ function App() {
             <Route 
               path="/admin/lora-manager" 
               element={
-                <ProtectedAdminRoute>
+                <ProtectedRoute>
                   <AdminLoraManager />
-                </ProtectedAdminRoute>
+                </ProtectedRoute>
               } 
             />
             <Route 
