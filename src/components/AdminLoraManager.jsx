@@ -66,13 +66,18 @@ const AdminLoraManager = () => {
     }
 
     try {
-      const { data: profile, error } = await supabase
-        .from('profiles')
-        .select('is_admin, email')
-        .eq('id', user.id)
-        .single();
+      // Check if user is admin using UUID (same method as Admin.jsx)
+      const adminUUIDs = [
+        '991e17a6-c1a8-4496-8b28-cc83341c028a' // jim@1busyguy.com
+      ];
+      
+      const isAdmin = user && (
+        adminUUIDs.includes(user.id) || 
+        user.email === 'jim@1busyguy.com' || 
+        user.user_metadata?.email === 'jim@1busyguy.com'
+      );
 
-      if (error || !profile?.is_admin) {
+      if (!isAdmin) {
         console.error('Unauthorized access attempt by:', user.email || user.id);
         alert('You do not have permission to access this page.');
         navigate('/dashboard', { replace: true });
