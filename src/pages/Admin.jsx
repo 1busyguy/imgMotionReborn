@@ -2038,7 +2038,7 @@ const Admin = () => {
                                                         {(user.tokens || 0) + (user.purchased_tokens || 0)}
                                                     </div>
                                                     <div className="text-xs text-purple-300">
-                                                        Sub: {user.tokens || 0} | Purchased: {user.purchased_tokens || 0}
+                                                        Sub: {user.tokens || 0} | TBP: {user.purchased_tokens || 0}
                                                     </div>
                                                 </div>
                                             </td>
