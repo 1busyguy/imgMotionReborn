@@ -605,7 +605,14 @@ const Admin = () => {
 
             const result = await response.json();
             if (result.success) {
+                // The edge function returns generations in result.generations
                 const generations = result.generations || [];
+                console.log('📊 Processing generations:', {
+                    total: generations.length,
+                    active: generations.filter(g => !g.deleted_at).length,
+                    softDeleted: generations.filter(g => g.deleted_at).length
+                });
+                
                 setUserGenerations(generations);
                 setTotalPages(Math.ceil(generations.length / ITEMS_PER_PAGE));
                 
@@ -628,6 +635,7 @@ const Admin = () => {
         } catch (error) {
             console.error('Error fetching user generations:', error);
             alert(`Error fetching generations: ${error.message}`);
+            setUserGenerations([]); // Clear generations on error
         } finally {
             setLoadingGenerations(false);
         }
