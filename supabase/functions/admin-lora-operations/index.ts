@@ -29,18 +29,28 @@ serve(async (req) => {
     }
 
     // Check if user is admin
-    const { data: profile, error: profileError } = await supabaseClient
-      .from('profiles')
-      .select('is_admin')
-      .eq('id', user.id)
-      .single()
+    // Check if user is admin using UUID (same method as other admin functions)
+    const adminUUIDs = ['991e17a6-c1a8-4496-8b28-cc83341c028a']; // jim@1busyguy.com
+    const isAdmin = adminUUIDs.includes(user.id) || 
+                    user.email === 'jim@1busyguy.com' || 
+                    user.user_metadata?.email === 'jim@1busyguy.com';
 
-    if (profileError || !profile?.is_admin) {
+    if (!isAdmin) {
+      console.log('❌ Admin access denied for user:', {
+        id: user.id,
+        email: user.email,
+        metadata_email: user.user_metadata?.email
+      });
       return new Response(JSON.stringify({ error: 'Unauthorized: Admin access required' }), {
         status: 403,
         headers: { 'Content-Type': 'application/json' },
       })
     }
+
+    console.log('✅ Admin user verified for LoRA operations:', {
+      id: user.id,
+      email: user.email
+    });
 
     // Process admin operation here
     const { operation, data } = await req.json()

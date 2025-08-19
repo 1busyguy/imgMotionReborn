@@ -60,8 +60,8 @@ const AdminLoraManager = () => {
   // ADD THIS NEW SECURITY FUNCTION
   const verifyAdminAccess = async () => {
     if (!user) {
-      console.error('No user found, redirecting to login');
-      navigate('/login', { replace: true });
+      console.log('No user found, waiting for auth...');
+      setCheckingAuth(false);
       return;
     }
 
