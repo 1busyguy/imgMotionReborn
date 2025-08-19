@@ -392,7 +392,6 @@ function App() {
                 </ProtectedRoute>
               } 
             />
-            // In your routes
             <Route 
               path="/admin/lora-manager" 
               element={
@@ -412,17 +411,17 @@ function App() {
             <Route 
               path="/admin" 
               element={
-                <AdminRoute>
+                <ProtectedAdminRoute>
                   <Admin />
-                </AdminRoute>
+                </ProtectedAdminRoute>
               } 
             />
             <Route 
               path="/admin/user/:userId" 
               element={
-                <AdminRoute>
+                <ProtectedAdminRoute>
                   <Admin />
-                </AdminRoute>
+                </ProtectedAdminRoute>
               } 
             />
             <Route path="/about" element={<About />} />
