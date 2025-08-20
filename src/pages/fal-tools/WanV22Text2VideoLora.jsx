@@ -638,8 +638,7 @@ const WanV22Text2VideoLora = () => {
                               <p className="text-white font-medium text-sm truncate">
                                 {lora.weight_name}
                               </p>
-                              <p className="text-purple-300 text-xs truncate">
-                                {lora.path}
+                              {/* URL hidden for security */}
                               </p>
                             </div>
                             <button
