@@ -617,7 +617,7 @@ const WanV22Text2VideoLora = () => {
 
                    {/* Add Preset LoRA Selector */}
                   <PresetLoraSelector
-                    toolType="i2v" // or "t2v" for text2video component
+                    toolType="t2v" // or "t2v" for text2video component
                     userTier={profile?.subscription_tier || 'free'}
                     currentLoras={config.loras}
                     onAddLora={(lora) => {
