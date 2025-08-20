@@ -762,7 +762,7 @@ const WanV22Img2VideoLora = () => {
                           <div className="flex items-center justify-between mb-2">
                             <div className="flex-1 min-w-0">
                               <p className="text-white font-medium text-sm truncate">{lora.weight_name}</p>
-                              <p className="text-purple-300 text-xs truncate break-all">{lora.path}</p>
+                              {/* URL hidden for security */}
                             </div>
                             <button
                               onClick={() => removeLora(index)}
