@@ -887,108 +887,112 @@ const MMAudioVideo2 = () => {
                 ) : (
                   <div className="space-y-4">
                     {generations.slice(0, window.innerWidth >= 1024 ? 8 : generations.length).map((generation) => {
-                      <div
-                        key={generation.id}
-                        className={`bg-white/5 rounded-lg p-4 hover:bg-white/10 transition-all duration-200 ${
-                          currentlyPlaying === generation.id ? 'ring-2 ring-cyan-500/50 bg-cyan-500/10' : ''
-                        }`}
-                      >
-                        <div className="flex items-center justify-between mb-3">
-                          <div className="flex-1">
-                            <h4 className="font-medium text-white">
-                              {generation.generation_name}
-                            </h4>
-                            <p className="text-purple-200 text-sm">
-                              {new Date(generation.created_at).toLocaleString()}
-                            </p>
-                          </div>
-                          <div className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(generation.status)}`}>
-                            {generation.status}
-                          </div>
-                        </div>
-
-                        {generation.status === 'processing' && (
-                          <div className="mb-4 bg-gradient-to-br from-cyan-500/20 to-blue-500/20 rounded-lg p-6 text-center">
-                            <div className="flex items-center justify-center space-x-2 mb-2">
-                              <Disc3 className="w-8 h-8 text-cyan-300 animate-spin" />
-                              <Waves className="w-6 h-6 text-cyan-300" />
+                      return (
+                        <div
+                          key={generation.id}
+                          className={`bg-white/5 rounded-lg p-4 hover:bg-white/10 transition-all duration-200 ${
+                            currentlyPlaying === generation.id ? 'ring-2 ring-cyan-500/50 bg-cyan-500/10' : ''
+                          }`}
+                        >
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex-1">
+                              <h4 className="font-medium text-white">
+                                {generation.generation_name}
+                              </h4>
+                              <p className="text-purple-200 text-sm">
+                                {new Date(generation.created_at).toLocaleString()}
+                              </p>
                             </div>
-                            <p className="text-cyan-200">Generating synchronized audio...</p>
-                            <p className="text-cyan-300 text-sm">This may take 1-3 minutes</p>
+                            <div className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(generation.status)}`}>
+                              {generation.status}
+                            </div>
                           </div>
-                        )}
 
-                        {generation.status === 'failed' && (
-                          <div className="mb-4 bg-red-500/20 rounded-lg p-4 text-center">
-                            <X className="w-8 h-8 text-red-400 mx-auto mb-2" />
-                            <p className="text-red-400 text-sm">Audio generation failed</p>
+                          {generation.status === 'processing' && (
+                            <div className="mb-4 bg-gradient-to-br from-cyan-500/20 to-blue-500/20 rounded-lg p-6 text-center">
+                              <div className="flex items-center justify-center space-x-2 mb-2">
+                                <Disc3 className="w-8 h-8 text-cyan-300 animate-spin" />
+                                <Waves className="w-6 h-6 text-cyan-300" />
+                              </div>
+                              <p className="text-cyan-200">Generating synchronized audio...</p>
+                              <p className="text-cyan-300 text-sm">This may take 1-3 minutes</p>
+                            </div>
+                          )}
+
+                          {generation.status === 'failed' && (
+                            <div className="mb-4 bg-red-500/20 rounded-lg p-4 text-center">
+                              <X className="w-8 h-8 text-red-400 mx-auto mb-2" />
+                              <p className="text-red-400 text-sm">Audio generation failed</p>
+                            </div>
+                          )}
+
+                          {generation.output_file_url && generation.status === 'completed' && (
+                            <div className="mb-4">
+                              <video
+                                src={toCdnUrl(generation.output_file_url)}
+                                controls
+                                className="w-full rounded-lg max-h-96"
+                                preload="metadata"
+                              >
+                                Your browser does not support the video tag.
+                              </video>
+                            </div>
+                          )}
+
+                          <div className="space-y-2 text-sm text-purple-300">
+                            <p>
+                              <strong>Audio Prompt:</strong> {generation.input_data?.prompt}
+                            </p>
+                            <div className="grid grid-cols-2 gap-4">
+                              <span>
+                                <strong>Duration:</strong> {generation.input_data?.duration}s
+                              </span>
+                              <span>
+                                <strong>CFG:</strong> {generation.input_data?.cfg_strength}
+                              </span>
+                              <span>
+                                <strong>Steps:</strong> {generation.input_data?.num_steps}
+                              </span>
+                              <span>
+                                <strong>Tokens:</strong> {generation.tokens_used}
+                              </span>
+                            </div>
                           </div>
-                        )}
 
-                        {generation.output_file_url && generation.status === 'completed' && (
-                          <div className="mb-4">
-                            <video
-                              src={toCdnUrl(generation.output_file_url)}
-                              controls
-                              className="w-full rounded-lg max-h-96"
-                              preload="metadata"
-                            >
-                              Your browser does not support the video tag.
-                            </video>
-                          </div>
-                        )}
-
-                        <div className="space-y-2 text-sm text-purple-300">
-                          <p>
-                            <strong>Audio Prompt:</strong> {generation.input_data?.prompt}
-                          </p>
-                          <div className="grid grid-cols-2 gap-4">
-                            <span>
-                              <strong>Duration:</strong> {generation.input_data?.duration}s
-                            </span>
-                            <span>
-                              <strong>CFG:</strong> {generation.input_data?.cfg_strength}
-                            </span>
-                            <span>
-                              <strong>Steps:</strong> {generation.input_data?.num_steps}
-                            </span>
-                            <span>
-                              <strong>Tokens:</strong> {generation.tokens_used}
-                            </span>
+                          <div className="flex items-center justify-between mt-4">
+                            <div className="flex items-center space-x-4">
+                              {generation.input_data?.prompt && (
+                                <button
+                                  onClick={() => copyPrompt(generation.input_data.prompt)}
+                                  className="text-purple-400 hover:text-purple-300 transition-colors"
+                                  title="Copy prompt"
+                                >
+                                  <Copy className="w-4 h-4" />
+                                </button>
+                              )}
+                            </div>
+                            <div className="flex space-x-2">
+                              {generation.output_file_url && generation.status === 'completed' && (
+                                <button
+                                  onClick={() => handleDownload(generation.output_file_url, generation.generation_name)}
+                                  className="bg-green-500 hover:bg-green-600 text-white p-2 rounded-lg transition-colors"
+                                  title="Download video"
+                                >
+                                  <Download className="w-4 h-4" />
+                                </button>
+                              )}
+                              <button
+                                onClick={() => handleDelete(generation.id)}
+                                className="bg-red-500 hover:bg-red-600 text-white p-2 rounded-lg transition-colors"
+                                title="Delete video"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
                           </div>
                         </div>
-
-                        <div className="flex items-center justify-between mt-4">
-                          <div className="flex items-center space-x-4">
-                            {generation.input_data?.prompt && (
-                              <button
-                                onClick={() => copyPrompt(generation.input_data.prompt)}
-                                className="text-purple-400 hover:text-purple-300 transition-colors"
-                                title="Copy prompt"
-                              >
-                                <Copy className="w-4 h-4" />
-                              </button>
-                            )}
-                          </div>
-                          <div className="flex space-x-2">
-                            {generation.output_file_url && generation.status === 'completed' && (
-                              <button
-                                onClick={() => handleDownload(generation.output_file_url, generation.generation_name)}
-                                className="bg-green-500 hover:bg-green-600 text-white p-2 rounded-lg transition-colors"
-                                title="Download video"
-                              >
-                                <Download className="w-4 h-4" />
-                              </button>
-                            )}
-                            <button
-                              onClick={() => handleDelete(generation.id)}
-                              className="bg-red-500 hover:bg-red-600 text-white p-2 rounded-lg transition-colors"
-                              title="Delete video"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </div>
-                    </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>
