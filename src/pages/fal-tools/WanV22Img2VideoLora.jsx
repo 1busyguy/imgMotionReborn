@@ -1296,10 +1296,7 @@ const WanV22Img2VideoLora = () => {
                 ) : (
                   <div className="space-y-4 lg:space-y-6">
                     {generations.slice(0, window.innerWidth >= 1024 ? 2 : generations.length).map((generation) => (
-                      if (!generation) return null;
-                      
-                      return (
-                        <div
+                      <div
                           key={generation.id}
                           className="bg-white/5 rounded-lg overflow-hidden hover:bg-white/10 transition-all duration-200"
                         >
