@@ -23,7 +23,7 @@ import {
   Film,
   Wand2,
   Shield,
-  ArrowRight
+  ArrowRight,
   Dice6,
   Sparkles,
   Clock,
