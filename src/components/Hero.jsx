@@ -64,7 +64,8 @@ const Hero = () => {
             {/* Desktop Navigation */}
             <nav className="hidden md:flex items-center space-x-8">
               <a href="#tools" className="text-purple-200 hover:text-white transition-colors">Tools</a>
-              <a href="/imgmotionapp" className="text-purple-200 hover:text-white transition-colors">Pricing</a>
+              <a href="/imgmotionapp" className="text-purple-200 hover:text-white transition-colors">APP</a>
+              <a href="/pricing" className="text-purple-200 hover:text-white transition-colors">Pricing</a>
               <a href="#showcase" className="text-purple-200 hover:text-white transition-colors">Showcase</a>
               <a href="/about" className="text-purple-200 hover:text-white transition-colors">About</a>
               <a href="/contact" className="text-purple-200 hover:text-white transition-colors">Contact</a>
@@ -101,7 +102,7 @@ const Hero = () => {
                 <div className="absolute top-full right-0 mt-2 w-64 bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 shadow-2xl">
                   <div className="p-4 space-y-4">
                     <a href="#tools" className="block text-purple-200 hover:text-white transition-colors py-2">Tools</a>
-                    <a href="/contact" className="block text-purple-200 hover:text-white transition-colors py-2">Contact</a>
+                    <a href="/imgmotionapp" className="block text-purple-200 hover:text-white transition-colors py-2">APP</a>
                     <a href="#pricing" className="block text-purple-200 hover:text-white transition-colors py-2">Pricing</a>
                     <a href="#gallery" className="block text-purple-200 hover:text-white transition-colors py-2">Gallery</a>
                     <a href="/about" className="block text-purple-200 hover:text-white transition-colors py-2">About</a>
