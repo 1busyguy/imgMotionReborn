@@ -52,7 +52,7 @@ const Login = () => {
         } else {
           setError('Please check your email and click the confirmation link to verify your account before signing in.');
         }
-        // redirectTo: `https://imgmotionmagic.com/dashboard`
+        // redirectTo: `https://imgmotion.com/dashboard`
       }
     } catch (error) {
       setError(error.message);
@@ -94,7 +94,7 @@ const Login = () => {
           </div>
           
           <h1 className="text-3xl font-bold text-white mb-2">Welcome Back</h1>
-          <p className="text-purple-200">Sign in to your imgMotionMagic account</p>
+          <p className="text-purple-200">Sign in to your imgMotion account</p>
         </div>
 
         {error && (
