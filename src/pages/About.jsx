@@ -22,7 +22,7 @@ const About = () => {
                 <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl flex items-center justify-center">
                   <Zap className="w-5 h-5 text-white" />
                 </div>
-                <h1 className="text-xl font-bold text-white">About imgMotionMagic</h1>
+                <h1 className="text-xl font-bold text-white">About imgMotion</h1>
               </div>
             </div>
           </div>
@@ -56,7 +56,7 @@ const About = () => {
           </h2>
           <div className="space-y-6 text-purple-200 leading-relaxed">
             <p>
-              imgMotionMagic was born from a simple belief: everyone should have access to cutting-edge 
+              imgMotion was born from a simple belief: everyone should have access to cutting-edge 
               AI tools for creative expression. We saw a world where powerful AI models were locked 
               behind complex APIs and technical barriers, limiting their potential to transform how 
               people create and share visual content.
@@ -68,7 +68,7 @@ const About = () => {
               user-friendly interface.
             </p>
             <p>
-              Today, imgMotionMagic serves thousands of creators, from social media influencers and 
+              Today, imgMotion serves thousands of creators, from social media influencers and 
               marketing professionals to artists and hobbyists, helping them bring their creative 
               visions to life with just a few clicks.
             </p>
@@ -206,7 +206,7 @@ const About = () => {
         <div className="text-center">
           <h2 className="text-3xl font-bold text-white mb-6">Ready to Transform Your Creative Process?</h2>
           <p className="text-xl text-purple-200 mb-8">
-            Join thousands of creators who are already using imgMotionMagic to bring their visions to life.
+            Join thousands of creators who are already using imgMotion to bring their visions to life.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
