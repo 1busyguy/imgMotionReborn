@@ -1061,7 +1061,7 @@ const WanV22A14b = () => {
                   </button>
                 </div>
 
-                {generations.slice(0, window.innerWidth >= 1024 ? 8 : generations.length).map((generation) => ()
+                {generations.length === 0 ? (
                   <div className="text-center py-12">
                     <Video className="w-16 h-16 text-purple-300 mx-auto mb-4 opacity-50" />
                     <p className="text-purple-200 text-lg">No videos generated yet</p>
@@ -1069,7 +1069,7 @@ const WanV22A14b = () => {
                   </div>
                 ) : (
                   <div className="space-y-6">
-                    {generations.map((generation) => (
+                    {generations.slice(0, window.innerWidth >= 1024 ? 8 : generations.length).map((generation) => (
                       <div
                         key={generation.id}
                         className="bg-white/5 rounded-lg overflow-hidden hover:bg-white/10 transition-all duration-200"
