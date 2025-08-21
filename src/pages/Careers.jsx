@@ -84,7 +84,7 @@ const Careers = () => {
       location: 'Remote',
       type: 'Full-time',
       salary: '$70,000 - $90,000',
-      description: 'Help our users succeed with imgMotionMagic. Provide support, gather feedback, and drive user engagement and retention.',
+      description: 'Help our users succeed with imgMotion. Provide support, gather feedback, and drive user engagement and retention.',
       requirements: [
         '3+ years of customer success or support experience',
         'Excellent communication and problem-solving skills',
@@ -102,7 +102,7 @@ const Careers = () => {
       location: 'Remote',
       type: 'Full-time',
       salary: '$80,000 - $100,000',
-      description: 'Drive growth and brand awareness for imgMotionMagic. Develop marketing strategies and campaigns for our AI creative platform.',
+      description: 'Drive growth and brand awareness for imgMotion. Develop marketing strategies and campaigns for our AI creative platform.',
       requirements: [
         '4+ years of digital marketing experience',
         'Experience with SaaS or tech product marketing',
