@@ -163,7 +163,7 @@ const ImgMotionApp = () => {
               <h1 className="text-5xl md:text-6xl font-bold text-white mb-6 leading-tight">
                 Make images
                 <span className="block text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-400">
-                  comealive with AR
+                  come alive with AR
                 </span>
               </h1>
 
