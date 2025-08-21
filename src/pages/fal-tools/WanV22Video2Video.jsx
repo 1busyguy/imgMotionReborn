@@ -27,7 +27,6 @@ import {
   Sparkles,
   Clock,
   Monitor,
-  Sliders,
   ArrowRight,
   AlertTriangle,
   Sliders,
