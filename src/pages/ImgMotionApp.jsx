@@ -190,9 +190,9 @@ const ImgMotionApp = () => {
                 <span className="text-cyan-300 text-sm font-medium">Turning IMGs into Experiences</span>
               </div>
 
-              <h1 className="text-5xl md:text-6xl font-bold text-white mb-6 leading-tight">
+              <h1 className="text-5xl md:text-6xl font-bold text-white mb-6 leading-tight relative z-10">
                 Unlock AR experiences
-                <span className="block text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-400">
+                <span className="block text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-400 pb-2">
                   from any image
                 </span>
               </h1>
