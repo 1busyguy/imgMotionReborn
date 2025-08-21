@@ -13,7 +13,6 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Settings from './pages/Settings';
 import Gallery from './pages/Gallery';
-import ImgMotionApp from './pages/ImgMotionApp';
 import FluxGenerator from './pages/FluxGenerator';
 import FluxRedux from './pages/fal-tools/FluxRedux';
 import FluxKontext from './pages/fal-tools/FluxKontext';
@@ -47,6 +46,7 @@ import Terms from './pages/Terms';
 import FAQ from './pages/FAQ';
 import Careers from './pages/Careers';
 import Pricing from './pages/Pricing';
+import ImgMotionApp from './pages/ImgMotionApp';
 
 // Protected Route Component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
