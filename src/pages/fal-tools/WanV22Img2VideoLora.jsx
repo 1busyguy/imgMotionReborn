@@ -25,7 +25,7 @@ import {
   Wand2,
   Image as ImageIcon,
   Shield,
-  ArrowRight
+  ArrowRight,
   Dice6,
   Sparkles,
   Clock,
