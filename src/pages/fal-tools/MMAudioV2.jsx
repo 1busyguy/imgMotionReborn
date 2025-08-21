@@ -31,7 +31,8 @@ import {
   Waves,
   Sliders,
   Hash,
-  Shuffle
+  Shuffle,
+  ArrowRight
 } from 'lucide-react';
 
 const MMAudioV2 = () => {
