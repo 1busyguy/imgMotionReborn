@@ -548,7 +548,7 @@ const LTXVVideo = () => {
         <div className="grid lg:grid-cols-3 gap-8">
           {/* Configuration Panel - Left Side */}
           <div className="lg:col-span-1">
-            <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 sticky top-8 max-h-[90vh] overflow-y-auto">
+            <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 sticky top-8 max-h-[90vh]">
               <div className="flex items-center space-x-2 mb-6">
                 <Settings className="w-5 h-5 text-purple-400" />
                 <h2 className="text-lg font-semibold text-white">Video Configuration</h2>
@@ -1055,7 +1055,7 @@ const LTXVVideo = () => {
                     <h3 className="text-lg font-semibold text-white">Processing Videos ({activeGenerations.length})</h3>
                   </div>
                   <div className="space-y-3">
-                    {activeGenerations.map((generation) => (
+                    {generations.slice(0, window.innerWidth >= 1024 ? 4 : generations.length).map((generation) => (
                       <div key={generation.id} className="bg-white/5 rounded-lg p-4">
                         <div className="flex items-center justify-between">
                           <div>
