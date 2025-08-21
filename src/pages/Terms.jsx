@@ -37,7 +37,7 @@ const Terms = () => {
             Terms of Service
           </h1>
           <p className="text-xl text-purple-200">
-            Please read these terms carefully before using imgMotionMagic. By using our service, you agree to these terms.
+            Please read these terms carefully before using imgMotion. By using our service, you agree to these terms.
           </p>
           <p className="text-purple-300 mt-4 mb-12">
             <strong>Last updated:</strong> August 2025
@@ -65,7 +65,7 @@ const Terms = () => {
             </h2>
             <div className="text-purple-200 space-y-4">
               <p>
-                By accessing or using imgMotionMagic ("the Service"), you agree to be bound by these Terms of Service ("Terms"). 
+                By accessing or using imgMotion ("the Service"), you agree to be bound by these Terms of Service ("Terms"). 
                 If you disagree with any part of these terms, you may not access the Service.
               </p>
               <p>
@@ -83,7 +83,7 @@ const Terms = () => {
             </h2>
             <div className="text-purple-200 space-y-4">
               <p>
-                imgMotionMagic is a platform that provides AI-powered content generation tools, including but not limited to:
+                imgMotion is a platform that provides AI-powered content generation tools, including but not limited to:
               </p>
               <ul className="space-y-2 ml-6">
                 <li>• Text-to-image generation</li>
@@ -293,7 +293,7 @@ const Terms = () => {
               </div>
               <div>
                 <h3 className="text-lg font-semibold text-white mb-2">Our Intellectual Property</h3>
-                <p>The Service, including its software, design, and underlying technology, is owned by imgMotionMagic and protected by intellectual property laws.</p>
+                <p>The Service, including its software, design, and underlying technology, is owned by imgMotion and protected by intellectual property laws.</p>
               </div>
             </div>
           </div>
@@ -363,7 +363,7 @@ const Terms = () => {
               </div>
               <div>
                 <h3 className="text-lg font-semibold text-white mb-2">Limitation of Liability</h3>
-                <p>To the maximum extent permitted by law, imgMotionMagic shall not be liable for any indirect, incidental, special, or consequential damages arising from your use of the Service.</p>
+                <p>To the maximum extent permitted by law, imgMotion shall not be liable for any indirect, incidental, special, or consequential damages arising from your use of the Service.</p>
               </div>
               <div>
                 <h3 className="text-lg font-semibold text-white mb-2">Indemnification</h3>
