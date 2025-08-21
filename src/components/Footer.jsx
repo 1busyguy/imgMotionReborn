@@ -19,7 +19,7 @@ const Footer = () => {
               Join the future of AI Art Creation. Get 200 FREE tokens with signup.*
             </p>
             <p className="text-gray-500 text-sm">
-              *Free tier content includes imgMotion watermark
+              *Free tier has imgMotion watermark
             </p>
             <div className="flex space-x-4">
               <a href="#" className="text-gray-400 hover:text-purple-400 transition-colors">
