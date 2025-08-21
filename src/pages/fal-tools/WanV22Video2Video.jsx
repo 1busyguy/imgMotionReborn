@@ -1166,7 +1166,7 @@ const WanV22Video2Video = () => {
                   </div>
                 ) : (
                   <div className="space-y-6">
-                    {generations.map((generation) => (
+                    {generations.slice(0, window.innerWidth >= 1024 ? 2 : generations.length).map((generation) => (
                       <div
                         key={generation.id}
                         className="bg-white/5 rounded-lg overflow-hidden hover:bg-white/10 transition-all duration-200"
@@ -1274,6 +1274,19 @@ const WanV22Video2Video = () => {
                         </div>
                       </div>
                     ))}
+                    
+                    {/* Show "View More" link on desktop if there are more than 2 generations */}
+                    {window.innerWidth >= 1024 && generations.length > 2 && (
+                      <div className="text-center pt-4">
+                        <button
+                          onClick={() => navigate('/gallery')}
+                          className="text-purple-400 hover:text-purple-300 transition-colors text-sm flex items-center justify-center space-x-2 mx-auto"
+                        >
+                          <span>View all {generations.length} generations in Gallery</span>
+                          <ArrowRight className="w-4 h-4" />
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
