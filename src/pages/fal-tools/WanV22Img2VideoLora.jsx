@@ -1295,7 +1295,7 @@ const WanV22Img2VideoLora = () => {
                   </div>
                 ) : (
                   <div className="space-y-4 lg:space-y-6">
-                    {generations.slice(0, window.innerWidth >= 1024 ? 2 : generations.length).map((generation) => (
+                    {generations.slice(0, window.innerWidth >= 1024 ? 3 : generations.length).map((generation) => (
                       <>
                         <div
                           key={generation.id}
