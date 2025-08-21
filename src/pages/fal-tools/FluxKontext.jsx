@@ -980,7 +980,7 @@ const FluxKontext = () => {
                   </div>
                 ) : (
                   <div className="space-y-6">
-                    {generations.map((generation) => (
+                    {generations.slice(0, window.innerWidth >= 1024 ? 4 : generations.length).map((generation) => (
                       <div
                         key={generation.id}
                         className="bg-white/5 rounded-lg overflow-hidden hover:bg-white/10 transition-all duration-200 cursor-pointer"
