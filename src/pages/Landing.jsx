@@ -60,8 +60,8 @@ const NewLanding = () => {
               </span>
             </h2>
             <p className="text-xl text-purple-200 max-w-4xl mx-auto">
-              imgMotionMagic powers creators with AI tools to generate and animate content. 
-              imgMotion brings those creations to life through augmented reality. 
+              imgMotion powers creators with AI tools to generate and animate content, 
+              then brings those creations to life through augmented reality. 
               One ecosystem, infinite possibilities.
             </p>
           </div>
@@ -69,7 +69,7 @@ const NewLanding = () => {
           {/* Visual Flow Diagram */}
           <div className="relative mb-16">
             <div className="grid lg:grid-cols-3 gap-8 items-center">
-              {/* Step 1: Create with imgMotionMagic */}
+              {/* Step 1: Create with imgMotion */}
               <div className="text-center">
                 <div className="bg-white/10 backdrop-blur-md rounded-3xl p-8 border border-purple-500/30 hover:border-purple-400/50 transition-all duration-300">
                   <div className="w-20 h-20 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -77,7 +77,7 @@ const NewLanding = () => {
                   </div>
                   <h3 className="text-2xl font-bold text-white mb-3">1. Create with AI</h3>
                   <p className="text-purple-200 mb-4">
-                    Use imgMotionMagic's 20+ AI tools to generate images, videos, and animations
+                    Use imgMotion's 20+ AI tools to generate images, videos, and animations
                   </p>
                   <div className="flex flex-wrap gap-2 justify-center">
                     <span className="px-3 py-1 bg-purple-500/20 text-purple-300 rounded-full text-xs">Text-to-Image</span>
@@ -95,7 +95,7 @@ const NewLanding = () => {
                 <ArrowDown className="w-12 h-12 text-white/50" />
               </div>
 
-              {/* Step 2: Experience with imgMotion */}
+              {/* Step 2: Experience with imgMotion AR */}
               <div className="text-center">
                 <div className="bg-white/10 backdrop-blur-md rounded-3xl p-8 border border-cyan-500/30 hover:border-cyan-400/50 transition-all duration-300">
                   <div className="w-20 h-20 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -103,7 +103,7 @@ const NewLanding = () => {
                   </div>
                   <h3 className="text-2xl font-bold text-white mb-3">2. Experience in AR</h3>
                   <p className="text-purple-200 mb-4">
-                    Your creations come to life through the imgMotion app with AR scanning
+                    Your creations come to life through imgMotion's AR app with instant scanning
                   </p>
                   <div className="flex flex-wrap gap-2 justify-center">
                     <span className="px-3 py-1 bg-cyan-500/20 text-cyan-300 rounded-full text-xs">AR Activation</span>
@@ -154,7 +154,7 @@ const NewLanding = () => {
         </div>
       </section>
 
-      {/* Creator Tools Section (imgMotionMagic) */}
+      {/* Creator Tools Section (imgMotion) */}
       <section className="py-20 bg-gray-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
@@ -163,7 +163,7 @@ const NewLanding = () => {
               <span className="text-purple-300 text-sm font-medium">CREATOR TOOLS</span>
             </div>
             <h2 className="text-3xl md:text-5xl font-bold text-white mb-4">
-              imgMotionMagic: Your AI Creation Studio
+              imgMotion: Your AI Creation Studio
             </h2>
             <p className="text-xl text-gray-400 max-w-3xl mx-auto">
               Professional tools to generate, animate, and prepare content for AR experiences
@@ -228,7 +228,7 @@ const NewLanding = () => {
         </div>
       </section>
 
-      {/* Consumer Experience Section (imgMotion App) */}
+      {/* Consumer Experience Section (imgMotion AR App) */}
       <section className="py-20 bg-gradient-to-br from-cyan-900 via-blue-900 to-indigo-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
@@ -237,7 +237,7 @@ const NewLanding = () => {
               <span className="text-cyan-300 text-sm font-medium">CONSUMER APP</span>
             </div>
             <h2 className="text-3xl md:text-5xl font-bold text-white mb-4">
-              imgMotion: Experience AR Magic
+              imgMotion AR: Experience the Magic
             </h2>
             <p className="text-xl text-cyan-200 max-w-3xl mx-auto">
               Scan any image to unlock videos, 3D objects, shopping, and immersive experiences
@@ -399,7 +399,7 @@ const NewLanding = () => {
           </div>
           
           <p className="text-white/70 text-sm mt-6">
-            imgMotionMagic available now • imgMotion app launching March 2025
+            imgMotion available now • AR app launching March 2025
           </p>
         </div>
       </section>
