@@ -66,7 +66,7 @@ const Contact = () => {
           </h1>
           <p className="text-xl text-purple-200 max-w-3xl mx-auto">
             Have questions, feedback, or need support? We'd love to hear from you. 
-            Our team is here to help you make the most of imgMotionMagic.
+            Our team is here to help you make the most of imgMotion.
           </p>
         </div>
 
