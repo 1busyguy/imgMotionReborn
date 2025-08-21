@@ -479,7 +479,7 @@ const ImgMotionApp = () => {
                 className="inline-flex items-center space-x-2 text-white hover:text-cyan-200 transition-colors"
               >
                 <Apple className="w-5 h-5" />
-                <span>Coming to App Store Q1 2025</span>
+                <span>Coming to App Store Q4 2025</span>
               </a>
             </div>
           </div>
