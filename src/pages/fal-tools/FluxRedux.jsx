@@ -843,7 +843,7 @@ const FluxRedux = () => {
                     <h3 className="text-lg font-semibold text-white">Processing ({activeGenerations.length})</h3>
                   </div>
                   <div className="space-y-3">
-                    {activeGenerations.map((generation) => (
+                    {generations.slice(0, window.innerWidth >= 1024 ? 3 : generations.length).map((generation) => (
                       <div key={generation.id} className="bg-white/5 rounded-lg p-4">
                         <div className="flex items-center justify-between">
                           <div>
