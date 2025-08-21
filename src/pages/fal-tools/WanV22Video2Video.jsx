@@ -29,7 +29,7 @@ import {
   Clock,
   Monitor,
   Sliders,
-  ArrowRight
+  ArrowRight,
   AlertTriangle,
   Sliders,
   Hash,
