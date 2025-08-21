@@ -157,7 +157,7 @@ const ImgMotionApp = () => {
             <div>
               <div className="inline-flex items-center space-x-2 bg-cyan-500/20 backdrop-blur-sm px-4 py-2 rounded-full mb-6">
                 <Star className="w-4 h-4 text-yellow-400" />
-                <span className="text-cyan-200 text-sm font-medium">4.9 Rating on App Store</span>
+         {/*     <span className="text-cyan-200 text-sm font-medium">4.9 Rating on App Store</span> */}
               </div>
 
               <h1 className="text-5xl md:text-6xl font-bold text-white mb-6 leading-tight">
