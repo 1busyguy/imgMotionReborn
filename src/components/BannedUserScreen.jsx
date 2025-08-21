@@ -24,7 +24,7 @@ const BannedUserScreen = ({ banReason, bannedAt }) => {
               <div className="text-left">
                 <p className="text-red-200 font-medium mb-2">Terms of Service Violation</p>
                 <p className="text-red-300 text-sm leading-relaxed">
-                  Your account has been suspended for violating the terms and conditions of imgMotionMagic.com.
+                  Your account has been suspended for violating the terms and conditions of imgMotion.com.
                 </p>
               </div>
             </div>
