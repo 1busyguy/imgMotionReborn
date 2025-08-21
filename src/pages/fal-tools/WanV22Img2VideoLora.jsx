@@ -25,6 +25,7 @@ import {
   Wand2,
   Image as ImageIcon,
   Shield,
+  ArrowRight
   Dice6,
   Sparkles,
   Clock,
@@ -1255,6 +1256,19 @@ const WanV22Img2VideoLora = () => {
                         </div>
                       </div>
                     ))}
+                    
+                    {/* View More Link - Desktop Only */}
+                    {window.innerWidth >= 1024 && generations.length > 2 && (
+                      <div className="text-center pt-4">
+                        <button
+                          onClick={() => navigate('/gallery')}
+                          className="inline-flex items-center space-x-2 text-purple-400 hover:text-purple-300 transition-colors"
+                        >
+                          <span>View all {generations.length} videos in Gallery</span>
+                          <ArrowRight className="w-4 h-4" />
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
@@ -1281,7 +1295,7 @@ const WanV22Img2VideoLora = () => {
                   </div>
                 ) : (
                   <div className="space-y-4 lg:space-y-6">
-                    {generations.map((generation) => {
+                    {generations.slice(0, window.innerWidth >= 1024 ? 2 : generations.length).map((generation) => (
                       if (!generation) return null;
                       
                       return (
