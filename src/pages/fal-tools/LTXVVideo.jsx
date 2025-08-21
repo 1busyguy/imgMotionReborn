@@ -545,10 +545,10 @@ const LTXVVideo = () => {
       </header>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid lg:grid-cols-3 gap-8">
-          {/* Configuration Panel - Left Side */}
-          <div className="lg:col-span-1">
-            <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 sticky top-8 max-h-[90vh] overflow-y">
+        <<div className="grid lg:grid-cols-3 gap-8">
+          {/* Configuration Panel */}
+          <div className="lg:col-span-1 w-full min-w-0">
+            <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 sticky top-8">
               <div className="flex items-center space-x-2 mb-6">
                 <Settings className="w-5 h-5 text-purple-400" />
                 <h2 className="text-lg font-semibold text-white">Video Configuration</h2>
