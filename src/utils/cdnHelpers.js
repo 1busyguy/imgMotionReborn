@@ -9,7 +9,7 @@ const CDN_BASE_URL = import.meta.env.VITE_CDN_URL;
  * Example:
  * https://<project_ref>.supabase.co/storage/v1/object/public/user-files/path/to/file.jpg
  * becomes
- * https://cdn.imgmotionmagic.com/user-files/path/to/file.jpg
+ * https://cdn.imgmotion.com/user-files/path/to/file.jpg
  *
  * @param {string} supabaseUrl The original Supabase Storage URL.
  * @returns {string} The transformed CDN URL, or the original URL if transformation fails.
