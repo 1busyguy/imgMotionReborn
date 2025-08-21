@@ -432,7 +432,7 @@ function App() {
             <Route path="/faq" element={<FAQ />} />
             <Route path="/careers" element={<Careers />} />
             <Route path="/pricing" element={<Pricing />} />
-            <Route path="/imgmotionapp" element={<App />} />
+            <Route path="/imgmotionapp" element={<ImgMotionApp />} />
             {/* Catch all route - redirect to home */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
