@@ -141,8 +141,8 @@ const Testimonials = () => {
         <div className="absolute top-0 right-0 w-32 h-full bg-gradient-to-l from-pink-50 to-transparent pointer-events-none z-10"></div>
       </div>
 
-      {/* Call to Action */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-16 text-center">
+        {/* Call to Action 
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-16 text-center">
         <div className="bg-gradient-to-r from-purple-500 to-pink-500 rounded-3xl p-8 text-white">
           <h3 className="text-2xl md:text-3xl font-bold mb-4">
             Ready to Join Our Creative Community?
@@ -157,7 +157,7 @@ const Testimonials = () => {
             Start Creating Now
           </button>
         </div>
-      </div>
+      </div>  */}
 
       <style jsx>{`
         @keyframes scroll {
