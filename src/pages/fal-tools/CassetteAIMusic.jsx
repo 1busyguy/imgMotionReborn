@@ -4,6 +4,7 @@ import { supabase } from '../../lib/supabaseClient';
 import { useAuth } from '../../hooks/useAuth';
 import { createAIGeneration, updateTokenCount } from '../../utils/storageHelpers';
 import { isNSFWError, parseNSFWError } from '../../utils/errorHandlers';
+import { toCdnUrl } from '../../utils/cdnHelpers';
 import { performSafetyAnalysis, shouldShowWarning, getSafetyWarningMessage, logSafetyAnalysis } from '../../utils/safescan';
 import NSFWAlert from '../../components/NSFWAlert';
 import SafetyWarningModal from '../../components/SafetyWarningModal';
