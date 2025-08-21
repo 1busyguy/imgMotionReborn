@@ -12,14 +12,14 @@ const Footer = () => {
               <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
                 <Zap className="w-4 h-4 text-white" />
               </div>
-              <span className="text-xl font-bold">imgMotionMagic</span>
+              <span className="text-xl font-bold">imgMotion</span>
             </div>
             <p className="text-gray-400">
               Transform your creative vision into reality with our cutting-edge AI tools. 
               Join the future of AI Art Creation. Get 200 FREE tokens with signup.*
             </p>
             <p className="text-gray-500 text-sm">
-              *Free tier content includes imgMotionMagic watermark
+              *Free tier content includes imgMotion watermark
             </p>
             <div className="flex space-x-4">
               <a href="#" className="text-gray-400 hover:text-purple-400 transition-colors">
@@ -82,7 +82,7 @@ const Footer = () => {
         </div>
 
         <div className="mt-12 pt-8 border-t border-gray-800 text-center text-gray-400">
-          <p>&copy; 2025 imgMotionMagic. a 1BusyGuy Inc Company All rights reserved.</p>
+          <p>&copy; 2025 imgMotion. a 1BusyGuy Inc Company All rights reserved.</p>
         </div>
       </div>
     </footer>
