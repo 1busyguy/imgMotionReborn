@@ -161,9 +161,9 @@ const ImgMotionApp = () => {
               </div>
 
               <h1 className="text-5xl md:text-6xl font-bold text-white mb-6 leading-tight">
-                Bring Your Photos to
+                Turn imgs into cool
                 <span className="block text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-400">
-                  Life with AI
+                  engaging experiences
                 </span>
               </h1>
 
