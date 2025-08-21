@@ -1061,7 +1061,7 @@ const WanV22A14b = () => {
                   </button>
                 </div>
 
-                {generations.slice(0, window.innerWidth >= 1024 ? 8 : generations.length).map((generation) => {
+                {generations.slice(0, window.innerWidth >= 1024 ? 8 : generations.length).map((generation) => ()
                   <div className="text-center py-12">
                     <Video className="w-16 h-16 text-purple-300 mx-auto mb-4 opacity-50" />
                     <p className="text-purple-200 text-lg">No videos generated yet</p>
