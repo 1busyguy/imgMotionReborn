@@ -1402,7 +1402,6 @@ const WanV22Img2VideoLora = () => {
                             </div>
                           </div>
                         </div>
-                      );
                     })}
                   </div>
                 )}
