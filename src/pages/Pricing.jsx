@@ -38,7 +38,7 @@ const Pricing = () => {
         tokens: '200 tokens monthly',
         tools: 'Access to basic tools',
         quality: 'Standard quality outputs',
-        watermark: 'imgMotionMagic watermark included',
+        watermark: 'imgMotion watermark included',
         support: 'Community support',
         commercial: 'Personal use only',
         priority: 'Standard processing',
@@ -453,7 +453,7 @@ const Pricing = () => {
             Ready to Start Creating?
           </h2>
           <p className="text-xl text-purple-200 mb-8">
-            Join thousands of creators who are already using imgMotionMagic to bring their visions to life.
+            Join thousands of creators who are already using imgMotion to bring their visions to life.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
