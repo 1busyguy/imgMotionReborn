@@ -28,7 +28,8 @@ import {
   Sparkles,
   Clock,
   Monitor,
-  CheckCircle,
+  Sliders,
+  ArrowRight
   AlertTriangle,
   Sliders,
   Hash,
@@ -1151,12 +1152,21 @@ const WanV22Video2Video = () => {
               <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6">
                 <div className="flex items-center justify-between mb-6">
                   <h3 className="text-lg font-semibold text-white">Transformed Videos</h3>
-                  <button
-                    onClick={() => handleDownload(toCdnUrl(selectedGeneration.output_file_url))}
-                    className="text-purple-400 hover:text-purple-300 transition-colors"
-                  >
-                    <RefreshCw className="w-4 h-4" />
-                  </button>
+                  <div className="flex items-center space-x-3">
+                    <button
+                      onClick={() => navigate('/gallery?filter=fal_wan_v22_video2video')}
+                      className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-medium py-2 px-4 rounded-lg transition-all duration-300 transform hover:scale-105 flex items-center space-x-2"
+                    >
+                      <span>View All</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={fetchGenerations}
+                      className="text-purple-400 hover:text-purple-300 transition-colors"
+                    >
+                      <RefreshCw className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
 
                 {generations.length === 0 ? (
