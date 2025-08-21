@@ -1174,10 +1174,10 @@ const WanV22Text2VideoLora = () => {
                   </div>
                 ) : (
                   <div className="space-y-6">
-                    {generations.slice(0, window.innerWidth >= 1024 ? 2 : generations.length).map((generation) => (
-                      if (!generation) return null;
-                      
-                      return (
+                    {generations
+                      .filter(generation => generation != null)
+                      .slice(0, window.innerWidth >= 1024 ? 2 : generations.length)
+                      .map((generation) => (
                         <div
                           key={generation.id}
                           className="bg-white/5 rounded-lg overflow-hidden hover:bg-white/10 transition-all duration-200"
@@ -1303,8 +1303,7 @@ const WanV22Text2VideoLora = () => {
                             </div>
                           </div>
                         </div>
-                      );
-                    })}
+                      ))}
                   </div>
                 )}
               </div>
