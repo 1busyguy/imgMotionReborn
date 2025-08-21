@@ -155,8 +155,8 @@ const ImgMotionApp = () => {
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             {/* Left Content */}
             <div>
-              <div className="inline-flex items-center space-x-2 bg-cyan-500/20 backdrop-blur-sm px-4 py-2 rounded-full mb-6">
-         {/*    <Star className="w-4 h-4 text-yellow-400" />
+        {/*    <div className="inline-flex items-center space-x-2 bg-cyan-500/20 backdrop-blur-sm px-4 py-2 rounded-full mb-6">
+               <Star className="w-4 h-4 text-yellow-400" />
               <span className="text-cyan-200 text-sm font-medium">4.9 Rating on App Store</span> */}
               </div>
 
