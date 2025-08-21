@@ -929,6 +929,7 @@ const WanV22Text2VideoLora = () => {
                     type="range"
                     min="1"
                     max="10"
+                    step="0.1"
                     value={config.shift}
                     onChange={(e) => setConfig(prev => ({ ...prev, shift: parseInt(e.target.value) }))}
                     className="w-full h-2 bg-white/20 rounded-lg appearance-none cursor-pointer slider"
@@ -977,7 +978,7 @@ const WanV22Text2VideoLora = () => {
                   <input
                     type="range"
                     min="0"
-                    max="5"
+                    max="4"
                     value={config.numInterpolatedFrames}
                     onChange={(e) => setConfig(prev => ({ ...prev, numInterpolatedFrames: parseInt(e.target.value) }))}
                     className="w-full h-2 bg-white/20 rounded-lg appearance-none cursor-pointer slider"
@@ -985,7 +986,7 @@ const WanV22Text2VideoLora = () => {
                   <div className="flex justify-between text-xs text-purple-300 mt-1">
                     <span>0</span>
                     <span>1 (default)</span>
-                    <span>5</span>
+                    <span>4</span>
                   </div>
                 </div>
 
