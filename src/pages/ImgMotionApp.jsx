@@ -166,7 +166,7 @@ const ImgMotionApp = () => {
 
               <p className="text-xl text-purple-200 mb-8 leading-relaxed">
                 Transform static images into mesmerizing animations with the power of AI. 
-                Create stunning content for social media in seconds, right from your iPhone.
+                Use Augmented Reality to bring them into the real world, right from your mobile device.
               </p>
 
               <div className="flex flex-col sm:flex-row gap-4 mb-8">
