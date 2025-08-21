@@ -12,7 +12,7 @@ const Testimonials = () => {
       name: "Sarah Chen",
       role: "Content Creator",
       avatar: "https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&dpr=1",
-      text: "imgMotionMagic has completely transformed my content creation workflow. The AI tools are incredibly intuitive and produce professional-quality results every time.",
+      text: "imgMotion has completely transformed my content creation workflow. The AI tools are incredibly intuitive and produce professional-quality results every time.",
       rating: 5
     },
     {
@@ -28,7 +28,7 @@ const Testimonials = () => {
       name: "Emily Johnson",
       role: "Freelance Designer",
       avatar: "https://images.pexels.com/photos/1239291/pexels-photo-1239291.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&dpr=1",
-      text: "As a freelancer, imgMotionMagic gives me superpowers. I can offer my clients services I never thought possible before.",
+      text: "As a freelancer, imgMotion gives me superpowers. I can offer my clients services I never thought possible before.",
       rating: 5
     },
     {
@@ -68,7 +68,7 @@ const Testimonials = () => {
       name: "Michael Chang",
       role: "Video Producer",
       avatar: "https://images.pexels.com/photos/1212984/pexels-photo-1212984.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&dpr=1",
-      text: "I've tried many AI video tools, but imgMotionMagic consistently delivers the best results. The motion quality is simply outstanding.",
+      text: "I've tried many AI video tools, but imgMotion consistently delivers the best results. The motion quality is simply outstanding.",
       rating: 5
     }
   ];
