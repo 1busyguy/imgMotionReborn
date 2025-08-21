@@ -1152,17 +1152,17 @@ const WanV22Video2Video = () => {
                   <h3 className="text-lg font-semibold text-white">Transformed Videos</h3>
                   <div className="flex items-center space-x-3">
                     <button
-                      onClick={() => fetchGenerations()}
-                      className="text-purple-400 hover:text-purple-300 transition-colors"
-                    >
-                      <RefreshCw className="w-4 h-4" />
-                    </button>
-                    <button
                       onClick={() => navigate('/gallery?filter=fal_wan_v22_video2video')}
                       className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-medium py-2 px-4 rounded-lg transition-all duration-300 transform hover:scale-105 flex items-center space-x-2"
                     >
-                      <span>View All WAN v2.2 Video2Video</span>
+                      <span>View All</span>
                       <ArrowRight className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={fetchGenerations}
+                      className="text-purple-400 hover:text-purple-300 transition-colors"
+                    >
+                      <RefreshCw className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
