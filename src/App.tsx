@@ -13,6 +13,7 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Settings from './pages/Settings';
 import Gallery from './pages/Gallery';
+import ImgMotionApp from './pages/ImgMotionApp';
 import FluxGenerator from './pages/FluxGenerator';
 import FluxRedux from './pages/fal-tools/FluxRedux';
 import FluxKontext from './pages/fal-tools/FluxKontext';
@@ -431,6 +432,7 @@ function App() {
             <Route path="/faq" element={<FAQ />} />
             <Route path="/careers" element={<Careers />} />
             <Route path="/pricing" element={<Pricing />} />
+            <Route path="/imgmotionapp" element={<App />} />
             {/* Catch all route - redirect to home */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
