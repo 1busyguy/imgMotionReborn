@@ -43,14 +43,24 @@ export const toCdnUrl = (supabaseUrl) => {
  * @returns {string|null} - Thumbnail URL or null
  */
 export const getThumbnailUrl = (generation) => {
-  // Check for thumbnail_url column first
+  // Check for thumbnail_url column first (direct database field)
   if (generation.thumbnail_url) {
     return toCdnUrl(generation.thumbnail_url);
   }
   
-  // Check metadata for thumbnail
+  // Check metadata for thumbnail (stored in metadata object)
   if (generation.metadata?.thumbnail_url) {
     return toCdnUrl(generation.metadata.thumbnail_url);
+  }
+  
+  // Check for FFmpeg-generated thumbnails (especially for WAN v2.2 tools)
+  if (generation.metadata?.thumbnail_processing?.thumbnail_url) {
+    return toCdnUrl(generation.metadata.thumbnail_processing.thumbnail_url);
+  }
+  
+  // Check for watermark processing thumbnails
+  if (generation.metadata?.watermark_processing?.thumbnail_url) {
+    return toCdnUrl(generation.metadata.watermark_processing.thumbnail_url);
   }
   
   // Fallback to input image for video generations
