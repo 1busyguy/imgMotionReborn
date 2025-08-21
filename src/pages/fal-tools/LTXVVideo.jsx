@@ -1129,7 +1129,7 @@ const LTXVVideo = () => {
                                 src={toCdnUrl(generation.output_file_url)}
                                 controls
                                 className="w-full rounded-lg max-h-96"
-                                poster={toCdnUrl(generation.input_data?.imageUrl)}                                
+                    <div className="space-y-2 mb-4">
                                 preload="metadata"
                               >
                                 Your browser does not support the video tag.
