@@ -841,7 +841,7 @@ const FluxKontextMaxMulti = () => {
                   </div>
                 ) : (
                   <div className="grid md:grid-cols-2 gap-4">
-                    {generations.slice(0, window.innerWidth >= 1024 ? 8 : generations.length).map((generation) => (
+                    {generations.slice(0, window.innerWidth >= 1024 ? 8 : generations.length).map((generation) => {
                       const imageUrls = getAllImageUrls(generation);
                       const primaryUrl = imageUrls[0];
                       
