@@ -1,12 +1,43 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { useAuth } from '../hooks/useAuth';
+import { supabase } from '../lib/supabaseClient';
 import { toCdnUrl } from '../utils/cdnHelpers';
 import { Zap, Play, ArrowRight, Menu, X, User, LogIn } from 'lucide-react';
 
 const Hero = () => {
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isVideoLoaded, setIsVideoLoaded] = useState(false);
+  const [profile, setProfile] = useState(null);
+
+  // Fetch user profile when user is available
+  useEffect(() => {
+    if (user) {
+      fetchProfile();
+    } else {
+      setProfile(null);
+    }
+  }, [user]);
+
+  const fetchProfile = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+
+      if (error) {
+        console.error('Error fetching profile:', error);
+      } else {
+        setProfile(data);
+      }
+    } catch (error) {
+      console.error('Error fetching profile:', error);
+    }
+  };
 
   // Close mobile menu when clicking outside
   useEffect(() => {
@@ -73,21 +104,56 @@ const Hero = () => {
               <a href="/contact" className="text-purple-200 hover:text-white transition-colors">Contact</a>
             </nav>
 
-            {/* Desktop Auth Buttons */}
+            {/* Desktop Auth Buttons / User Info */}
             <div className="hidden md:flex items-center space-x-4">
-              <button
-                onClick={() => navigate('/login')}
-                className="flex items-center space-x-2 text-purple-200 hover:text-white transition-colors"
-              >
-                <LogIn className="w-4 h-4" />
-                <span>Sign In</span>
-              </button>
-              <button
-                onClick={() => navigate('/signup')}
-                className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-semibold py-2 px-4 rounded-lg transition-all duration-300 transform hover:scale-105"
-              >
-                Get Started
-              </button>
+              {user && profile ? (
+                <>
+                  {/* User Tokens */}
+                  <button
+                    onClick={() => navigate('/settings?tab=billing')}
+                    className="flex items-center space-x-2 hover:bg-white/10 px-3 py-2 rounded-lg transition-colors group"
+                    title="Click to manage billing and tokens"
+                  >
+                    <Zap className="w-4 h-4 text-purple-400" />
+                    <span className="text-white font-semibold text-sm group-hover:text-purple-200">
+                      {(profile?.tokens || 0) + (profile?.purchased_tokens || 0)} tokens
+                    </span>
+                  </button>
+                  
+                  {/* User Avatar */}
+                  <button
+                    onClick={() => navigate('/dashboard')}
+                    className="w-10 h-10 bg-gradient-to-r from-purple-400 to-pink-400 rounded-full flex items-center justify-center text-white font-semibold text-sm hover:from-purple-500 hover:to-pink-500 transition-all duration-200"
+                    title="Go to Dashboard"
+                  >
+                    {profile?.avatar_url ? (
+                      <img 
+                        src={toCdnUrl(profile.avatar_url)} 
+                        alt="Profile" 
+                        className="w-full h-full rounded-full object-cover"
+                      />
+                    ) : (
+                      user?.email?.charAt(0).toUpperCase() || 'U'
+                    )}
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={() => navigate('/login')}
+                    className="flex items-center space-x-2 text-purple-200 hover:text-white transition-colors"
+                  >
+                    <LogIn className="w-4 h-4" />
+                    <span>Sign In</span>
+                  </button>
+                  <button
+                    onClick={() => navigate('/signup')}
+                    className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-semibold py-2 px-4 rounded-lg transition-all duration-300 transform hover:scale-105"
+                  >
+                    Get Started
+                  </button>
+                </>
+              )}
             </div>
 
             {/* Mobile Menu Button */}
@@ -110,19 +176,52 @@ const Hero = () => {
                     <a href="/about" className="block text-purple-200 hover:text-white transition-colors py-2">About</a>
                     <a href="/contact" className="block text-purple-200 hover:text-white transition-colors py-2">Contact</a>
                     <hr className="border-white/20" />
-                    <button
-                      onClick={() => navigate('/login')}
-                      className="w-full flex items-center space-x-2 text-purple-200 hover:text-white transition-colors py-2"
-                    >
-                      <LogIn className="w-4 h-4" />
-                      <span>Sign In</span>
-                    </button>
-                    <button
-                      onClick={() => navigate('/signup')}
-                      className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-semibold py-3 px-4 rounded-lg transition-all duration-300"
-                    >
-                      Get Started
-                    </button>
+                    {user && profile ? (
+                      <>
+                        {/* Mobile User Info */}
+                        <div className="flex items-center space-x-3 py-2">
+                          <div className="w-8 h-8 bg-gradient-to-r from-purple-400 to-pink-400 rounded-full flex items-center justify-center text-white font-semibold text-xs">
+                            {profile?.avatar_url ? (
+                              <img 
+                                src={toCdnUrl(profile.avatar_url)} 
+                                alt="Profile" 
+                                className="w-full h-full rounded-full object-cover"
+                              />
+                            ) : (
+                              user?.email?.charAt(0).toUpperCase() || 'U'
+                            )}
+                          </div>
+                          <div>
+                            <div className="text-white font-medium text-sm">{user.email}</div>
+                            <div className="text-purple-300 text-xs">
+                              {(profile?.tokens || 0) + (profile?.purchased_tokens || 0)} tokens
+                            </div>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => navigate('/dashboard')}
+                          className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-semibold py-3 px-4 rounded-lg transition-all duration-300"
+                        >
+                          Go to Dashboard
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <button
+                          onClick={() => navigate('/login')}
+                          className="w-full flex items-center space-x-2 text-purple-200 hover:text-white transition-colors py-2"
+                        >
+                          <LogIn className="w-4 h-4" />
+                          <span>Sign In</span>
+                        </button>
+                        <button
+                          onClick={() => navigate('/signup')}
+                          className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-semibold py-3 px-4 rounded-lg transition-all duration-300"
+                        >
+                          Get Started
+                        </button>
+                      </>
+                    )}
                   </div>
                 </div>
               )}
