@@ -41,6 +41,8 @@ const AdminFALToolGenerator = () => {
   const [success, setSuccess] = useState('');
   const [showPreview, setShowPreview] = useState(false);
   const [generatedCode, setGeneratedCode] = useState({});
+  const [isParsingWithAI, setIsParsingWithAI] = useState(false);
+  const [aiParsingError, setAiParsingError] = useState('');
 
   // Tool configuration state
   const [toolConfig, setToolConfig] = useState({
@@ -397,6 +399,69 @@ const AdminFALToolGenerator = () => {
       .replace(/FAL\.ai|fal\.ai|FAL|API|Documentation/gi, '')
       .replace(/[^\w\s]/g, '')
       .trim();
+  };
+
+  // Parse documentation using OpenAI
+  const parseWithOpenAI = async () => {
+    if (!toolConfig.apiDocumentation.trim()) {
+      setError('Please provide documentation to parse');
+      return;
+    }
+
+    setIsParsingWithAI(true);
+    setAiParsingError('');
+    setError('');
+
+    try {
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/parse-fal-documentation`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session.access_token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          documentation: toolConfig.apiDocumentation,
+          toolName: toolConfig.name,
+          category: toolConfig.category,
+          endpoint: toolConfig.falEndpoint
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to parse documentation');
+      }
+
+      const result = await response.json();
+      
+      if (result.success && result.parameters) {
+        setToolConfig(prev => ({
+          ...prev,
+          parsedParams: result.parameters,
+          parameters: result.parameters.map(param => ({
+            ...param,
+            uiComponent: getDefaultUIComponent(param),
+            showInUI: true,
+            label: param.name.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+          }))
+        }));
+        setSuccess('✅ Documentation parsed successfully with OpenAI!');
+        
+        // Auto-advance to next step
+        setTimeout(() => {
+          setCurrentStep(3);
+          setSuccess('');
+        }, 2000);
+      } else {
+        throw new Error(result.error || 'No parameters extracted');
+      }
+
+    } catch (error) {
+      console.error('Error parsing with OpenAI:', error);
+      setAiParsingError(error.message);
+    } finally {
+      setIsParsingWithAI(false);
+    }
   };
 
   // Load template data
@@ -1450,6 +1515,36 @@ ${falParams}
                   >
                     Parse Documentation
                   </button>
+
+                  {/* OpenAI Parsing Button */}
+                  <div className="mt-4">
+                    <button
+                      onClick={parseWithOpenAI}
+                      disabled={isParsingWithAI || !toolConfig.apiDocumentation.trim()}
+                      className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-3 px-6 rounded-lg transition-all duration-300 transform hover:scale-105 disabled:transform-none flex items-center justify-center space-x-2"
+                    >
+                      {isParsingWithAI ? (
+                        <>
+                          <RefreshCw className="w-5 h-5 animate-spin" />
+                          <span>Parsing with OpenAI...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Wand2 className="w-5 h-5" />
+                          <span>Parse with OpenAI (Recommended)</span>
+                        </>
+                      )}
+                    </button>
+                    <p className="text-blue-300 text-xs mt-2 text-center">
+                      AI will intelligently extract parameters from any FAL.ai documentation format
+                    </p>
+                  </div>
+
+                  {aiParsingError && (
+                    <div className="mt-4 bg-red-500/20 border border-red-500/30 rounded-lg p-4">
+                      <p className="text-red-200 text-sm">{aiParsingError}</p>
+                    </div>
+                  )}
                 </div>
               )}
 
