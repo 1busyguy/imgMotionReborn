@@ -1167,7 +1167,7 @@ ${falParams}
 
   // Generate the actual React component code
       console.error('Error fetching profile:', error);
-    } finally {
+    }; finally {
       setLoading(false);
     }
   };
