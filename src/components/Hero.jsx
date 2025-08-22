@@ -64,7 +64,7 @@ const Hero = () => {
           onLoadedData={() => setIsVideoLoaded(true)}
           poster="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1920' height='1080'%3E%3Cdefs%3E%3ClinearGradient id='bg' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' style='stop-color:%238B5CF6;stop-opacity:1' /%3E%3Cstop offset='50%25' style='stop-color:%23EC4899;stop-opacity:1' /%3E%3Cstop offset='100%25' style='stop-color:%2306B6D4;stop-opacity:1' /%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='100%25' height='100%25' fill='url(%23bg)' /%3E%3C/svg%3E"
         >
-          <source src={toCdnUrl("https://xzqneeozmqmtsqmvsvor.supabase.co/storage/v1/object/public/imm-videos//imgMotion_V1_shrunk.mp4")} type="video/mp4" />
+          <source src={toCdnUrl("https://xisxqackivlrakfszfop.supabase.co/storage/v1/object/public/imm-videos/imgMotion_V1_shrunk.mp4")} type="video/mp4" />
         </video>
         
         {/* Video Overlay */}
