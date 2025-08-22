@@ -32,8 +32,9 @@ import {
 const AdminFALToolGenerator = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [currentStep, setCurrentStep] = useState(1);
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [showPreview, setShowPreview] = useState(false);
@@ -71,19 +72,43 @@ const AdminFALToolGenerator = () => {
     routePath: ''
   });
 
-  // Admin check
-  const adminUUIDs = ['991e17a6-c1a8-4496-8b28-cc83341c028a'];
-  const isAdmin = user && (
-    adminUUIDs.includes(user.id) || 
-    user.email === 'jim@1busyguy.com' || 
-    user.user_metadata?.email === 'jim@1busyguy.com'
-  );
-
   useEffect(() => {
-    if (!isAdmin) {
+    verifyAdminAccess();
+  }, []);
+
+  const verifyAdminAccess = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        navigate('/login');
+        return;
+      }
+
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-tool-operations`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        if (result.isAdmin) {
+          setIsAdmin(true);
+        } else {
+          navigate('/dashboard');
+        }
+      } else {
+        navigate('/dashboard');
+      }
+    } catch (error) {
+      console.error('Error verifying admin access:', error);
       navigate('/dashboard');
+    } finally {
+      setLoading(false);
     }
-  }, [isAdmin, navigate]);
+  };
 
   // Auto-generate identifiers when name changes
   useEffect(() => {
@@ -659,10 +684,18 @@ ${falParams}
     { number: 5, title: 'Generate & Deploy', description: 'Create all files and deploy tool' }
   ];
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center">
+        <div className="text-white text-xl">Verifying admin access...</div>
+      </div>
+    );
+  }
+
   if (!isAdmin) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center">
-        <div className="text-white text-xl">Access Denied</div>
+        <div className="text-white text-xl">Access denied</div>
       </div>
     );
   }
