@@ -96,8 +96,7 @@ const Gallery = () => {
       'fal_wan_v22_text2video_lora',
       'fal_wan_v22_video2video', 
       'fal_video_upscaler',
-      'fal_mmaudio_video2',
-      'fal_veo3_fast'
+      'fal_mmaudio_video2'
     ];
     
     if (textVideoTools.includes(generation.tool_type)) {

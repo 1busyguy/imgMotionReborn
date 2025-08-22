@@ -110,7 +110,6 @@ const UserShowcase = () => {
       'fal_veo3_fast': 'VEO3 Fast',
       'fal_hidream_i1': 'HiDream I1 Dev',
       'fal_seedance_pro': 'Seedance Pro Video',
-      'fal_cassetteai_music': 'CassetteAI Music Generator'
     };
     
     return toolNameMap[toolType] || toolType;

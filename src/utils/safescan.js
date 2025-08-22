@@ -256,7 +256,7 @@ export const performSafetyAnalysis = async (imageUrl, prompt, toolType) => {
         };
       }
 
-      // Adult nudity etc. — do not warn/block. Mark safe so legacy UIs don’t pop.
+      // Adult nudity etc. — do not warn/block. Mark safe so legacy UIs don't pop.
       imageAnalysis = { ...imageAnalysis, safe: true, filteredForAdultNudity: true, violations: [], suggestions: [] };
     }
 
