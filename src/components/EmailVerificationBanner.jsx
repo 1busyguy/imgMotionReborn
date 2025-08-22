@@ -1,107 +1,89 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { supabase } from '../lib/supabaseClient';
+import { Mail, X, RefreshCw, CheckCircle } from 'lucide-react';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-forwarded-for, cf-connecting-ip',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+const EmailVerificationBanner = ({ user, onDismiss }) => {
+  const navigate = useNavigate();
+  const [resending, setResending] = useState(false);
+  const [resent, setResent] = useState(false);
+
+  // Don't show banner if user's email is already confirmed
+  if (!user || user.email_confirmed_at) {
+    return null;
+  }
+
+  const handleResendEmail = async () => {
+    setResending(true);
+    try {
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: user.email,
+        options: {
+          emailRedirectTo: `${window.location.origin}/`
+        }
+      });
+
+      if (error) throw error;
+      
+      setResent(true);
+      setTimeout(() => setResent(false), 5000);
+    } catch (error) {
+      console.error('Error resending email:', error);
+      alert('Error resending email. Please try again.');
+    } finally {
+      setResending(false);
+    }
+  };
+
+  return (
+    <div className="bg-blue-500/20 border-b border-blue-500/30 backdrop-blur-md">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <Mail className="w-5 h-5 text-blue-400" />
+            <div>
+              <p className="text-blue-200 font-medium">
+                Please verify your email address
+              </p>
+              <p className="text-blue-300 text-sm">
+                Check your inbox for a confirmation link to activate your account
+              </p>
+            </div>
+          </div>
+          
+          <div className="flex items-center space-x-3">
+            {resent ? (
+              <div className="flex items-center space-x-2 text-green-400">
+                <CheckCircle className="w-4 h-4" />
+                <span className="text-sm">Email sent!</span>
+              </div>
+            ) : (
+              <button
+                onClick={handleResendEmail}
+                disabled={resending}
+                className="flex items-center space-x-2 text-blue-300 hover:text-blue-200 transition-colors disabled:opacity-50"
+              >
+                <RefreshCw className={`w-4 h-4 ${resending ? 'animate-spin' : ''}`} />
+                <span className="text-sm">
+                  {resending ? 'Sending...' : 'Resend Email'}
+                </span>
+              </button>
+            )}
+            
+            {onDismiss && (
+              <button
+                onClick={onDismiss}
+                className="text-blue-300 hover:text-blue-200 transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 };
 
-// Function to extract IP address from request headers
-function getClientIP(req: Request): string | null {
-  const headers = [
-    'cf-connecting-ip',      // Cloudflare
-    'x-forwarded-for',       // Standard proxy header
-    'x-real-ip',             // Nginx
-    'x-client-ip',           // Apache
-    'x-forwarded',           // General
-    'forwarded-for',         // Alternative
-    'forwarded'              // RFC 7239
-  ];
-
-  for (const header of headers) {
-    const value = req.headers.get(header);
-    if (value) {
-      const ip = value.split(',')[0].trim();
-      if (ip && ip !== 'unknown') {
-        console.log(`📍 Login IP found in ${header}: ${ip}`);
-        return ip;
-      }
-    }
-  }
-
-  return null;
-}
-
-serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
-  }
-
-  try {
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
-
-    // Get user from JWT
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      throw new Error('No authorization header');
-    }
-    
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
-
-    if (userError || !user) {
-      throw new Error('Unauthorized');
-    }
-
-    // Extract IP address from request
-    const clientIP = getClientIP(req);
-    
-    console.log('📍 Capturing login IP:', {
-      userId: user.id,
-      email: user.email,
-      clientIP: clientIP || 'unknown'
-    });
-
-    // Update user profile with last login IP
-    const { error: updateError } = await supabase
-      .from('profiles')
-      .update({
-        last_login_ip: clientIP,
-        ip_updated_at: new Date().toISOString()
-      })
-      .eq('id', user.id);
-
-    if (updateError) {
-      console.error('❌ Error updating login IP:', updateError);
-      throw new Error(`Failed to update login IP: ${updateError.message}`);
-    }
-
-    console.log('✅ Successfully captured login IP for user:', user.email);
-
-    return new Response(JSON.stringify({
-      success: true,
-      message: 'Login IP captured successfully',
-      userId: user.id,
-      timestamp: new Date().toISOString()
-    }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    });
-
-  } catch (error) {
-    console.error('❌ Error in capture-login-ip:', error);
-    
-    // Don't fail the login process if IP capture fails
-    return new Response(JSON.stringify({
-      success: false,
-      error: error.message,
-      message: 'IP capture failed but login can continue'
-    }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 200
-    });
-  }
-});
+export default EmailVerificationBanner;
