@@ -32,9 +32,11 @@ import {
 const AdminFALToolGenerator = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [currentStep, setCurrentStep] = useState(1);
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [currentStep, setCurrentStep] = useState(1);
+  const [fetchingFromUrl, setFetchingFromUrl] = useState(false);
+  const [availableTemplates, setAvailableTemplates] = useState([]);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [showPreview, setShowPreview] = useState(false);
@@ -71,6 +73,65 @@ const AdminFALToolGenerator = () => {
     toolType: '',
     routePath: ''
   });
+
+  // Template and URL fetching
+  const [documentationUrl, setDocumentationUrl] = useState('');
+  const [selectedTemplate, setSelectedTemplate] = useState('');
+  const [useTemplate, setUseTemplate] = useState(false);
+
+  // Available templates based on your existing tools
+  useEffect(() => {
+    setAvailableTemplates([
+      {
+        id: 'wan-v22-img2video-lora',
+        name: 'WAN v2.2 Img2Video LoRA',
+        description: 'Complex video generation with LoRA support, multiple parameters',
+        category: 'video',
+        complexity: 'high',
+        features: ['Image upload', 'LoRA management', 'Multiple sliders', 'Advanced options']
+      },
+      {
+        id: 'minimax-hailuo',
+        name: 'Minimax Hailuo Video',
+        description: 'Simple image-to-video with basic parameters',
+        category: 'video',
+        complexity: 'medium',
+        features: ['Image upload', 'Text prompt', 'Duration selection', 'Basic options']
+      },
+      {
+        id: 'flux-kontext-lora',
+        name: 'FLUX Kontext LoRA',
+        description: 'Text-to-image with LoRA and advanced image options',
+        category: 'image',
+        complexity: 'high',
+        features: ['Text prompts', 'LoRA support', 'Image size options', 'Multiple outputs']
+      },
+      {
+        id: 'bria-bg-remove',
+        name: 'BRIA Background Remover',
+        description: 'Simple image processing with minimal parameters',
+        category: 'image',
+        complexity: 'low',
+        features: ['Image upload', 'Single output', 'Minimal configuration']
+      },
+      {
+        id: 'mmaudio-v2',
+        name: 'MMAudio v2',
+        description: 'Audio generation with duration and quality controls',
+        category: 'audio',
+        complexity: 'medium',
+        features: ['Text prompts', 'Duration slider', 'Audio player', 'Quality controls']
+      },
+      {
+        id: 'cassetteai-music',
+        name: 'CassetteAI Music',
+        description: 'Music generation with genre suggestions and audio player',
+        category: 'audio',
+        complexity: 'medium',
+        features: ['Text prompts', 'Genre suggestions', 'Audio player', 'Duration controls']
+      }
+    ]);
+  }, []);
 
   useEffect(() => {
     verifyAdminAccess();
@@ -135,6 +196,378 @@ const AdminFALToolGenerator = () => {
       }));
     }
   }, [toolConfig.name]);
+
+  // Fetch FAL.ai API documentation from URL
+  const fetchApiDocumentation = async () => {
+    if (!documentationUrl.trim()) {
+      setError('Please enter a valid FAL.ai API documentation URL');
+      return;
+    }
+
+    setFetchingFromUrl(true);
+    setError('');
+
+    try {
+      // Try to fetch the documentation page
+      const response = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(documentationUrl)}`);
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch documentation page');
+      }
+
+      const data = await response.json();
+      const htmlContent = data.contents;
+
+      // Parse the HTML to extract API information
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(htmlContent, 'text/html');
+
+      // Extract tool name from title or h1
+      const title = doc.querySelector('h1')?.textContent || 
+                   doc.querySelector('title')?.textContent || 
+                   'New FAL Tool';
+      
+      // Look for parameter information in various formats
+      let parameters = [];
+      
+      // Try to find JSON schema or parameter tables
+      const codeBlocks = doc.querySelectorAll('pre, code');
+      for (const block of codeBlocks) {
+        const text = block.textContent;
+        if (text.includes('{') && (text.includes('prompt') || text.includes('image_url'))) {
+          try {
+            const jsonMatch = text.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+              const parsed = JSON.parse(jsonMatch[0]);
+              parameters = extractParametersFromJson(parsed);
+              break;
+            }
+          } catch (e) {
+            // Continue looking
+          }
+        }
+      }
+
+      // If no parameters found, try to extract from text patterns
+      if (parameters.length === 0) {
+        parameters = extractParametersFromText(htmlContent);
+      }
+
+      // Update form data with extracted information
+      setToolConfig(prev => ({
+        ...prev,
+        name: cleanToolName(title),
+        description: `${cleanToolName(title)} - Generated from FAL.ai documentation`,
+        falEndpoint: documentationUrl.includes('fal.run') ? 
+          documentationUrl.replace(/\/docs.*/, '') : 
+          documentationUrl
+      }));
+
+      setToolConfig(prev => ({
+        ...prev,
+        parsedParams: parameters,
+        parameters: parameters.map(param => ({
+          ...param,
+          uiComponent: getDefaultUIComponent(param),
+          showInUI: true,
+          label: param.name.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+        }))
+      }));
+      setSuccess('Successfully extracted API information from URL!');
+      
+    } catch (error) {
+      console.error('Error fetching API documentation:', error);
+      setError(`Failed to fetch API documentation: ${error.message}. Try copying and pasting the documentation text instead.`);
+    } finally {
+      setFetchingFromUrl(false);
+    }
+  };
+
+  // Helper function to extract parameters from JSON
+  const extractParametersFromJson = (jsonObj) => {
+    const params = [];
+    
+    const processObject = (obj, prefix = '') => {
+      for (const [key, value] of Object.entries(obj)) {
+        if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+          processObject(value, prefix ? `${prefix}.${key}` : key);
+        } else {
+          const paramName = prefix ? `${prefix}.${key}` : key;
+          const paramType = inferParameterType(key, value);
+          
+          params.push({
+            id: Date.now() + Math.random(),
+            name: paramName,
+            type: paramType,
+            required: isLikelyRequired(key),
+            default: getDefaultValue(paramType, value),
+            description: `${key} parameter`,
+            uiComponent: getUIComponent(paramType, key)
+          });
+        }
+      }
+    };
+
+    processObject(jsonObj);
+    return params;
+  };
+
+  // Helper function to extract parameters from text
+  const extractParametersFromText = (text) => {
+    const params = [];
+    const commonParams = [
+      'prompt', 'image_url', 'video_url', 'audio_url', 'negative_prompt',
+      'guidance_scale', 'num_inference_steps', 'seed', 'width', 'height',
+      'duration', 'fps', 'resolution', 'aspect_ratio', 'num_images',
+      'enable_safety_checker', 'output_format'
+    ];
+
+    commonParams.forEach(param => {
+      if (text.toLowerCase().includes(param)) {
+        const paramType = inferParameterType(param);
+        params.push({
+          id: Date.now() + Math.random(),
+          name: param,
+          type: paramType,
+          required: isLikelyRequired(param),
+          default: getDefaultValue(paramType),
+          description: `${param} parameter`,
+          uiComponent: getUIComponent(paramType, param)
+        });
+      }
+    });
+
+    return params;
+  };
+
+  // Helper functions for parameter inference
+  const inferParameterType = (key, value = null) => {
+    if (key.includes('url') || key.includes('image') || key.includes('video') || key.includes('audio')) {
+      return 'file';
+    }
+    if (key.includes('prompt') || key.includes('description')) {
+      return 'string';
+    }
+    if (key.includes('enable') || key.includes('safety') || key.includes('expand')) {
+      return 'boolean';
+    }
+    if (key.includes('scale') || key.includes('steps') || key.includes('fps') || key.includes('duration')) {
+      return 'number';
+    }
+    if (key.includes('resolution') || key.includes('format') || key.includes('model')) {
+      return 'select';
+    }
+    if (typeof value === 'boolean') return 'boolean';
+    if (typeof value === 'number') return 'number';
+    return 'string';
+  };
+
+  const isLikelyRequired = (key) => {
+    const requiredKeys = ['prompt', 'image_url', 'video_url', 'audio_url'];
+    return requiredKeys.some(req => key.includes(req));
+  };
+
+  const getDefaultValue = (type, value = null) => {
+    if (value !== null) return value;
+    switch (type) {
+      case 'boolean': return false;
+      case 'number': return 1;
+      case 'file': return '';
+      default: return '';
+    }
+  };
+
+  const getUIComponent = (type, key) => {
+    if (key.includes('prompt')) return 'textarea';
+    if (key.includes('scale') || key.includes('steps')) return 'slider';
+    if (key.includes('resolution') || key.includes('format')) return 'select';
+    if (key.includes('url') || key.includes('image') || key.includes('video')) return 'upload';
+    
+    switch (type) {
+      case 'boolean': return 'checkbox';
+      case 'number': return 'slider';
+      case 'file': return 'upload';
+      case 'select': return 'select';
+      default: return 'input';
+    }
+  };
+
+  const cleanToolName = (name) => {
+    return name
+      .replace(/FAL\.ai|fal\.ai|FAL|API|Documentation/gi, '')
+      .replace(/[^\w\s]/g, '')
+      .trim();
+  };
+
+  // Load template data
+  const loadTemplate = (templateId) => {
+    const template = availableTemplates.find(t => t.id === templateId);
+    if (!template) return;
+
+    // Set basic info based on template
+    setToolConfig(prev => ({
+      ...prev,
+      category: template.category,
+      // Keep user's custom name and description
+    }));
+
+    // Set template-specific parameters
+    const templateParams = getTemplateParameters(templateId);
+    setToolConfig(prev => ({
+      ...prev,
+      parsedParams: templateParams,
+      parameters: templateParams.map(param => ({
+        ...param,
+        uiComponent: getDefaultUIComponent(param),
+        showInUI: true,
+        label: param.name.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+      }))
+    }));
+    
+    setSuccess(`Loaded template: ${template.name}`);
+  };
+
+  // Get parameters based on template
+  const getTemplateParameters = (templateId) => {
+    const baseParams = [
+      {
+        id: 1,
+        name: 'prompt',
+        type: 'string',
+        required: true,
+        default: '',
+        description: 'Text prompt for generation',
+        uiComponent: 'textarea'
+      }
+    ];
+
+    switch (templateId) {
+      case 'wan-v22-img2video-lora':
+        return [
+          ...baseParams,
+          {
+            id: 2,
+            name: 'image_url',
+            type: 'file',
+            required: true,
+            default: '',
+            description: 'Source image for video generation',
+            uiComponent: 'upload'
+          },
+          {
+            id: 3,
+            name: 'resolution',
+            type: 'select',
+            required: false,
+            default: '720p',
+            description: 'Output video resolution',
+            uiComponent: 'select',
+            options: ['480p', '580p', '720p']
+          },
+          {
+            id: 4,
+            name: 'num_frames',
+            type: 'number',
+            required: false,
+            default: 81,
+            description: 'Number of frames to generate',
+            uiComponent: 'slider',
+            min: 81,
+            max: 121
+          },
+          {
+            id: 5,
+            name: 'loras',
+            type: 'array',
+            required: false,
+            default: [],
+            description: 'LoRA models to apply',
+            uiComponent: 'lora-manager'
+          }
+        ];
+      
+      case 'minimax-hailuo':
+        return [
+          ...baseParams,
+          {
+            id: 2,
+            name: 'image_url',
+            type: 'file',
+            required: true,
+            default: '',
+            description: 'Source image for video generation',
+            uiComponent: 'upload'
+          },
+          {
+            id: 3,
+            name: 'duration',
+            type: 'select',
+            required: false,
+            default: '6',
+            description: 'Video duration in seconds',
+            uiComponent: 'select',
+            options: ['6', '10']
+          }
+        ];
+      
+      case 'flux-kontext-lora':
+        return [
+          ...baseParams,
+          {
+            id: 2,
+            name: 'image_size',
+            type: 'select',
+            required: false,
+            default: 'square_hd',
+            description: 'Output image size',
+            uiComponent: 'select',
+            options: ['square', 'square_hd', 'portrait_4_3', 'landscape_16_9']
+          },
+          {
+            id: 3,
+            name: 'num_images',
+            type: 'number',
+            required: false,
+            default: 1,
+            description: 'Number of images to generate',
+            uiComponent: 'slider',
+            min: 1,
+            max: 4
+          }
+        ];
+      
+      case 'mmaudio-v2':
+        return [
+          ...baseParams,
+          {
+            id: 2,
+            name: 'duration',
+            type: 'number',
+            required: false,
+            default: 8,
+            description: 'Audio duration in seconds',
+            uiComponent: 'slider',
+            min: 1,
+            max: 30
+          },
+          {
+            id: 3,
+            name: 'cfg_strength',
+            type: 'number',
+            required: false,
+            default: 4.5,
+            description: 'CFG strength for generation',
+            uiComponent: 'slider',
+            min: 1.0,
+            max: 10.0,
+            step: 0.5
+          }
+        ];
+      
+      default:
+        return baseParams;
+    }
+  };
 
   // Parse API documentation
   const parseAPIDocumentation = () => {
@@ -890,36 +1323,144 @@ ${falParams}
           {/* Step 2: API Documentation */}
           {currentStep === 2 && (
             <div className="space-y-6">
-              <div>
-                <label className="block text-sm font-medium text-purple-200 mb-2">
-                  FAL.ai API Documentation *
-                </label>
-                <textarea
-                  value={toolConfig.apiDocumentation}
-                  onChange={(e) => setToolConfig(prev => ({ ...prev, apiDocumentation: e.target.value }))}
-                  placeholder="Paste the FAL.ai API documentation here (JSON schema or text format)..."
-                  className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-purple-300 focus:outline-none focus:ring-2 focus:ring-cyan-500 resize-none font-mono text-sm"
-                  rows={15}
-                />
+              <h3 className="text-xl font-semibold text-white mb-4">API Documentation</h3>
+              
+              {/* Template Selection Option */}
+              <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
+                <div className="flex items-center space-x-3 mb-3">
+                  <input
+                    type="radio"
+                    id="use-template"
+                    name="doc-method"
+                    checked={useTemplate}
+                    onChange={(e) => setUseTemplate(e.target.checked)}
+                    className="w-4 h-4 text-blue-600"
+                  />
+                  <label htmlFor="use-template" className="text-white font-medium">
+                    Use Existing Template
+                  </label>
+                </div>
+                
+                {useTemplate && (
+                  <div className="space-y-3">
+                    <select
+                      value={selectedTemplate}
+                      onChange={(e) => {
+                        setSelectedTemplate(e.target.value);
+                        if (e.target.value) {
+                          loadTemplate(e.target.value);
+                        }
+                      }}
+                      className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="" className="bg-gray-800">Select a template...</option>
+                      {availableTemplates.map(template => (
+                        <option key={template.id} value={template.id} className="bg-gray-800">
+                          {template.name} ({template.complexity} complexity)
+                        </option>
+                      ))}
+                    </select>
+                    
+                    {selectedTemplate && (
+                      <div className="bg-white/5 rounded-lg p-3">
+                        {(() => {
+                          const template = availableTemplates.find(t => t.id === selectedTemplate);
+                          return template ? (
+                            <div>
+                              <p className="text-blue-200 text-sm mb-2">{template.description}</p>
+                              <div className="flex flex-wrap gap-1">
+                                {template.features.map((feature, idx) => (
+                                  <span key={idx} className="px-2 py-1 bg-blue-500/20 text-blue-300 text-xs rounded">
+                                    {feature}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          ) : null;
+                        })()}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
-              <button
-                onClick={parseAPIDocumentation}
-                disabled={!toolConfig.apiDocumentation.trim()}
-                className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Parse Documentation
-              </button>
+              {/* URL Fetching Option */}
+              <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-4">
+                <div className="flex items-center space-x-3 mb-3">
+                  <input
+                    type="radio"
+                    id="use-url"
+                    name="doc-method"
+                    checked={!useTemplate}
+                    onChange={(e) => setUseTemplate(!e.target.checked)}
+                    className="w-4 h-4 text-green-600"
+                  />
+                  <label htmlFor="use-url" className="text-white font-medium">
+                    Fetch from FAL.ai URL
+                  </label>
+                </div>
+                
+                {!useTemplate && (
+                  <div className="space-y-3">
+                    <input
+                      type="url"
+                      value={documentationUrl}
+                      onChange={(e) => setDocumentationUrl(e.target.value)}
+                      placeholder="https://fal.ai/models/fal-ai/flux-pro/api"
+                      className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500"
+                    />
+                    <button
+                      onClick={fetchApiDocumentation}
+                      disabled={fetchingFromUrl || !documentationUrl.trim()}
+                      className="w-full bg-green-500 hover:bg-green-600 disabled:bg-green-700 disabled:cursor-not-allowed text-white font-semibold py-3 px-4 rounded-lg transition-colors flex items-center justify-center space-x-2"
+                    >
+                      {fetchingFromUrl ? (
+                        <>
+                          <RefreshCw className="w-4 h-4 animate-spin" />
+                          <span>Fetching Documentation...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Download className="w-4 h-4" />
+                          <span>Fetch API Documentation</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                )}
+              </div>
 
-              {/* Parsed Parameters Preview */}
-              {toolConfig.parsedParams.length > 0 && (
+              {/* Manual Documentation Input */}
+              {!useTemplate && (
+                <div>
+                  <label className="block text-sm font-medium text-purple-200 mb-2">
+                    Or paste API documentation manually:
+                  </label>
+                  <textarea
+                    value={toolConfig.apiDocumentation}
+                    onChange={(e) => setToolConfig(prev => ({ ...prev, apiDocumentation: e.target.value }))}
+                    placeholder="Paste FAL.ai API documentation here..."
+                    className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
+                    rows={8}
+                  />
+                  <button
+                    onClick={parseAPIDocumentation}
+                    disabled={!toolConfig.apiDocumentation.trim()}
+                    className="mt-3 bg-purple-500 hover:bg-purple-600 disabled:bg-purple-700 disabled:cursor-not-allowed text-white font-semibold py-2 px-4 rounded-lg transition-colors"
+                  >
+                    Parse Documentation
+                  </button>
+                </div>
+              )}
+
+              {toolConfig.parameters.length > 0 && (
                 <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-4">
-                  <h3 className="text-green-200 font-medium mb-3">
-                    Parsed Parameters ({toolConfig.parsedParams.length})
-                  </h3>
-                  <div className="space-y-2 max-h-64 overflow-y-auto">
-                    {toolConfig.parsedParams.map((param, index) => (
-                      <div key={index} className="flex items-center justify-between bg-white/5 rounded p-2">
+                  <h4 className="text-green-200 font-medium mb-2">
+                    {useTemplate ? 'Template' : 'Extracted'} Parameters ({toolConfig.parameters.length})
+                  </h4>
+                  <div className="space-y-2">
+                    {toolConfig.parameters.slice(0, 5).map((param) => (
+                      <div key={param.id} className="flex items-center justify-between bg-white/5 rounded p-2">
                         <div>
                           <span className="text-white font-medium">{param.name}</span>
                           <span className="text-green-300 ml-2">({param.type})</span>
@@ -928,6 +1469,9 @@ ${falParams}
                         <span className="text-green-200 text-xs">{param.description}</span>
                       </div>
                     ))}
+                    {toolConfig.parameters.length > 5 && (
+                      <p className="text-green-300 text-sm">...and {toolConfig.parameters.length - 5} more</p>
+                    )}
                   </div>
                 </div>
               )}
