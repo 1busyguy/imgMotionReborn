@@ -21,7 +21,6 @@ import WanPro from './pages/fal-tools/WanPro';
 import Wan22 from './pages/fal-tools/Wan22';
 import KlingPro from './pages/fal-tools/KlingPro';
 import FluxKontextLora from './pages/fal-tools/FluxKontextLora';
-import VEO2 from './pages/fal-tools/VEO2';
 import LTXVVideo from './pages/fal-tools/LTXVVideo';
 import FalVideoUpscaler from './pages/fal-tools/FalVideoUpscaler';
 import BriaBackgroundRemover from './pages/fal-tools/BriaBackgroundRemover';
@@ -262,14 +261,6 @@ function App() {
               element={
                 <ProtectedRoute>
                   <FluxKontextLora />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/veo2-video" 
-              element={
-                <ProtectedRoute>
-                  <VEO2 />
                 </ProtectedRoute>
               } 
             />

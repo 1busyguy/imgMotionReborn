@@ -174,16 +174,6 @@ export const falTools = [
         route: "/kling-pro"
     },
     {
-        id: 14,
-        name: "VEO2 Video Creator",
-        description: "State-of-the-art image-to-video generation with VEO2 technology",
-        image: toCdnUrl("https://images.pexels.com/photos/7991158/pexels-photo-7991158.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1"),
-        tokensRequired: "500+",
-        category: "video",
-        toolType: "fal_veo2",
-        route: "/veo2-video"
-    },
-    {
         id: 18,
         name: "LTXV Video Creator",
         description: "Advanced image-to-video generation with extensive customization options",

@@ -145,12 +145,6 @@ export const AI_TOOLS = {
     category: 'ai'
   },
   fal_veo2: {
-    name: 'VEO2 Video Creator',
-    description: 'State-of-the-art image-to-video generation',
-    tokensRequired: 385,
-    category: 'video'
-  },
-  fal_kling_pro: {
     name: 'Kling Pro Video',
     description: 'Professional-grade image-to-video with Kling v2.1',
     tokensRequired: 25,
