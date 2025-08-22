@@ -1169,7 +1169,7 @@ ${falParams}
       console.error('Error fetching profile:', error);
     } finally {
       setLoading(false);
-    }
+    };
   };
 
   const fetchGenerations = async () => {
