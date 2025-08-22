@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import ProtectedAdminRoute from './components/ProtectedAdminRoute';
 import AdminLoraManager from './components/AdminLoraManager';
-import AdminFALToolGenerator from './components/AdminFALToolGenerator';
 import { useEffect } from 'react';
 import { supabase } from './lib/supabaseClient';
 import { useAuth } from './hooks/useAuth';
@@ -365,14 +364,6 @@ function App() {
               element={
                 <ProtectedRoute>
                   <AdminLoraManager />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/admin/tool-generator" 
-              element={
-                <ProtectedRoute>
-                  <AdminFALToolGenerator />
                 </ProtectedRoute>
               } 
             />
