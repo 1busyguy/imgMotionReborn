@@ -1250,7 +1250,7 @@ ${parameters.map(param => `    ${param.name}: ${JSON.stringify(param.defaultValu
       console.error('Error fetching profile:', error);
     } finally {
       setLoading(false);
-    };
+    }
   };
 
   const fetchGenerations = async () => {
