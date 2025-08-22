@@ -1178,7 +1178,7 @@ const WanV22Video2Video = () => {
                           <div className="flex items-center justify-between mb-3">
                             <div>
                               <h4 className="font-medium text-white">
-                                {generation.generation_name || `Video Transformation ${new Date(generation.created_at).toLocaleDateString()}`}
+                                {generation.generation_name}
                               </h4>
                               <p className="text-purple-200 text-sm">
                                 {new Date(generation.created_at).toLocaleString()}
