@@ -110,30 +110,7 @@ export const falTools = [
 
     
 
-    // FUNCTIONAL TOOLS - Page 1 (positions 1-4)
-    // MMAUDIO V2 - NEW AUDIO TOOL
-    {
-        id: 27,
-        name: "MMAudio v2",
-        description: "Advanced text-to-audio generation with high-quality synthesis and precise control",
-        image: toCdnUrl("https://images.pexels.com/photos/1190297/pexels-photo-1190297.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1"),
-        tokensRequired: "5+",
-        category: "audio",
-        toolType: "fal_mmaudio_v2",
-        route: "/mmaudio-v2"
-    },
-
-   //    OMNIHUMAN - NEW TALKING AVATAR TOOL
-    {
-        id: 29,
-        name: "Omnihuman Talking Avatar",
-        description: "Create realistic talking avatars from images and audio - bring photos to life with speech",
-        image: toCdnUrl("https://images.pexels.com/photos/3785079/pexels-photo-3785079.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1"),
-        tokensRequired: "30/sec",
-        category: "video",
-        toolType: "fal_omnihuman",
-        route: "/omnihuman"
-    },
+    
     
 //    {
 //        id: 17,
@@ -208,6 +185,30 @@ export const falTools = [
         category: "image",
         toolType: "fal_hidream_i1",
         route: "/hidream-i1"
+    },
+  // FUNCTIONAL TOOLS - Page 1 (positions 1-4)
+    // MMAUDIO V2 - NEW AUDIO TOOL
+    {
+        id: 27,
+        name: "MMAudio v2",
+        description: "Advanced text-to-audio generation with high-quality synthesis and precise control",
+        image: toCdnUrl("https://images.pexels.com/photos/1190297/pexels-photo-1190297.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1"),
+        tokensRequired: "5+",
+        category: "audio",
+        toolType: "fal_mmaudio_v2",
+        route: "/mmaudio-v2"
+    },
+
+   //    OMNIHUMAN - NEW TALKING AVATAR TOOL
+    {
+        id: 29,
+        name: "Omnihuman Talking Avatar",
+        description: "Create realistic talking avatars from images and audio - bring photos to life with speech",
+        image: toCdnUrl("https://images.pexels.com/photos/3785079/pexels-photo-3785079.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1"),
+        tokensRequired: "30/sec",
+        category: "video",
+        toolType: "fal_omnihuman",
+        route: "/omnihuman"
     },
     {
         id: 20,
