@@ -1,127 +1,107 @@
-import { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabaseClient';
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-export const useAuth = () => {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [authProcessed, setAuthProcessed] = useState(false);
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-forwarded-for, cf-connecting-ip',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+};
 
-  useEffect(() => {
-    // Get initial session
-    const getSession = async () => {
-      try {
-        console.log('Getting initial session...');
-        const { data: { session }, error } = await supabase.auth.getSession();
-        
-        console.log('Session data:', { session: !!session, user: !!session?.user, error });
-        
-        if (error) {
-          console.error('Session error:', error);
-          // If refresh token is invalid, clear the session
-          if (error.message?.includes('refresh_token_not_found') || 
-              error.message?.includes('Invalid Refresh Token')) {
-            await supabase.auth.signOut();
-            setUser(null);
-          }
-        } else {
-          setUser(session?.user ?? null);
-          if (session?.user) {
-            console.log('User loaded:', {
-              id: session.user.id,
-              email: session.user.email,
-              metadata: session.user.user_metadata,
-              email_confirmed: !!session.user.email_confirmed_at,
-              provider: session.user.app_metadata?.provider
-            });
-            
-            // Handle Google OAuth redirect after successful authentication
-            if (session.user.app_metadata?.provider === 'google' && 
-                window.location.pathname !== '/dashboard' && 
-                window.location.hash.includes('access_token')) {
-              console.log('Google OAuth detected, redirecting to dashboard...');
-              window.location.href = '/dashboard';
-              return;
-            }
-          }
-        }
-        
-        // Check email confirmation status
-        if (session?.user && !session.user.email_confirmed_at) {
-          console.log('User email not confirmed yet');
-        }
-      } catch (error) {
-        console.error('Auth error:', error);
-        setUser(null);
-      } finally {
-        console.log('Auth loading complete');
-        setLoading(false);
-        setAuthProcessed(true);
+// Function to extract IP address from request headers
+function getClientIP(req: Request): string | null {
+  const headers = [
+    'cf-connecting-ip',      // Cloudflare
+    'x-forwarded-for',       // Standard proxy header
+    'x-real-ip',             // Nginx
+    'x-client-ip',           // Apache
+    'x-forwarded',           // General
+    'forwarded-for',         // Alternative
+    'forwarded'              // RFC 7239
+  ];
+
+  for (const header of headers) {
+    const value = req.headers.get(header);
+    if (value) {
+      const ip = value.split(',')[0].trim();
+      if (ip && ip !== 'unknown') {
+        console.log(`📍 Login IP found in ${header}: ${ip}`);
+        return ip;
       }
-    };
+    }
+  }
 
-    getSession();
+  return null;
+}
 
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log('Auth state change:', event, { session: !!session, user: !!session?.user });
-        
-        if (event === 'TOKEN_REFRESHED') {
-          console.log('Token refreshed successfully');
-        } else if (event === 'SIGNED_OUT') {
-          console.log('User signed out');
-          setAuthProcessed(false);
-        } else if (event === 'SIGNED_IN' && session?.user?.app_metadata?.provider === 'google') {
-          console.log('Google OAuth sign-in completed');
-          // Redirect to dashboard after Google OAuth
-          setTimeout(() => {
-            if (window.location.pathname !== '/dashboard') {
-              window.location.href = '/dashboard';
-            }
-          }, 500);
-        }
-        
-        setUser(session?.user ?? null);
-        
-        if (session?.user) {
-          console.log('Auth state user:', {
-            id: session.user.id,
-            email: session.user.email,
-            metadata: session.user.user_metadata,
-            email_confirmed: !!session.user.email_confirmed_at,
-            provider: session.user.app_metadata?.provider
-          });
-          
-          // Check if user is banned when they sign in
-          if (event === 'SIGNED_IN') {
-            checkUserBanStatus(session.user.id);
-          }
-        }
-        
-        setAuthProcessed(true);
-      }
+serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders });
+  }
+
+  try {
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    return () => subscription.unsubscribe();
-  }, []);
-
-  const checkUserBanStatus = async (userId) => {
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('banned')
-        .eq('id', userId)
-        .single();
-
-      if (data?.banned) {
-        console.log('🚫 User is banned, signing them out');
-        await supabase.auth.signOut();
-      }
-    } catch (error) {
-      console.warn('Could not check ban status:', error);
-      // Fail open - don't block login if we can't check
+    // Get user from JWT
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      throw new Error('No authorization header');
     }
-  };
+    
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
 
-  return { user, loading, authProcessed };
-};
+    if (userError || !user) {
+      throw new Error('Unauthorized');
+    }
+
+    // Extract IP address from request
+    const clientIP = getClientIP(req);
+    
+    console.log('📍 Capturing login IP:', {
+      userId: user.id,
+      email: user.email,
+      clientIP: clientIP || 'unknown'
+    });
+
+    // Update user profile with last login IP
+    const { error: updateError } = await supabase
+      .from('profiles')
+      .update({
+        last_login_ip: clientIP,
+        ip_updated_at: new Date().toISOString()
+      })
+      .eq('id', user.id);
+
+    if (updateError) {
+      console.error('❌ Error updating login IP:', updateError);
+      throw new Error(`Failed to update login IP: ${updateError.message}`);
+    }
+
+    console.log('✅ Successfully captured login IP for user:', user.email);
+
+    return new Response(JSON.stringify({
+      success: true,
+      message: 'Login IP captured successfully',
+      userId: user.id,
+      timestamp: new Date().toISOString()
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
+
+  } catch (error) {
+    console.error('❌ Error in capture-login-ip:', error);
+    
+    // Don't fail the login process if IP capture fails
+    return new Response(JSON.stringify({
+      success: false,
+      error: error.message,
+      message: 'IP capture failed but login can continue'
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 200
+    });
+  }
+});
