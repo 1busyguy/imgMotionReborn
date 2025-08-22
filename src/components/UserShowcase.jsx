@@ -105,7 +105,6 @@ const UserShowcase = () => {
       'fal_minimax_hailuo': 'Minimax Hailuo Video',
       'fal_wan_pro': 'WAN Pro Video',
       'fal_kling_pro': 'Kling Pro Video',
-      'fal_veo2': 'VEO2 Video Creator',
       'fal_ltxv': 'LTXV Video Creator',
       'fal_video_upscaler': 'FAL Video Upscaler',
       'fal_bria_bg_remove': 'BRIA Background Remover',
