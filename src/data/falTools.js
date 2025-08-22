@@ -2,30 +2,30 @@
 import { toCdnUrl } from '../utils/cdnHelpers';
 
 export const falTools = [
-    // MMAUDIO V2 - NEW AUDIO TOOL
-    {
-        id: 27,
-        name: "MMAudio v2",
-        description: "Advanced text-to-audio generation with high-quality synthesis and precise control",
-        image: toCdnUrl("https://images.pexels.com/photos/1190297/pexels-photo-1190297.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1"),
-        tokensRequired: "5+",
-        category: "audio",
-        toolType: "fal_mmaudio_v2",
-        route: "/mmaudio-v2"
-    },
 
-   //    OMNIHUMAN - NEW TALKING AVATAR TOOL
+// WAN 2.2 PROFESSIONAL - NEW TOOL!!
     {
-        id: 29,
-        name: "Omnihuman Talking Avatar",
-        description: "Create realistic talking avatars from images and audio - bring photos to life with speech",
-        image: toCdnUrl("https://images.pexels.com/photos/3785079/pexels-photo-3785079.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1"),
-        tokensRequired: "30/sec",
+        id: 24,
+        name: "WAN v2.2-a14b Video",
+        description: "Advanced image-to-video generation with WAN v2.2-a14b model and frame interpolation",
+        image: toCdnUrl("https://images.pexels.com/photos/5086477/pexels-photo-5086477.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1"),
+        tokensRequired: "20+",
         category: "video",
-        toolType: "fal_omnihuman",
-        route: "/omnihuman"
+        toolType: "fal_wan_v22_a14b",
+        route: "/wan-v22-a14b"
     },
-
+    // WAN v2.2-a14b VIDEO-TO-VIDEO - NEW TOOL
+    {
+        id: 33,
+        name: "WAN v2.2 Video2Video",
+        description: "Transform existing videos with AI - change style, content, and motion while preserving structure",
+        image: toCdnUrl("https://images.pexels.com/photos/3861958/pexels-photo-3861958.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1"),
+        tokensRequired: "25+",
+        category: "video",
+        toolType: "fal_wan_v22_video2video",
+        route: "/wan-v22-video2video"
+    },
+    
     // WAN v2.2-a14b TEXT-TO-VIDEO LORA - NEW TOOL
     {
         id: 30,
@@ -62,17 +62,7 @@ export const falTools = [
         route: "/flux-kontext-max-multi"
     },
 
-    // WAN v2.2-a14b VIDEO-TO-VIDEO - NEW TOOL
-    {
-        id: 33,
-        name: "WAN v2.2 Video2Video",
-        description: "Transform existing videos with AI - change style, content, and motion while preserving structure",
-        image: toCdnUrl("https://images.pexels.com/photos/3861958/pexels-photo-3861958.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1"),
-        tokensRequired: "25+",
-        category: "video",
-        toolType: "fal_wan_v22_video2video",
-        route: "/wan-v22-video2video"
-    },
+    
 
     // AI SCENE MAKER - FEATURED FIRST TOOL
  //   {
@@ -98,19 +88,32 @@ export const falTools = [
         route: "/mmaudio-video2"
     },
 
-    // WAN 2.2 PROFESSIONAL - NEW TOOL!!
-    {
-        id: 24,
-        name: "WAN v2.2-a14b Video",
-        description: "Advanced image-to-video generation with WAN v2.2-a14b model and frame interpolation",
-        image: toCdnUrl("https://images.pexels.com/photos/5086477/pexels-photo-5086477.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1"),
-        tokensRequired: "20+",
-        category: "video",
-        toolType: "fal_wan_v22_a14b",
-        route: "/wan-v22-a14b"
-    },
+    
 
     // FUNCTIONAL TOOLS - Page 1 (positions 1-4)
+    // MMAUDIO V2 - NEW AUDIO TOOL
+    {
+        id: 27,
+        name: "MMAudio v2",
+        description: "Advanced text-to-audio generation with high-quality synthesis and precise control",
+        image: toCdnUrl("https://images.pexels.com/photos/1190297/pexels-photo-1190297.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1"),
+        tokensRequired: "5+",
+        category: "audio",
+        toolType: "fal_mmaudio_v2",
+        route: "/mmaudio-v2"
+    },
+
+   //    OMNIHUMAN - NEW TALKING AVATAR TOOL
+    {
+        id: 29,
+        name: "Omnihuman Talking Avatar",
+        description: "Create realistic talking avatars from images and audio - bring photos to life with speech",
+        image: toCdnUrl("https://images.pexels.com/photos/3785079/pexels-photo-3785079.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1"),
+        tokensRequired: "30/sec",
+        category: "video",
+        toolType: "fal_omnihuman",
+        route: "/omnihuman"
+    },
     {
         id: 9,
         name: "FLUX Redux Pro",
