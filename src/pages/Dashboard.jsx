@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { useRealtimeActivity } from '../hooks/useRealtimeActivity';
 import AIToolModal from '../components/AIToolModal';
@@ -386,10 +386,12 @@ const Dashboard = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl flex items-center justify-center">
-                <Zap className="w-5 h-5 text-white" />
-              </div>
-              <h1 className="text-xl font-bold text-white">imgMotion</h1>
+              <Link to="/" className="flex items-center space-x-4 hover:opacity-80 transition-opacity">
+                <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl flex items-center justify-center">
+                  <Zap className="w-5 h-5 text-white" />
+                </div>
+                <h1 className="text-xl font-bold text-white">imgMotion</h1>
+              </Link>
             </div>
             
             <div className="flex items-center space-x-4">
