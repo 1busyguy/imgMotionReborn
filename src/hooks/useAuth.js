@@ -35,13 +35,13 @@ export const useAuth = () => {
             });
             
             // Handle Google OAuth redirect after successful authentication
-            if (session.user.app_metadata?.provider === 'google' && 
-                window.location.pathname !== '/dashboard' && 
-                window.location.hash.includes('access_token')) {
-              console.log('Google OAuth detected, redirecting to dashboard...');
-              window.location.href = '/dashboard';
-              return;
-            }
+    //        if (session.user.app_metadata?.provider === 'google' && 
+    //            window.location.pathname !== '/dashboard' && 
+    //            window.location.hash.includes('access_token')) {
+    //          console.log('Google OAuth detected, redirecting to dashboard...');
+    //          window.location.href = '/dashboard';
+    //          return;
+    //        }
           }
         }
         
@@ -71,15 +71,15 @@ export const useAuth = () => {
         } else if (event === 'SIGNED_OUT') {
           console.log('User signed out');
           setAuthProcessed(false);
-        } else if (event === 'SIGNED_IN' && session?.user?.app_metadata?.provider === 'google') {
-          console.log('Google OAuth sign-in completed');
+   //     } else if (event === 'SIGNED_IN' && session?.user?.app_metadata?.provider === 'google') {
+   //       console.log('Google OAuth sign-in completed');
           // Redirect to dashboard after Google OAuth
-          setTimeout(() => {
-            if (window.location.pathname !== '/dashboard') {
-              window.location.href = '/dashboard';
-            }
-          }, 500);
-        }
+   //       setTimeout(() => {
+   //         if (window.location.pathname !== '/dashboard') {
+   //           window.location.href = '/dashboard';
+   //         }
+   //       }, 500);
+   //     }
         
         setUser(session?.user ?? null);
         
