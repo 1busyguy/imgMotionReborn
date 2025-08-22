@@ -117,43 +117,40 @@ const AdminRoute = ({ children }: { children: React.ReactNode }) => {
 
 function App() {
   useEffect(() => {
-    // Handle email confirmation and OAuth redirects
-    const handleAuthStateChange = async (event: string, session: any) => {
-      // Only handle initial sign-in, not subsequent session refreshes
-      if (event === 'SIGNED_IN') {
-        console.log('Sign-in event detected:', {
-          provider: session?.user?.app_metadata?.provider,
-          emailConfirmed: !!session?.user?.email_confirmed_at,
-          currentPath: window.location.pathname
-        });
+  // Handle OAuth redirects and post-login navigation
+  const handleAuthStateChange = async (event: string, session: any) => {
+    console.log('Auth state change in App.tsx:', event, {
+      hasSession: !!session,
+      currentPath: window.location.pathname,
+      hasHash: !!window.location.hash
+    });
+
+    if (event === 'SIGNED_IN' && session?.user) {
+      // Check if we're coming from an OAuth callback (has access_token in URL)
+      const isOAuthCallback = window.location.hash.includes('access_token');
+      
+      // Check if we're on a public page that should redirect to dashboard after login
+      const publicPaths = ['/', '/login', '/signup'];
+      const shouldRedirect = publicPaths.includes(window.location.pathname) || isOAuthCallback;
+      
+      if (shouldRedirect) {
+        console.log('Redirecting to dashboard after successful sign-in');
+        // Use navigate for React Router navigation
+        navigate('/dashboard');
         
-        // Check if we're already on the dashboard to prevent redirect loops
-        if (window.location.pathname === '/dashboard') {
-          console.log('Already on dashboard, skipping redirect');
-          return;
-        }
-        
-        // Check if this is a Google OAuth sign-in that needs redirection
-        if (session?.user?.app_metadata?.provider === 'google') {
-          // Check if URL has OAuth callback hash (only present on initial callback)
-          if (window.location.hash.includes('access_token')) {
-            console.log('Google OAuth callback detected, redirecting to dashboard...');
-            // Use React Router navigation instead of window.location
-            window.history.pushState({}, '', '/dashboard');
-            window.dispatchEvent(new PopStateEvent('popstate'));
-            
-            // Clean up the URL hash
-            setTimeout(() => {
-              window.history.replaceState(null, '', '/dashboard');
-            }, 100);
-          }
+        // Clean up URL if it's an OAuth callback
+        if (isOAuthCallback) {
+          setTimeout(() => {
+            window.history.replaceState(null, '', '/dashboard');
+          }, 100);
         }
       }
-    };
+    }
+  };
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(handleAuthStateChange);
-    return () => subscription.unsubscribe();
-}, []);
+  const { data: { subscription } } = supabase.auth.onAuthStateChange(handleAuthStateChange);
+  return () => subscription.unsubscribe();
+}, [navigate]);
 
   const handleSignUpClick = () => {
     // Use React Router navigation instead of window.location
