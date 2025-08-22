@@ -117,7 +117,7 @@ const AdminRoute = ({ children }: { children: React.ReactNode }) => {
 
 function App() {
   useEffect(() => {
-  // Handle OAuth redirects and post-login navigation
+  // Handle OAuth redirects, post-login navigation, and sign-out navigation
   const handleAuthStateChange = async (event: string, session: any) => {
     console.log('Auth state change in App.tsx:', event, {
       hasSession: !!session,
@@ -125,6 +125,7 @@ function App() {
       hasHash: !!window.location.hash
     });
 
+    // Handle sign in
     if (event === 'SIGNED_IN' && session?.user) {
       // Check if we're coming from an OAuth callback (has access_token in URL)
       const isOAuthCallback = window.location.hash.includes('access_token');
@@ -144,6 +145,17 @@ function App() {
         }
         
         // Trigger a popstate event to make React Router respond to the URL change
+        window.dispatchEvent(new PopStateEvent('popstate'));
+      }
+    }
+    
+    // Handle sign out - redirect to homepage
+    if (event === 'SIGNED_OUT') {
+      console.log('User signed out, redirecting to homepage');
+      
+      // Check if we're not already on the homepage to avoid unnecessary navigation
+      if (window.location.pathname !== '/') {
+        window.history.pushState(null, '', '/');
         window.dispatchEvent(new PopStateEvent('popstate'));
       }
     }
