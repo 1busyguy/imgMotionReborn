@@ -300,156 +300,70 @@ function handleWebhookError(event: any, generation: any) {
     let errorMessage = 'Generation failed';
     let errorCode = null;
     let contentViolation = false;
-    let errorMessage = 'Generation failed';
-    let userFriendlyMessage = 'Generation failed';
-    let errorCode = null;
-    let errorType = 'unknown_error';
-    let isRetryable = false;
-    let errorDetails = [];
-    let documentationUrl = null;
+    let serverError = false;
 
-    // Check for FAL.ai structured error format
-    let falErrorData = null;
-    
-    // Try to extract FAL error from different locations
+    // Extract error information from various possible locations
     if (event.error) {
-        falErrorData = event.error;
-    } else if (event.payload?.error) {
-        falErrorData = event.payload.error;
-    } else if (event.detail) {
-        falErrorData = { detail: event.detail };
-    }
-
-    console.log('🔍 Raw error data:', JSON.stringify(falErrorData, null, 2));
-
-    // Parse FAL.ai structured error format
-    if (falErrorData) {
-        // Extract status code
-        errorCode = falErrorData.status_code || falErrorData.code || event.status_code;
-        
-        // Check for retryable header
-        if (falErrorData.retryable !== undefined) {
-            isRetryable = falErrorData.retryable === true || falErrorData.retryable === 'true';
+        if (typeof event.error === 'string') {
+            errorMessage = event.error;
+        } else if (event.error.message) {
+            errorMessage = event.error.message;
+        } else if (event.error.detail) {
+            errorMessage = event.error.detail;
         }
 
-        // Parse detail array (FAL.ai error structure)
-        if (falErrorData.detail && Array.isArray(falErrorData.detail)) {
-            console.log('📋 Processing FAL.ai structured errors:', falErrorData.detail.length);
-            
-            for (const errorDetail of falErrorData.detail) {
-                const errorInfo = {
-                    location: errorDetail.loc || ['unknown'],
-                    message: errorDetail.msg || 'Unknown error',
-                    type: errorDetail.type || 'unknown_error',
-                    url: errorDetail.url || null,
-                    context: errorDetail.ctx || null,
-                    input: errorDetail.input || null
-                };
-                
-                errorDetails.push(errorInfo);
-                
-                // Use the first error's message as the primary message
-                if (errorDetails.length === 1) {
-                    errorMessage = errorInfo.message;
-                    errorType = errorInfo.type;
-                    documentationUrl = errorInfo.url;
-                    
-                    // Generate user-friendly message based on error type
-                    userFriendlyMessage = getUserFriendlyErrorMessage(errorInfo);
-                }
-                
-                console.log(`📝 Error ${errorDetails.length}:`, {
-                    type: errorInfo.type,
-                    location: errorInfo.location,
-                    message: errorInfo.message,
-                    hasContext: !!errorInfo.context
-                });
-            }
-        } else if (falErrorData.message || falErrorData.msg) {
-            // Fallback for non-structured errors
-            errorMessage = falErrorData.message || falErrorData.msg;
-            userFriendlyMessage = errorMessage;
-        } else if (typeof falErrorData === 'string') {
-            errorMessage = falErrorData;
-            userFriendlyMessage = falErrorData;
+        // Check for status codes
+        if (event.error.status_code) {
+            errorCode = event.error.status_code;
+        } else if (event.error.code) {
+            errorCode = event.error.code;
         }
     }
 
-    // Fallback error type detection if not provided
-    if (errorType === 'unknown_error') {
-        if (errorCode === 422) {
-            errorType = 'content_policy_violation';
-        } else if (errorCode === 500) {
-            errorType = 'internal_server_error';
-        } else if (errorCode === 504) {
-            errorType = 'generation_timeout';
-        } else if (errorCode === 400) {
-            errorType = 'downstream_service_error';
+    // Check payload for errors
+    if (event.payload?.error) {
+        if (typeof event.payload.error === 'string') {
+            errorMessage = event.payload.error;
+        } else {
+            errorMessage = event.payload.error.message || event.payload.error.detail || errorMessage;
+            errorCode = event.payload.error.status_code || event.payload.error.code || errorCode;
         }
     }
 
-    console.log('📊 Final Error Analysis:', {
+    // Detect content violations (422 errors)
+    if (errorCode === 422 || errorCode === '422' ||
+        errorMessage.toLowerCase().includes('content') ||
+        errorMessage.toLowerCase().includes('policy') ||
+        errorMessage.toLowerCase().includes('violation') ||
+        errorMessage.toLowerCase().includes('inappropriate') ||
+        errorMessage.toLowerCase().includes('nsfw')) {
+        contentViolation = true;
+        console.log('🚫 CONTENT VIOLATION DETECTED');
+    }
+
+    // Detect server errors (500 errors)
+    if (errorCode === 500 || errorCode === '500' ||
+        errorMessage.toLowerCase().includes('server error') ||
+        errorMessage.toLowerCase().includes('internal error')) {
+        serverError = true;
+        console.log('🔥 SERVER ERROR DETECTED');
+    }
+
+    console.log('📊 Error Analysis:', {
         errorCode,
-        errorType,
-        isRetryable,
-        errorDetailsCount: errorDetails.length,
-        userFriendlyMessage: userFriendlyMessage.substring(0, 100) + '...',
-        documentationUrl
+        contentViolation,
+        serverError,
+        errorMessage: errorMessage.substring(0, 100) + '...'
     });
 
     return {
         errorMessage,
-        userFriendlyMessage,
         errorCode,
-        errorType,
-        isRetryable,
-        errorDetails,
-        documentationUrl,
-        contentViolation: errorType === 'content_policy_violation',
-        serverError: errorType === 'internal_server_error' || errorType === 'downstream_service_unavailable',
-        timeoutError: errorType === 'generation_timeout'
+        contentViolation,
+        serverError,
+        errorType: contentViolation ? 'content_violation' :
+            serverError ? 'server_error' : 'unknown_error'
     };
-}
-
-// Generate user-friendly error messages based on FAL.ai error types
-function getUserFriendlyErrorMessage(errorInfo: any): string {
-    const { type, message, context, location } = errorInfo;
-    
-    switch (type) {
-        case 'content_policy_violation':
-            return 'Your content was flagged by our safety systems. Please try with different content that complies with our usage policies.';
-            
-        case 'image_too_large':
-            if (context?.max_width && context?.max_height) {
-                return `Image is too large. Maximum size allowed is ${context.max_width}x${context.max_height} pixels. Please resize your image and try again.`;
-            }
-            return 'Image is too large. Please use a smaller image and try again.';
-            
-        case 'image_too_small':
-            if (context?.min_width && context?.min_height) {
-                return `Image is too small. Minimum size required is ${context.min_width}x${context.min_height} pixels. Please use a larger image.`;
-            }
-            return 'Image is too small. Please use a larger image and try again.';
-            
-        case 'image_load_error':
-            return 'Failed to load your image. The file may be corrupted or in an unsupported format. Please try uploading a different image.';
-            
-        case 'internal_server_error':
-            return 'An unexpected server error occurred. Please try again in a few minutes. If the problem persists, contact support.';
-            
-        case 'generation_timeout':
-            return 'Generation took too long to complete and timed out. Please try again with simpler parameters or contact support if this continues.';
-            
-        case 'downstream_service_error':
-            return 'There was an issue with our AI service provider. Please try again in a few minutes.';
-            
-        case 'downstream_service_unavailable':
-            return 'The AI service is temporarily unavailable. Please try again later.';
-            
-        default:
-            // Return the original message for unknown error types
-            return message || 'An unknown error occurred. Please try again or contact support.';
-    }
 }
 
 // Fetch and cache JWKS
@@ -1096,9 +1010,7 @@ serve(async (req) => {
                 errorType: errorAnalysis.errorType,
                 errorCode: errorAnalysis.errorCode,
                 contentViolation: errorAnalysis.contentViolation,
-                serverError: errorAnalysis.serverError,
-                isRetryable: errorAnalysis.isRetryable,
-                errorDetailsCount: errorAnalysis.errorDetails?.length || 0
+                serverError: errorAnalysis.serverError
             });
 
             await supabase
@@ -1106,45 +1018,32 @@ serve(async (req) => {
                 .update({
                     status: 'failed',
                     completed_at: new Date().toISOString(),
-                    error_message: errorAnalysis.userFriendlyMessage,
+                    error_message: errorAnalysis.errorMessage,
                     metadata: {
                         ...generation.metadata,
                         webhook_received: true,
                         webhook_status: event.status,
-                        webhook_error: errorAnalysis.errorMessage,
-                        user_friendly_error: errorAnalysis.userFriendlyMessage,
+                        webhook_error: event.error,
                         error_analysis: {
                             error_code: errorAnalysis.errorCode,
                             error_type: errorAnalysis.errorType,
-                            is_retryable: errorAnalysis.isRetryable,
-                            error_details: errorAnalysis.errorDetails,
-                            documentation_url: errorAnalysis.documentationUrl,
                             content_violation: errorAnalysis.contentViolation,
                             server_error: errorAnalysis.serverError,
-                            timeout_error: errorAnalysis.timeoutError,
-                            raw_webhook_error: event.error,
+                            full_error: event.error,
                             analyzed_at: new Date().toISOString()
                         }
                     }
                 })
                 .eq('id', generation.id);
 
-            console.log(`✅ Generation ${generation.id} marked as failed:`, {
-                errorType: errorAnalysis.errorType,
-                userMessage: errorAnalysis.userFriendlyMessage,
-                isRetryable: errorAnalysis.isRetryable,
-                hasDocumentation: !!errorAnalysis.documentationUrl
-            });
+            console.log(`✅ Generation ${generation.id} marked as failed with error type: ${errorAnalysis.errorType}`);
 
             return new Response(JSON.stringify({
                 success: true,
                 message: "Failure processed",
                 generation_id: generation.id,
                 error_type: errorAnalysis.errorType,
-                error_code: errorAnalysis.errorCode,
-                user_friendly_message: errorAnalysis.userFriendlyMessage,
-                is_retryable: errorAnalysis.isRetryable,
-                documentation_url: errorAnalysis.documentationUrl
+                error_code: errorAnalysis.errorCode
             }), {
                 status: 200,
                 headers: {
