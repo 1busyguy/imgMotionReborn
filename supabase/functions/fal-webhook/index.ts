@@ -300,9 +300,7 @@ function handleWebhookError(event: any, generation: any) {
     let errorMessage = 'Generation failed';
     let errorCode = null;
     let contentViolation = false;
-    let errorMessage = 'Generation failed';
     let userFriendlyMessage = 'Generation failed';
-    let errorCode = null;
     let errorType = 'unknown_error';
     let isRetryable = false;
     let errorDetails = [];
@@ -1106,7 +1104,6 @@ serve(async (req) => {
                 .update({
                     status: 'failed',
                     completed_at: new Date().toISOString(),
-                    error_message: errorAnalysis.userFriendlyMessage,
                     metadata: {
                         ...generation.metadata,
                         webhook_received: true,
