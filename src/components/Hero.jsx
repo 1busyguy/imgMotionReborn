@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { toCdnUrl } from '../utils/cdnHelpers';
 import { Zap, Play, ArrowRight, Menu, X, User, LogIn } from 'lucide-react';
 
@@ -55,10 +55,12 @@ const Hero = () => {
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
             <div className="flex items-center space-x-2">
-              <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-pink-500 rounded-2xl flex items-center justify-center">
-                <Zap className="w-5 h-5 text-white" />
-              </div>
-              <span className="text-xl font-bold text-white">imgMotion</span>
+              <Link to="/" className="flex items-center space-x-2">
+                <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-pink-500 rounded-2xl flex items-center justify-center">
+                  <Zap className="w-5 h-5 text-white" />
+                </div>
+                <span className="text-xl font-bold text-white">imgMotion</span>
+              </Link>
             </div>
 
             {/* Desktop Navigation */}
@@ -66,7 +68,7 @@ const Hero = () => {
               <a href="#tools" className="text-purple-200 hover:text-white transition-colors">Tools</a>
               <a href="/imgmotionapp" className="text-purple-200 hover:text-white transition-colors">APP</a>
               <a href="/pricing" className="text-purple-200 hover:text-white transition-colors">Pricing</a>
-              <a href="#showcase" className="text-purple-200 hover:text-white transition-colors">Showcase</a>
+              <a href="/showcase" className="text-purple-200 hover:text-white transition-colors">Showcase</a>
               <a href="/about" className="text-purple-200 hover:text-white transition-colors">About</a>
               <a href="/contact" className="text-purple-200 hover:text-white transition-colors">Contact</a>
             </nav>
@@ -104,7 +106,7 @@ const Hero = () => {
                     <a href="#tools" className="block text-purple-200 hover:text-white transition-colors py-2">Tools</a>
                     <a href="/imgmotionapp" className="block text-purple-200 hover:text-white transition-colors py-2">APP</a>
                     <a href="#pricing" className="block text-purple-200 hover:text-white transition-colors py-2">Pricing</a>
-                    <a href="#gallery" className="block text-purple-200 hover:text-white transition-colors py-2">Gallery</a>
+                    <a href="/showcase" className="block text-purple-200 hover:text-white transition-colors py-2">Showcase</a>
                     <a href="/about" className="block text-purple-200 hover:text-white transition-colors py-2">About</a>
                     <a href="/contact" className="block text-purple-200 hover:text-white transition-colors py-2">Contact</a>
                     <hr className="border-white/20" />

@@ -37,6 +37,7 @@ import WanV22Video2Video from './pages/fal-tools/WanV22Video2Video';
 import FluxKontextMaxMulti from './pages/fal-tools/FluxKontextMaxMulti';
 import WanV22Text2VideoLora from './pages/fal-tools/WanV22Text2VideoLora';
 import Admin from './pages/Admin';
+import Showcase from './pages/Showcase';
 import About from './pages/About';
 import Contact from './pages/Contact';
 import Privacy from './pages/Privacy';
@@ -391,6 +392,7 @@ function App() {
             <Route path="/careers" element={<Careers />} />
             <Route path="/pricing" element={<Pricing />} />
             <Route path="/imgmotionapp" element={<ImgMotionApp />} />
+            <Route path="/showcase" element={<Showcase />} />
             {/* Catch all route - redirect to home */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
