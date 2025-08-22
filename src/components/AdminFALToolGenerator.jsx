@@ -1248,8 +1248,6 @@ ${parameters.map(param => `    ${param.name}: ${JSON.stringify(param.defaultValu
       setProfile(data);
     } catch (error) {
       console.error('Error fetching profile:', error);
-    } catch (error) {
-      console.error('Error fetching profile:', error);
     } finally {
       setLoading(false);
     }
