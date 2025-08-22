@@ -3,7 +3,7 @@ import { toCdnUrl } from '../utils/cdnHelpers';
 
 export const falTools = [
 
-// WAN 2.2 PROFESSIONAL - NEW TOOL!!
+   // WAN 2.2 PROFESSIONAL - NEW TOOL!!
     {
         id: 24,
         name: "WAN v2.2-a14b Video",
@@ -14,18 +14,7 @@ export const falTools = [
         toolType: "fal_wan_v22_a14b",
         route: "/wan-v22-a14b"
     },
-    // WAN v2.2-a14b VIDEO-TO-VIDEO - NEW TOOL
-    {
-        id: 33,
-        name: "WAN v2.2 Video2Video",
-        description: "Transform existing videos with AI - change style, content, and motion while preserving structure",
-        image: toCdnUrl("https://images.pexels.com/photos/3861958/pexels-photo-3861958.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1"),
-        tokensRequired: "25+",
-        category: "video",
-        toolType: "fal_wan_v22_video2video",
-        route: "/wan-v22-video2video"
-    },
-    
+        
     // WAN v2.2-a14b TEXT-TO-VIDEO LORA - NEW TOOL
     {
         id: 30,
@@ -49,6 +38,17 @@ export const falTools = [
         toolType: "fal_wan_v22_img2video_lora",
         route: "/wan-v22-img2video-lora"
     },
+  // WAN v2.2-a14b VIDEO-TO-VIDEO - NEW TOOL
+    {
+        id: 33,
+        name: "WAN v2.2 Video2Video",
+        description: "Transform existing videos with AI - change style, content, and motion while preserving structure",
+        image: toCdnUrl("https://images.pexels.com/photos/3861958/pexels-photo-3861958.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1"),
+        tokensRequired: "25+",
+        category: "video",
+        toolType: "fal_wan_v22_video2video",
+        route: "/wan-v22-video2video"
+    },
 
     // FLUX KONTEXT MAX MULTI - NEW MULTI-IMAGE TOOL
     {
@@ -60,6 +60,26 @@ export const falTools = [
         category: "image",
         toolType: "fal_flux_kontext_max_multi",
         route: "/flux-kontext-max-multi"
+    },
+  {
+        id: 9,
+        name: "FLUX Redux Pro",
+        description: "Create image variations with advanced IP-Adapter control for style preservation",
+        image: toCdnUrl("https://images.pexels.com/photos/1762851/pexels-photo-1762851.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1"),
+        tokensRequired: "20+",
+        category: "image",
+        toolType: "fal_flux_redux",
+        route: "/flux-redux"
+    },
+    {
+        id: 10,
+        name: "FLUX Kontext",
+        description: "Generate images with context-aware composition and spatial understanding",
+        image: toCdnUrl("https://images.pexels.com/photos/3785079/pexels-photo-3785079.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1"),
+        tokensRequired: "10+",
+        category: "image",
+        toolType: "fal_flux_kontext",
+        route: "/flux-kontext"
     },
 
     
@@ -114,26 +134,7 @@ export const falTools = [
         toolType: "fal_omnihuman",
         route: "/omnihuman"
     },
-    {
-        id: 9,
-        name: "FLUX Redux Pro",
-        description: "Create image variations with advanced IP-Adapter control for style preservation",
-        image: toCdnUrl("https://images.pexels.com/photos/1762851/pexels-photo-1762851.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1"),
-        tokensRequired: "20+",
-        category: "image",
-        toolType: "fal_flux_redux",
-        route: "/flux-redux"
-    },
-    {
-        id: 10,
-        name: "FLUX Kontext",
-        description: "Generate images with context-aware composition and spatial understanding",
-        image: toCdnUrl("https://images.pexels.com/photos/3785079/pexels-photo-3785079.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1"),
-        tokensRequired: "10+",
-        category: "image",
-        toolType: "fal_flux_kontext",
-        route: "/flux-kontext"
-    },
+    
 //    {
 //        id: 17,
 //        name: "FLUX Kontext LoRA",
@@ -176,6 +177,16 @@ export const falTools = [
         toolType: "fal_ltxv",
         route: "/ltxv-video"
     },
+    {
+        id: 23,
+        name: "Seedance Pro Video",
+        description: "Professional image-to-video generation with Seedance Pro technology",
+        image: toCdnUrl("https://images.pexels.com/photos/3379933/pexels-photo-3379933.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1"),
+        tokensRequired: "120+",
+        category: "video",
+        toolType: "fal_seedance_pro",
+        route: "/seedance-pro"
+    },
 
     // COMING SOON TOOLS - Page 3+ (positions 9+)
     {
@@ -197,16 +208,6 @@ export const falTools = [
         category: "image",
         toolType: "fal_hidream_i1",
         route: "/hidream-i1"
-    },
-    {
-        id: 23,
-        name: "Seedance Pro Video",
-        description: "Professional image-to-video generation with Seedance Pro technology",
-        image: toCdnUrl("https://images.pexels.com/photos/3379933/pexels-photo-3379933.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1"),
-        tokensRequired: "120+",
-        category: "video",
-        toolType: "fal_seedance_pro",
-        route: "/seedance-pro"
     },
     {
         id: 20,
