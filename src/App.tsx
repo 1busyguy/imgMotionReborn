@@ -29,7 +29,6 @@ import AISceneGen from './pages/fal-tools/AISceneGen';
 import HiDreamI1 from './pages/fal-tools/HiDreamI1';
 import SeedancePro from './pages/fal-tools/SeedancePro';
 import WanV22A14b from './pages/fal-tools/WanV22A14b';
-import WanV22Text2VideoLora from './pages/fal-tools/WanV22Text2VideoLora';
 import CassetteAIMusic from './pages/fal-tools/CassetteAIMusic';
 import MMAudioV2 from './pages/fal-tools/MMAudioV2';
 import MMAudioVideo2 from './pages/fal-tools/MMAudioVideo2';
@@ -277,14 +276,6 @@ function App() {
               element={
                 <ProtectedRoute>
                   <BriaBackgroundRemover />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/veo3-fast" 
-              element={
-                <ProtectedRoute>
-                  <VEO3Fast />
                 </ProtectedRoute>
               } 
             />

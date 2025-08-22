@@ -206,16 +206,6 @@ export const falTools = [
         route: "/seedance-pro"
     },
     {
-        id: 25,
-        name: "VEO3 Fast",
-        description: "Ultra-fast text-to-video generation with VEO3 technology and audio support",
-        image: toCdnUrl("https://images.pexels.com/photos/3861958/pexels-photo-3861958.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1"),
-        tokensRequired: "400+",
-        category: "video",
-        toolType: "fal_veo3_fast",
-        route: "/veo3-fast"
-    },
-    {
         id: 20,
         name: "BRIA Background Remover",
         description: "Professional AI-powered background removal with precision edge detection",

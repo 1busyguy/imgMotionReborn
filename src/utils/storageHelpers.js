@@ -168,12 +168,6 @@ export const AI_TOOLS = {
     tokensRequired: 5,
     category: 'image'
   },
-  fal_veo3_fast: {
-    name: 'VEO3 Fast',
-    description: 'Ultra-fast text-to-video generation with VEO3 technology and audio support',
-    tokensRequired: 193,
-    category: 'video'
-  },
   ai_scene_gen: {
     name: 'AI Scene Maker',
     description: 'Transform images into cinematic video sequences with advanced AI scene generation',
