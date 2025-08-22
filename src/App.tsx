@@ -135,22 +135,23 @@ function App() {
       
       if (shouldRedirect) {
         console.log('Redirecting to dashboard after successful sign-in');
-        // Use navigate for React Router navigation
-        navigate('/dashboard');
         
-        // Clean up URL if it's an OAuth callback
+        // Clean the URL first if it's an OAuth callback
         if (isOAuthCallback) {
-          setTimeout(() => {
-            window.history.replaceState(null, '', '/dashboard');
-          }, 100);
+          window.history.replaceState(null, '', '/dashboard');
+        } else {
+          window.history.pushState(null, '', '/dashboard');
         }
+        
+        // Trigger a popstate event to make React Router respond to the URL change
+        window.dispatchEvent(new PopStateEvent('popstate'));
       }
     }
   };
 
   const { data: { subscription } } = supabase.auth.onAuthStateChange(handleAuthStateChange);
   return () => subscription.unsubscribe();
-}, [navigate]);
+}, []);
 
   const handleSignUpClick = () => {
     // Use React Router navigation instead of window.location
