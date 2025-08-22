@@ -1126,10 +1126,12 @@ const WanV22Video2Video = () => {
                       <div key={generation.id} className="bg-white/5 rounded-lg p-4">
                         <div className="flex items-center justify-between">
                           <div>
-                            <p className="text-white font-medium">{generation.generation_name}</p>
-                            <p className="text-purple-200 text-sm">
-                              Started: {new Date(generation.created_at).toLocaleTimeString()}
+                            <p className="text-white font-medium">
+                              {generation.generation_name || `Video Transformation ${new Date(generation.created_at).toLocaleDateString()}`}
                             </p>
+                            <p className="text-purple-200 text-sm">
+                              {generation.input_data?.strength ? `Strength: ${generation.input_data.strength} • ` : ''}
+                              {generation.input_data?.resolution ? `Resolution: ${generation.input_data.resolution} • ` : ''}
                           </div>
                           <div className="flex items-center space-x-3">
                             <div className="flex space-x-1">
@@ -1175,7 +1177,7 @@ const WanV22Video2Video = () => {
                           <div className="flex items-center justify-between mb-3">
                             <div>
                               <h4 className="font-medium text-white">
-                                {generation.generation_name}
+                                {generation.generation_name || `Video Transformation ${new Date(generation.created_at).toLocaleDateString()}`}
                               </h4>
                               <p className="text-purple-200 text-sm">
                                 {new Date(generation.created_at).toLocaleString()}
@@ -1219,20 +1221,20 @@ const WanV22Video2Video = () => {
 
                           <div className="space-y-2 text-sm text-purple-300">
                             <p>
-                              <strong>Transformation:</strong> {generation.input_data?.prompt}
+                              <strong>Prompt:</strong> {generation.input_data?.prompt || 'No prompt available'}
                             </p>
                             <div className="grid grid-cols-2 gap-4">
                               <span>
                                 <strong>Resolution:</strong> {generation.input_data?.resolution}
                               </span>
                               <span>
-                                <strong>Strength:</strong> {generation.input_data?.strength}
+                                <strong>Resolution:</strong> {generation.input_data?.resolution || 'N/A'}
                               </span>
                               <span>
-                                <strong>Frames:</strong> {generation.input_data?.numFrames}
+                                <strong>Frames:</strong> {generation.input_data?.numFrames || 'N/A'}
                               </span>
                               <span>
-                                <strong>FPS:</strong> {generation.input_data?.framesPerSecond}
+                                <strong>Aspect:</strong> {generation.input_data?.aspectRatio || 'N/A'}
                               </span>
                             </div>
                           </div>
