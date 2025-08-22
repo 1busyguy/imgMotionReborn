@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import ProtectedAdminRoute from './components/ProtectedAdminRoute';
 import AdminLoraManager from './components/AdminLoraManager';
+import { useEffect } from 'react';
 import { supabase } from './lib/supabaseClient';
 import { useAuth } from './hooks/useAuth';
 import MaintenanceWrapper from './components/MaintenanceWrapper';
@@ -45,7 +46,6 @@ import FAQ from './pages/FAQ';
 import Careers from './pages/Careers';
 import Pricing from './pages/Pricing';
 import ImgMotionApp from './pages/ImgMotionApp';
-import { useEffect } from 'react';
 
 // Protected Route Component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
