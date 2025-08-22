@@ -58,7 +58,7 @@ const ProtectedAdminRoute = ({ children }) => {
 
   // Not admin - redirect to dashboard with no ability to go back
   if (isAdmin === false) {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to="/" replace />;
   }
 
   // Admin verified - show content
