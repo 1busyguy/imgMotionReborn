@@ -55,7 +55,6 @@ serve(async (req) => {
       .from('ai_generations')
       .select('*')
       .eq('user_id', userId)
-      // REMOVED: .is('deleted_at', null) - Admin sees everything!
       .order('created_at', { ascending: false });
     
     if (generationsError) {
@@ -63,24 +62,25 @@ serve(async (req) => {
       throw new Error(`Failed to fetch generations: ${generationsError.message}`);
     }
     
-    // Count soft-deleted items
-    const softDeletedCount = generations?.filter(g => g.deleted_at).length || 0;
-    const activeCount = generations?.filter(g => !g.deleted_at).length || 0;
+    // Count soft-deleted items (handle null case)
+    const allGenerations = generations || [];
+    const softDeletedCount = allGenerations.filter(g => g.deleted_at).length;
+    const activeCount = allGenerations.filter(g => !g.deleted_at).length;
     
-    console.log(`✅ Successfully fetched ${generations?.length || 0} total generations (${activeCount} active, ${softDeletedCount} soft-deleted) for user ${userId}`);
+    console.log(`✅ Successfully fetched ${allGenerations.length} total generations (${activeCount} active, ${softDeletedCount} soft-deleted) for user ${userId}`);
     
     // Debug: Log some sample generation data
-    if (generations && generations.length > 0) {
+    if (allGenerations.length > 0) {
       console.log('📊 Sample generation data:', {
-        first_generation: {
-          id: generations[0].id,
-          tool_type: generations[0].tool_type,
-          status: generations[0].status,
-          created_at: generations[0].created_at,
-          deleted_at: generations[0].deleted_at
-        },
+        first_generation: allGenerations[0] ? {
+          id: allGenerations[0].id,
+          tool_type: allGenerations[0].tool_type,
+          status: allGenerations[0].status,
+          created_at: allGenerations[0].created_at,
+          deleted_at: allGenerations[0].deleted_at
+        } : null,
         stats: {
-          total: generations.length,
+          total: allGenerations.length,
           active: activeCount,
           soft_deleted: softDeletedCount
         }
@@ -104,8 +104,8 @@ serve(async (req) => {
     
     return new Response(JSON.stringify({
       success: true,
-      generations: generations || [],
-      count: generations?.length || 0,
+      generations: allGenerations,
+      count: allGenerations.length,
       activeCount: activeCount,
       softDeletedCount: softDeletedCount,
       userId: userId,
@@ -115,7 +115,7 @@ serve(async (req) => {
           user_id: userId,
           deleted_at_filter: 'none - admin sees all generations'
         },
-        total_found: generations?.length || 0,
+        total_found: allGenerations.length,
         active_generations: activeCount,
         soft_deleted_generations: softDeletedCount
       },
