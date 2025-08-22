@@ -126,7 +126,7 @@ function App() {
         // Check if this is a Google OAuth sign-in and redirect to dashboard
         if (session?.user?.app_metadata?.provider === 'google') {
           console.log('Google OAuth sign-in detected, redirecting to dashboard...');
-          window.location.href = '/';
+          window.location.href = '/dashboard';
         }
       }
       
@@ -135,7 +135,7 @@ function App() {
         console.log('Google OAuth completed, redirecting to dashboard...');
         // Small delay to ensure auth state is fully processed
         setTimeout(() => {
-          window.location.href = '/';
+          window.location.href = '/dashboard';
         }, 100);
       }
     };
