@@ -1252,7 +1252,7 @@ ${parameters.map(param => `    ${param.name}: ${JSON.stringify(param.defaultValu
       setLoading(false);
     }
   };
-
+;
   const fetchGenerations = async () => {
     try {
       const { data, error } = await supabase
