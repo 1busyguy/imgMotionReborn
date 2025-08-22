@@ -200,14 +200,6 @@ function App() {
               } 
             />
             <Route 
-              path="/flux-generator" 
-              element={
-                <ProtectedRoute>
-                  <FluxGenerator />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
               path="/flux-redux" 
               element={
                 <ProtectedRoute>
