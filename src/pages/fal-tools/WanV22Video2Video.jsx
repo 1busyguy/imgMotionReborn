@@ -3,12 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabaseClient';
 import { useAuth } from '../../hooks/useAuth';
 import { createAIGeneration, updateTokenCount, uploadFile } from '../../utils/storageHelpers';
-import { isNSFWError, parseNSFWError } from '../../utils/errorHandlers';
+import { isContentPolicyError, parseContentPolicyError } from '../../utils/errorHandlers';
 import { toCdnUrl } from '../../utils/cdnHelpers';
-import { performSafetyAnalysis, shouldShowWarning, getSafetyWarningMessage, logSafetyAnalysis } from '../../utils/safescan';
 import NSFWAlert from '../../components/NSFWAlert';
 import SafetyWarningModal from '../../components/SafetyWarningModal';
-import ThemedAlert from '../../components/ThemedAlert';
+import { performSafetyAnalysis, getSafetyWarningMessage, shouldShowWarning, logSafetyAnalysis } from '../../utils/safescan';
 import { 
   ArrowLeft, 
   Zap, 
@@ -21,15 +20,18 @@ import {
   Copy,
   X,
   Play,
-  Clock,
   Film,
   Wand2,
-  Monitor,
-  Smartphone,
-  Square,
-  Sliders,
+  Shield,
   Dice6,
-  Layers
+  Sparkles,
+  Clock,
+  Monitor,
+  CheckCircle,
+  AlertTriangle,
+  Sliders,
+  Hash,
+  Gauge
 } from 'lucide-react';
 
 const WanV22Video2Video = () => {
@@ -38,26 +40,26 @@ const WanV22Video2Video = () => {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   
-  // Configuration state - based on WAN v2.2-a14b Video2Video API
+  // Configuration state - based on WAN v2.2-a14b Video-to-Video API
   const [config, setConfig] = useState({
     videoUrl: '',
     prompt: '',
     negativePrompt: '',
-    strength: 1,
-    numFrames: 121,
-    framesPerSecond: 24,
+    strength: .5,
+    numFrames: 81,
+    framesPerSecond: 16,
     resolution: '720p',
     aspectRatio: 'auto',
     numInferenceSteps: 30,
-    enableSafetyChecker: false,
-    enablePromptExpansion: true,
+    enableSafetyChecker: true,
+    enablePromptExpansion: false,
     acceleration: 'none',
-    guidanceScale: 10,
-    guidanceScale2: 10,
-    shift: 10,
+    guidanceScale: 4.5,
+    guidanceScale2: 4.5,
+    shift: 5,
     interpolatorModel: 'film',
-    numInterpolatedFrames: 4,
-    adjustFpsForInterpolation: true,
+    numInterpolatedFrames: 2,
+    adjustFpsForInterpolation: false,
     resampleFps: true,
     seed: -1
   });
@@ -70,30 +72,43 @@ const WanV22Video2Video = () => {
   const [uploadingVideo, setUploadingVideo] = useState(false);
   const [showNSFWAlert, setShowNSFWAlert] = useState(false);
   const [nsfwError, setNsfwError] = useState(null);
-  const [videoAnalysis, setVideoAnalysis] = useState(null);
   const [analyzingVideo, setAnalyzingVideo] = useState(false);
+  
+  // Safety scanning state
   const [showSafetyWarning, setShowSafetyWarning] = useState(false);
-  const [safetyWarningData, setSafetyWarningData] = useState(null);
+  const [safetyAnalysis, setSafetyAnalysis] = useState(null);
   const [bypassSafetyCheck, setBypassSafetyCheck] = useState(false);
-  const [alertConfig, setAlertConfig] = useState({
-    show: false,
-    type: 'error',
-    title: '',
-    message: ''
-  });
-
+  const [safetyWarningData, setSafetyWarningData] = useState(null);
+  const [performingSafetyCheck, setPerformingSafetyCheck] = useState(false);
+  const [videoAnalysis, setVideoAnalysis] = useState(null);
+  const [videoDimensions, setVideoDimensions] = useState(null);
+  
   // Resolution options
   const resolutionOptions = [
-    { label: '720p (HD)', value: '720p' },
-    { label: '1080p (Full HD)', value: '1080p' }
+    { label: '480p', value: '480p' },
+    { label: '580p', value: '580p' },
+    { label: '720p', value: '720p' }
   ];
 
   // Aspect ratio options
   const aspectRatioOptions = [
-    { label: 'Auto (Keep Original)', value: 'auto' },
-    { label: 'Landscape (16:9)', value: '16:9' },
-    { label: 'Portrait (9:16)', value: '9:16' },
-    { label: 'Square (1:1)', value: '1:1' }
+    { label: 'Auto', value: 'auto', icon: <Monitor className="w-4 h-4" /> },
+    { label: 'Landscape (16:9)', value: '16:9', icon: <Monitor className="w-4 h-4" /> },
+    { label: 'Square (1:1)', value: '1:1', icon: <div className="w-4 h-4 border border-current" /> },
+    { label: 'Vertical (9:21)', value: '9:21', icon: <div className="w-2 h-4 border border-current" /> }
+  ];
+
+  // Acceleration options
+  const accelerationOptions = [
+    { label: 'None', value: 'none' },
+    { label: 'Regular', value: 'regular' }
+  ];
+
+  // Interpolator model options
+  const interpolatorOptions = [
+    { label: 'None', value: 'none' },
+    { label: 'FILM', value: 'film' },
+    { label: 'RIFE', value: 'rife' }
   ];
 
   useEffect(() => {
@@ -101,7 +116,7 @@ const WanV22Video2Video = () => {
       fetchProfile();
       fetchGenerations();
       
-      // Set up real-time subscription for this specific tool type
+      // Set up real-time subscription
       const subscription = supabase
         .channel('wan_v22_video2video_generations')
         .on(
@@ -162,62 +177,33 @@ const WanV22Video2Video = () => {
   const handleRealtimeUpdate = (payload) => {
     const { eventType, new: newRecord, old: oldRecord } = payload;
     
-    console.log('Processing real-time update:', { eventType, newRecord, oldRecord });
-
     setGenerations(current => {
       switch (eventType) {
         case 'INSERT':
-          console.log('Adding new generation to list');
           return [newRecord, ...current];
         case 'UPDATE':
-          console.log('Updating existing generation');
           return current.map(item => 
             item.id === newRecord.id ? newRecord : item
           );
         case 'DELETE':
-          console.log('Removing generation from list');
           return current.filter(item => item.id !== oldRecord.id);
         default:
           return current;
       }
     });
 
-    // Update active generations
     if (newRecord?.status === 'processing') {
-      console.log('Adding to active generations');
       setActiveGenerations(current => {
         const exists = current.find(g => g.id === newRecord.id);
         return exists ? current.map(g => g.id === newRecord.id ? newRecord : g) : [newRecord, ...current];
       });
     } else if (newRecord?.status === 'completed' || newRecord?.status === 'failed') {
-      console.log('Removing from active generations');
       setActiveGenerations(current => current.filter(g => g.id !== newRecord?.id));
     }
   };
 
-  // Show themed alert
-  const showAlert = (type, title, message, autoClose = true) => {
-    setAlertConfig({
-      show: true,
-      type,
-      title,
-      message
-    });
-    
-    if (autoClose) {
-      setTimeout(() => {
-        setAlertConfig(prev => ({ ...prev, show: false }));
-      }, 5000);
-    }
-  };
-
-  // Close alert
-  const closeAlert = () => {
-    setAlertConfig(prev => ({ ...prev, show: false }));
-  };
-
-  // Analyze video to get basic info
-  const analyzeVideo = (file) => {
+  // Analyze video to get dimensions
+  const analyzeVideoDimensions = (file) => {
     return new Promise((resolve, reject) => {
       const video = document.createElement('video');
       video.preload = 'metadata';
@@ -231,8 +217,8 @@ const WanV22Video2Video = () => {
           width,
           height,
           duration,
-          resolution: `${width}x${height}`,
-          aspectRatio: width > height ? 'landscape' : height > width ? 'portrait' : 'square'
+          aspectRatio: `${width}:${height}`,
+          formattedDuration: `${Math.round(duration)}s`
         });
         
         // Clean up
@@ -264,39 +250,55 @@ const WanV22Video2Video = () => {
 
     setUploadingVideo(true);
     setAnalyzingVideo(true);
+    
     try {
-      // First analyze the video
-      const analysis = await analyzeVideo(file);
+      // First analyze the video to get dimensions
+      const analysis = await analyzeVideoDimensions(file);
       console.log('Video analysis:', analysis);
       setVideoAnalysis(analysis);
+      setVideoDimensions(analysis);
       
-      // Then upload to storage
+      // Upload to storage
       const { url } = await uploadFile(file, 'wan-v22-video2video-input');
       setConfig(prev => ({ ...prev, videoUrl: url }));
+      
     } catch (error) {
       console.error('Error uploading video:', error);
-      alert('Error uploading video. Please try again.');
+      alert(`Error uploading video: ${error.message}`);
     } finally {
       setAnalyzingVideo(false);
       setUploadingVideo(false);
     }
   };
 
+  const handleAspectRatioChange = (newAspectRatio) => {
+    // Always use the exact string value - FAL.ai API expects these specific strings
+    setConfig(prev => ({ ...prev, aspectRatio: newAspectRatio }));
+  };
+
   const calculateTokenCost = () => {
-    // Base cost calculation for video transformation
-    let baseCost = 25;
+    // Base cost calculation based on resolution and frames
+    let baseCost;
     
-    // Adjust based on resolution
-    if (config.resolution === '1080p') {
-      baseCost *= 1.5;
+    switch (config.resolution) {
+      case '480p':
+        baseCost = 25;
+        break;
+      case '580p':
+        baseCost = 35;
+        break;
+      case '720p':
+        baseCost = 50;
+        break;
+      default:
+        baseCost = 50;
     }
     
-    // Adjust based on number of frames
-    if (config.numFrames > 81) {
-      baseCost *= 1.2;
-    }
+    // Multiply by frame complexity factor
+    const frameMultiplier = config.numFrames / 81; // Base 81 frames
+    const finalCost = Math.ceil(baseCost * frameMultiplier);
     
-    return Math.ceil(baseCost);
+    return Math.max(25, finalCost); // Minimum 25 tokens
   };
 
   const handleGenerate = async () => {
@@ -310,27 +312,84 @@ const WanV22Video2Video = () => {
       return;
     }
 
-    // --- SAFETY SCAN INTEGRATION ---
+    // STEP 1: Perform safety analysis BEFORE any FAL.ai request
+    setPerformingSafetyCheck(true);
+    try {
+      console.log('🛡️ Starting safety analysis before FAL.ai request...');
+      
+      const analysis = await performSafetyAnalysis(
+        config.videoUrl, 
+        config.prompt,
+        'fal_wan_v22_video2video'
+      );
+      
+      setSafetyAnalysis(analysis);
+      
+      // Check if we should show warning
+      if (shouldShowWarning(analysis)) {
+        const warningData = getSafetyWarningMessage(analysis);
+        setSafetyWarningData(warningData);
+        setShowSafetyWarning(true);
+        setPerformingSafetyCheck(false);
+        
+        console.log('⚠️ Safety warning triggered, showing modal to user');
+        return; // Stop here and show warning
+      }
+      
+      console.log('✅ Safety analysis passed, proceeding with generation');
+      
+    } catch (safetyError) {
+      console.error('❌ Safety analysis failed:', safetyError);
+      // If safety analysis fails, continue but log the error
+      console.log('⚠️ Safety analysis failed, proceeding without check');
+    } finally {
+      setPerformingSafetyCheck(false);
+    }
+    
+    // STEP 2: Proceed with actual generation (safety check passed or failed)
+    await proceedWithGeneration();
+  };
+  
+  // Separated generation logic for reuse after safety warning
+  const proceedWithGeneration = async () => {
+    // Step 1: Perform safety analysis before proceeding
     if (!bypassSafetyCheck) {
+      setPerformingSafetyCheck(true);
       try {
-        const analysisResult = await performSafetyAnalysis(
-          null, // No image analysis for video input
+        console.log('🛡️ Performing safety analysis before generation...');
+        
+        const analysis = await performSafetyAnalysis(
+          config.videoUrl, // Analyze the video as if it were an image
           config.prompt,
           'fal_wan_v22_video2video'
         );
-
-        logSafetyAnalysis(analysisResult, 'pre_generation_check');
-
-        if (shouldShowWarning(analysisResult)) {
-          setSafetyWarningData(getSafetyWarningMessage(analysisResult));
+        
+        setSafetyAnalysis(analysis);
+        
+        // Check if we should show warning
+        if (shouldShowWarning(analysis)) {
+          const warningData = getSafetyWarningMessage(analysis);
+          setSafetyWarningData(warningData);
           setShowSafetyWarning(true);
-          return;
+          setPerformingSafetyCheck(false);
+          
+          // Log the analysis
+          await logSafetyAnalysis(analysis, 'warning_shown');
+          
+          return; // Stop here and show warning
+        } else {
+          console.log('✅ Safety analysis passed, proceeding with generation');
+          await logSafetyAnalysis(analysis, 'passed');
         }
       } catch (safetyError) {
-        console.warn('Safety analysis failed, proceeding with generation:', safetyError);
+        console.error('❌ Safety analysis failed:', safetyError);
+        // If safety analysis fails, proceed anyway (don't block user)
+      } finally {
+        setPerformingSafetyCheck(false);
       }
     }
 
+    // Reset bypass flag after use
     setBypassSafetyCheck(false);
 
     const tokenCost = calculateTokenCost();
@@ -341,32 +400,35 @@ const WanV22Video2Video = () => {
     }
 
     setGenerating(true);
+    let generation = null;
+    
     try {
-      console.log('🎬 Starting WAN v2.2 Video2Video generation...');
+      console.log('🚀 Starting WAN v2.2 Video2Video generation...');
       
-      // Create generation record
-      const generation = await createAIGeneration(
+      generation = await createAIGeneration(
         'fal_wan_v22_video2video',
-        `Video Transform: ${config.prompt.substring(0, 30)}...`,
-        config,
+        {
+          ...config,
+          safety_analysis: safetyAnalysis // Include safety analysis in metadata
+        },
+        {
+          ...config,
+          // Use actual video dimensions if auto is selected
+          aspectRatio: config.aspectRatio === 'auto' && videoDimensions 
+            ? videoDimensions.aspectRatio 
+            : config.aspectRatio
+        },
         tokenCost
       );
 
-      console.log('📝 Generation record created:', generation.id);
-
-      // Add to local state immediately
       setGenerations(current => [generation, ...current]);
       setActiveGenerations(current => [generation, ...current]);
       
-      // Deduct tokens
       await updateTokenCount(user.id, tokenCost);
-      
-      // Refresh profile
       await fetchProfile();
 
       console.log('💰 Tokens deducted, calling Edge Function...');
 
-      // Call Edge Function
       const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/fal-wan-v22-video2video`, {
         method: 'POST',
         headers: {
@@ -379,36 +441,101 @@ const WanV22Video2Video = () => {
         })
       });
 
-      console.log('Edge Function response status:', response.status);
-
       if (!response.ok) {
         const errorData = await response.json();
-        console.error('Edge Function error:', errorData);
-        throw new Error(errorData.error || 'Video transformation failed');
+        throw new Error(errorData.error || 'Generation failed');
       }
 
-      const result = await response.json();
-      console.log('Edge Function result:', result);
-
-      // Clear prompt after successful generation
-      setConfig(prev => ({ ...prev, prompt: '' }));
-
-      console.log('🎉 Video transformation request completed successfully');
+      setConfig(prev => ({ ...prev, prompt: '', negativePrompt: '' }));
+      
+      // Log successful safety analysis result
+      if (safetyAnalysis) {
+        await logSafetyAnalysis(safetyAnalysis, 'proceeded_with_generation');
+      }
+      console.log('✅ WAN v2.2 Video2Video generation request submitted successfully');
 
     } catch (error) {
       console.error('❌ Error generating:', error);
       
-      // Check if it's an NSFW content error
-      if (isNSFWError(error.message)) {
-        const nsfwDetails = parseNSFWError(error.message);
-        setNsfwError(nsfwDetails);
+      if (generation) {
+        setGenerations(current => current.filter(g => g.id !== generation.id));
+        setActiveGenerations(current => current.filter(g => g.id !== generation.id));
+      }
+      
+      if (isContentPolicyError(error.message)) {
+        const policyDetails = parseContentPolicyError(error.message);
+        setNsfwError(policyDetails);
         setShowNSFWAlert(true);
       } else {
-        showAlert('error', 'Generation Failed', `WAN v2.2 Video2Video generation failed: ${error.message}`);
+        alert(`Error: ${error.message}`);
       }
     } finally {
       setGenerating(false);
     }
+  };
+  
+  // Handle safety warning modal actions
+  const handleSafetyWarningContinue = async () => {
+    setShowSafetyWarning(false);
+    
+    // Log that user chose to continue despite warning
+    if (safetyAnalysis) {
+      await logSafetyAnalysis(safetyAnalysis, 'continued_despite_warning');
+    }
+    
+    // Set bypass flag and trigger generation
+    setBypassSafetyCheck(true);
+    
+    // Small delay to ensure state is updated, then trigger generation
+    setTimeout(() => {
+      proceedWithGeneration();
+    }, 100);
+  };
+  
+  const handleSafetyWarningModify = () => {
+    setShowSafetyWarning(false);
+    
+    // Log that user chose to modify content
+    if (safetyAnalysis) {
+      logSafetyAnalysis(safetyAnalysis, 'chose_to_modify');
+    }
+    
+    // User stays on the page to modify content
+    // Next time they click generate, safety check will run again
+  };
+  
+  const handleSafetyWarningClose = () => {
+    setShowSafetyWarning(false);
+    
+    // Log that user dismissed warning
+    if (safetyAnalysis) {
+      logSafetyAnalysis(safetyAnalysis, 'dismissed_warning');
+    }
+  };
+
+  // Handle safety warning responses
+  const handleSafetyContinue = async () => {
+    console.log('⚠️ User chose to continue despite safety warning');
+    await logSafetyAnalysis(safetyAnalysis, 'user_continued');
+    
+    setShowSafetyWarning(false);
+    setBypassSafetyCheck(true); // Skip safety check on next generation attempt
+    
+    // Automatically trigger generation
+    setTimeout(() => {
+      proceedWithGeneration();
+    }, 100);
+  };
+
+  const handleSafetyModify = async () => {
+    console.log('✅ User chose to modify content');
+    await logSafetyAnalysis(safetyAnalysis, 'user_modified');
+    
+    setShowSafetyWarning(false);
+    setSafetyAnalysis(null);
+    setBypassSafetyCheck(false);
+    setSafetyWarningData(null);
+    // User can now modify their content and try again
   };
 
   const handleDownload = async (videoUrl) => {
@@ -425,7 +552,6 @@ const WanV22Video2Video = () => {
       window.URL.revokeObjectURL(url);
     } catch (error) {
       console.error('Download failed:', error);
-      // Fallback to direct link
       const link = document.createElement('a');
       link.href = toCdnUrl(videoUrl);
       link.download = `wan-v22-video2video-${Date.now()}.mp4`;
@@ -440,7 +566,6 @@ const WanV22Video2Video = () => {
     if (!confirm('Are you sure you want to remove this generation? It will be hidden from your account.')) return;
 
     try {
-      // Use soft delete function instead of hard delete
       const { data, error } = await supabase.rpc('soft_delete_generation', {
         generation_id: generationId,
         user_id: user.id
@@ -498,12 +623,12 @@ const WanV22Video2Video = () => {
               </button>
               <div className="h-6 w-px bg-white/20"></div>
               <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-xl flex items-center justify-center">
-                  <Layers className="w-5 h-5 text-white" />
+                <div className="w-10 h-10 bg-gradient-to-r from-violet-500 to-purple-500 rounded-xl flex items-center justify-center">
+                  <Video className="w-5 h-5 text-white" />
                 </div>
                 <div>
                   <h1 className="text-xl font-bold text-white">WAN v2.2 Video2Video</h1>
-                  <p className="text-purple-200 text-sm">Transform existing videos with advanced AI - change style, content, and motion</p>
+                  <p className="text-purple-200 text-sm">Transform videos with advanced AI - change style, content, and motion</p>
                 </div>
               </div>
             </div>
@@ -525,22 +650,13 @@ const WanV22Video2Video = () => {
       </header>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Themed Alert */}
-        <ThemedAlert
-          type={alertConfig.type}
-          title={alertConfig.title}
-          message={alertConfig.message}
-          isOpen={alertConfig.show}
-          onClose={closeAlert}
-        />
-        
         <div className="grid lg:grid-cols-3 gap-8">
-          {/* Configuration Panel - Left Side */}
-          <div className="lg:col-span-1">
+          {/* Configuration Panel */}
+          <div className="lg:col-span-1 w-full min-w-0">
             <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 sticky top-8">
               <div className="flex items-center space-x-2 mb-6">
                 <Settings className="w-5 h-5 text-purple-400" />
-                <h2 className="text-lg font-semibold text-white">Video Transformation</h2>
+                <h2 className="text-lg font-semibold text-white">Video Configuration</h2>
               </div>
 
               <div className="space-y-6">
@@ -554,15 +670,15 @@ const WanV22Video2Video = () => {
                     className="border-2 border-dashed border-white/30 rounded-lg p-4 text-center transition-colors hover:border-white/50"
                     onDragOver={(e) => {
                       e.preventDefault();
-                      e.currentTarget.classList.add('border-indigo-400', 'bg-indigo-500/10');
+                      e.currentTarget.classList.add('border-violet-400', 'bg-violet-500/10');
                     }}
                     onDragLeave={(e) => {
                       e.preventDefault();
-                      e.currentTarget.classList.remove('border-indigo-400', 'bg-indigo-500/10');
+                      e.currentTarget.classList.remove('border-violet-400', 'bg-violet-500/10');
                     }}
                     onDrop={(e) => {
                       e.preventDefault();
-                      e.currentTarget.classList.remove('border-indigo-400', 'bg-indigo-500/10');
+                      e.currentTarget.classList.remove('border-violet-400', 'bg-violet-500/10');
                       const files = e.dataTransfer.files;
                       if (files.length > 0) {
                         const event = { target: { files } };
@@ -582,8 +698,8 @@ const WanV22Video2Video = () => {
                       {config.videoUrl ? (
                         <div className="space-y-2">
                           <video 
-                            src={config.videoUrl} 
-                            className="w-full h-32 object-cover rounded-lg bg-black/20"
+                            src={toCdnUrl(config.videoUrl)} 
+                            className="w-full h-32 object-contain rounded-lg bg-black/20"
                             muted
                             preload="metadata"
                           />
@@ -592,8 +708,8 @@ const WanV22Video2Video = () => {
                           </p>
                           {videoAnalysis && (
                             <div className="text-xs text-green-300 bg-green-500/10 rounded p-2">
-                              <p>Resolution: {videoAnalysis.resolution}</p>
-                              <p>Duration: {Math.round(videoAnalysis.duration)}s</p>
+                              <p>Dimensions: {videoAnalysis.width}×{videoAnalysis.height}</p>
+                              <p>Duration: {videoAnalysis.formattedDuration}</p>
                               <p>Aspect: {videoAnalysis.aspectRatio}</p>
                             </div>
                           )}
@@ -607,7 +723,7 @@ const WanV22Video2Video = () => {
                              'Upload or drag & drop video'}
                           </p>
                           <p className="text-purple-300 text-xs mt-1">
-                            Transform existing videos with AI • Drag & drop supported
+                            MP4, MOV, AVI • Max 100MB • Drag & drop supported
                           </p>
                         </div>
                       )}
@@ -625,11 +741,12 @@ const WanV22Video2Video = () => {
                     value={config.prompt}
                     onChange={(e) => setConfig(prev => ({ ...prev, prompt: e.target.value }))}
                     placeholder="Describe how you want to transform the video..."
-                    className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-purple-300 focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
-                    rows={3}
+                    className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
+                    rows={4}
+                    maxLength={800}
                   />
                   <p className="text-purple-300 text-xs mt-1">
-                    Describe style changes, content modifications, or motion adjustments
+                    {config.prompt.length}/800 characters • Describe style, content, or motion changes
                   </p>
                 </div>
 
@@ -642,15 +759,15 @@ const WanV22Video2Video = () => {
                     value={config.negativePrompt}
                     onChange={(e) => setConfig(prev => ({ ...prev, negativePrompt: e.target.value }))}
                     placeholder="What you don't want in the transformed video..."
-                    className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-purple-300 focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
+                    className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
                     rows={2}
                   />
                 </div>
 
-                {/* Transformation Strength */}
+                {/* Strength */}
                 <div>
                   <label className="block text-sm font-medium text-purple-200 mb-2">
-                    <Sliders className="w-4 h-4 inline mr-1" />
+                    <Gauge className="w-4 h-4 inline mr-1" />
                     Transformation Strength: {config.strength}
                   </label>
                   <input
@@ -663,9 +780,9 @@ const WanV22Video2Video = () => {
                     className="w-full h-2 bg-white/20 rounded-lg appearance-none cursor-pointer slider"
                   />
                   <div className="flex justify-between text-xs text-purple-300 mt-1">
-                    <span>Subtle</span>
-                    <span>Balanced</span>
-                    <span>Strong</span>
+                    <span>Subtle (0.0)</span>
+                    <span>Balanced (0.5)</span>
+                    <span>Strong (1.0)</span>
                   </div>
                 </div>
 
@@ -675,14 +792,14 @@ const WanV22Video2Video = () => {
                     <Monitor className="w-4 h-4 inline mr-1" />
                     Output Resolution
                   </label>
-                  <div className="grid grid-cols-1 gap-2">
+                  <div className="grid grid-cols-3 gap-2">
                     {resolutionOptions.map((option) => (
                       <button
                         key={option.value}
                         onClick={() => setConfig(prev => ({ ...prev, resolution: option.value }))}
                         className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
                           config.resolution === option.value
-                            ? 'bg-indigo-500 text-white'
+                            ? 'bg-violet-500 text-white'
                             : 'bg-white/10 text-purple-200 hover:bg-white/20'
                         }`}
                       >
@@ -697,52 +814,254 @@ const WanV22Video2Video = () => {
                   <label className="block text-sm font-medium text-purple-200 mb-2">
                     Aspect Ratio
                   </label>
-                  <select
-                    value={config.aspectRatio}
-                    onChange={(e) => setConfig(prev => ({ ...prev, aspectRatio: e.target.value }))}
-                    className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  >
+                  <div className="grid grid-cols-2 gap-2">
                     {aspectRatioOptions.map((option) => (
-                      <option key={option.value} value={option.value} className="bg-gray-800">
-                        {option.label}
-                      </option>
+                      <button
+                        key={option.value}
+                        onClick={() => handleAspectRatioChange(option.value)}
+                        className={`px-3 py-2 rounded-lg text-sm font-medium transition-all flex items-center space-x-2 ${
+                          (config.aspectRatio === option.value || 
+                           (option.value === 'auto' && config.aspectRatio === videoDimensions?.aspectRatio))
+                            ? 'bg-violet-500 text-white'
+                            : 'bg-white/10 text-purple-200 hover:bg-white/20'
+                        }`}
+                      >
+                        {option.icon}
+                        <span className="truncate">
+                          {option.label}
+                        </span>
+                      </button>
                     ))}
-                  </select>
+                  </div>
+                </div>
+
+                {/* Frame Settings */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-purple-200 mb-2">
+                      <Hash className="w-4 h-4 inline mr-1" />
+                      Frames: {config.numFrames}
+                    </label>
+                    <input
+                      type="range"
+                      min="81"
+                      max="121"
+                      value={config.numFrames}
+                      onChange={(e) => setConfig(prev => ({ ...prev, numFrames: parseInt(e.target.value) }))}
+                      className="w-full h-2 bg-white/20 rounded-lg appearance-none cursor-pointer slider"
+                    />
+                    <div className="flex justify-between text-xs text-purple-300 mt-1">
+                      <span>81</span>
+                      <span>121</span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-purple-200 mb-2">
+                      <Clock className="w-4 h-4 inline mr-1" />
+                      FPS: {config.framesPerSecond}
+                    </label>
+                    <input
+                      type="range"
+                      min="4"
+                      max="60"
+                      value={config.framesPerSecond}
+                      onChange={(e) => setConfig(prev => ({ ...prev, framesPerSecond: parseInt(e.target.value) }))}
+                      className="w-full h-2 bg-white/20 rounded-lg appearance-none cursor-pointer slider"
+                    />
+                    <div className="flex justify-between text-xs text-purple-300 mt-1">
+                      <span>4</span>
+                      <span>60</span>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Advanced Settings */}
                 <div className="space-y-4">
                   <h3 className="text-lg font-semibold text-white">Advanced Settings</h3>
                   
-                  <div>
-                    <label className="block text-sm font-medium text-purple-200 mb-2">
-                      Guidance Scale: {config.guidanceScale}
-                    </label>
-                    <input
-                      type="range"
-                      min="1"
-                      max="20"
-                      step="0.5"
-                      value={config.guidanceScale}
-                      onChange={(e) => setConfig(prev => ({ ...prev, guidanceScale: parseFloat(e.target.value) }))}
-                      className="w-full h-2 bg-white/20 rounded-lg appearance-none cursor-pointer slider"
-                    />
+                  {/* Guidance Scales */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-purple-200 mb-2">
+                        Guidance Scale: {config.guidanceScale}
+                      </label>
+                      <input
+                        type="range"
+                        min="1"
+                        max="10"
+                        step="0.5"
+                        value={config.guidanceScale}
+                        onChange={(e) => setConfig(prev => ({ ...prev, guidanceScale: parseFloat(e.target.value) }))}
+                        className="w-full h-2 bg-white/20 rounded-lg appearance-none cursor-pointer slider"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-purple-200 mb-2">
+                        Guidance Scale 2: {config.guidanceScale2}
+                      </label>
+                      <input
+                        type="range"
+                        min="1"
+                        max="10"
+                        step="0.5"
+                        value={config.guidanceScale2}
+                        onChange={(e) => setConfig(prev => ({ ...prev, guidanceScale2: parseFloat(e.target.value) }))}
+                        className="w-full h-2 bg-white/20 rounded-lg appearance-none cursor-pointer slider"
+                      />
+                    </div>
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-purple-200 mb-2">
-                      Inference Steps: {config.numInferenceSteps}
-                    </label>
-                    <input
-                      type="range"
-                      min="10"
-                      max="50"
-                      value={config.numInferenceSteps}
-                      onChange={(e) => setConfig(prev => ({ ...prev, numInferenceSteps: parseInt(e.target.value) }))}
-                      className="w-full h-2 bg-white/20 rounded-lg appearance-none cursor-pointer slider"
-                    />
+                  {/* Steps and Shift */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-purple-200 mb-2">
+                        Steps: {config.numInferenceSteps}
+                      </label>
+                      <input
+                        type="range"
+                        min="2"
+                        max="40"
+                        value={config.numInferenceSteps}
+                        onChange={(e) => setConfig(prev => ({ ...prev, numInferenceSteps: parseInt(e.target.value) }))}
+                        className="w-full h-2 bg-white/20 rounded-lg appearance-none cursor-pointer slider"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-purple-200 mb-2">
+                        Shift: {config.shift}
+                      </label>
+                      <input
+                        type="range"
+                        min="1"
+                        max="10"
+                        value={config.shift}
+                        onChange={(e) => setConfig(prev => ({ ...prev, shift: parseInt(e.target.value) }))}
+                        className="w-full h-2 bg-white/20 rounded-lg appearance-none cursor-pointer slider"
+                      />
+                    </div>
                   </div>
 
+                  {/* Interpolator Settings */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-purple-200 mb-2">
+                        Interpolator Model
+                      </label>
+                      <select
+                        value={config.interpolatorModel}
+                        onChange={(e) => setConfig(prev => ({ ...prev, interpolatorModel: e.target.value }))}
+                        className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      >
+                        {interpolatorOptions.map((option) => (
+                          <option key={option.value} value={option.value} className="bg-gray-800 text-white">
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-purple-200 mb-2">
+                        Interpolated Frames: {config.numInterpolatedFrames}
+                      </label>
+                      <input
+                        type="range"
+                        min="1"
+                        max="8"
+                        value={config.numInterpolatedFrames}
+                        onChange={(e) => setConfig(prev => ({ ...prev, numInterpolatedFrames: parseInt(e.target.value) }))}
+                        className="w-full h-2 bg-white/20 rounded-lg appearance-none cursor-pointer slider"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Acceleration */}
+                  <div>
+                    <label className="block text-sm font-medium text-purple-200 mb-2">
+                      Acceleration
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {accelerationOptions.map((option) => (
+                        <button
+                          key={option.value}
+                          onClick={() => setConfig(prev => ({ ...prev, acceleration: option.value }))}
+                          className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                            config.acceleration === option.value
+                              ? 'bg-violet-500 text-white'
+                              : 'bg-white/10 text-purple-200 hover:bg-white/20'
+                          }`}
+                        >
+                          {option.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Toggle Options */}
+                  <div className="space-y-3">
+                    <label className="flex items-center space-x-3">
+                      <input
+                        type="checkbox"
+                        checked={config.enableSafetyChecker}
+                        onChange={(e) => setConfig(prev => ({ ...prev, enableSafetyChecker: e.target.checked }))}
+                        className="w-4 h-4 text-violet-600 bg-white/10 border-white/20 rounded focus:ring-violet-500"
+                      />
+                      <div>
+                        <span className="text-white font-medium flex items-center">
+                          <Shield className="w-4 h-4 mr-1" />
+                          Safety Checker
+                        </span>
+                        <p className="text-purple-300 text-xs">Filter inappropriate content</p>
+                      </div>
+                    </label>
+
+                    <label className="flex items-center space-x-3">
+                      <input
+                        type="checkbox"
+                        checked={config.enablePromptExpansion}
+                        onChange={(e) => setConfig(prev => ({ ...prev, enablePromptExpansion: e.target.checked }))}
+                        className="w-4 h-4 text-violet-600 bg-white/10 border-white/20 rounded focus:ring-violet-500"
+                      />
+                      <div>
+                        <span className="text-white font-medium flex items-center">
+                          <Sparkles className="w-4 h-4 mr-1" />
+                          Prompt Expansion
+                        </span>
+                        <p className="text-purple-300 text-xs">AI enhances your prompt</p>
+                      </div>
+                    </label>
+
+                    <label className="flex items-center space-x-3">
+                      <input
+                        type="checkbox"
+                        checked={config.adjustFpsForInterpolation}
+                        onChange={(e) => setConfig(prev => ({ ...prev, adjustFpsForInterpolation: e.target.checked }))}
+                        className="w-4 h-4 text-violet-600 bg-white/10 border-white/20 rounded focus:ring-violet-500"
+                      />
+                      <div>
+                        <span className="text-white font-medium">Adjust FPS for Interpolation</span>
+                        <p className="text-purple-300 text-xs">Optimize frame rate for interpolation</p>
+                      </div>
+                    </label>
+
+                    <label className="flex items-center space-x-3">
+                      <input
+                        type="checkbox"
+                        checked={config.resampleFps}
+                        onChange={(e) => setConfig(prev => ({ ...prev, resampleFps: e.target.checked }))}
+                        className="w-4 h-4 text-violet-600 bg-white/10 border-white/20 rounded focus:ring-violet-500"
+                      />
+                      <div>
+                        <span className="text-white font-medium">Resample FPS</span>
+                        <p className="text-purple-300 text-xs">Resample frame rate for consistency</p>
+                      </div>
+                    </label>
+                  </div>
+
+                  {/* Seed */}
                   <div>
                     <label className="block text-sm font-medium text-purple-200 mb-2">
                       <Dice6 className="w-4 h-4 inline mr-1" />
@@ -755,67 +1074,52 @@ const WanV22Video2Video = () => {
                       className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
                     />
                   </div>
-
-                  <div className="flex items-center justify-between">
-                    <label className="text-white text-sm">Safety Checker</label>
-                    <input
-                      type="checkbox"
-                      checked={config.enableSafetyChecker}
-                      onChange={(e) => setConfig(prev => ({ ...prev, enableSafetyChecker: e.target.checked }))}
-                      className="w-4 h-4 text-indigo-600 bg-white/10 border-white/20 rounded focus:ring-indigo-500"
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <label className="text-white text-sm">Prompt Expansion</label>
-                    <input
-                      type="checkbox"
-                      checked={config.enablePromptExpansion}
-                      onChange={(e) => setConfig(prev => ({ ...prev, enablePromptExpansion: e.target.checked }))}
-                      className="w-4 h-4 text-indigo-600 bg-white/10 border-white/20 rounded focus:ring-indigo-500"
-                    />
-                  </div>
                 </div>
 
                 {/* Generate Button */}
                 <button
                   onClick={handleGenerate}
-                  disabled={generating || !config.videoUrl || !config.prompt.trim()}
-                  className="w-full bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white font-semibold py-4 px-6 rounded-lg transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center space-x-2"
+                  disabled={generating || performingSafetyCheck || !config.videoUrl || !config.prompt.trim()}
+                  className="w-full bg-gradient-to-r from-violet-500 to-purple-500 hover:from-violet-600 hover:to-purple-600 text-white font-semibold py-4 px-6 rounded-lg transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center space-x-2"
                 >
-                  {generating ? (
+                  {performingSafetyCheck ? (
                     <>
-                      <RefreshCw className="w-4 h-4 animate-spin" />
-                      <span>Transforming Video...</span>
+                      <Shield className="w-4 h-4 animate-pulse" />
+                      <span>Checking Content Safety...</span>
+                    </>
+                  ) : generating ? (
+                    <>
+                      <RefreshCw className="w-5 h-5 animate-spin" />
+                      <span>Transforming...</span>
                     </>
                   ) : (
                     <>
-                      <Layers className="w-4 h-4" />
+                      <Wand2 className="w-5 h-5" />
                       <span>Transform Video ({calculateTokenCost()} tokens)</span>
                     </>
                   )}
                 </button>
 
                 {/* Processing Note */}
-                <div className="bg-indigo-500/10 border border-indigo-500/30 rounded-lg p-3">
-                  <p className="text-indigo-200 text-xs">
+                <div className="bg-violet-500/10 border border-violet-500/30 rounded-lg p-3">
+                  <p className="text-violet-200 text-xs">
                     <Film className="w-3 h-3 inline mr-1" />
-                    Video transformation may take 3-8 minutes. Cost varies by resolution and complexity.
+                    Video transformation may take 2-5 minutes. Cost varies by resolution and frame count.
                   </p>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Generations Panel - Right Side */}
-          <div className="lg:col-span-2">
+          {/* Results Panel */}
+          <div className="lg:col-span-2 w-full min-w-0">
             <div className="space-y-6">
               {/* Active Generations */}
               {activeGenerations.length > 0 && (
                 <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6">
                   <div className="flex items-center space-x-2 mb-4">
                     <RefreshCw className="w-5 h-5 text-yellow-400 animate-spin" />
-                    <h3 className="text-lg font-semibold text-white">Transforming Videos ({activeGenerations.length})</h3>
+                    <h3 className="text-lg font-semibold text-white">Processing Videos ({activeGenerations.length})</h3>
                   </div>
                   <div className="space-y-3">
                     {activeGenerations.map((generation) => (
@@ -825,9 +1129,6 @@ const WanV22Video2Video = () => {
                             <p className="text-white font-medium">{generation.generation_name}</p>
                             <p className="text-purple-200 text-sm">
                               Started: {new Date(generation.created_at).toLocaleTimeString()}
-                            </p>
-                            <p className="text-purple-300 text-xs mt-1">
-                              Video transformation typically takes 3-8 minutes
                             </p>
                           </div>
                           <div className="flex items-center space-x-3">
@@ -850,7 +1151,7 @@ const WanV22Video2Video = () => {
                 <div className="flex items-center justify-between mb-6">
                   <h3 className="text-lg font-semibold text-white">Transformed Videos</h3>
                   <button
-                    onClick={fetchGenerations}
+                    onClick={() => handleDownload(toCdnUrl(selectedGeneration.output_file_url))}
                     className="text-purple-400 hover:text-purple-300 transition-colors"
                   >
                     <RefreshCw className="w-4 h-4" />
@@ -859,9 +1160,9 @@ const WanV22Video2Video = () => {
 
                 {generations.length === 0 ? (
                   <div className="text-center py-12">
-                    <Layers className="w-16 h-16 text-purple-300 mx-auto mb-4 opacity-50" />
+                    <Video className="w-16 h-16 text-purple-300 mx-auto mb-4 opacity-50" />
                     <p className="text-purple-200 text-lg">No videos transformed yet</p>
-                    <p className="text-purple-300 text-sm">Upload a video and describe how you want to transform it</p>
+                    <p className="text-purple-300 text-sm">Upload a video and describe how to transform it</p>
                   </div>
                 ) : (
                   <div className="space-y-6">
@@ -899,10 +1200,10 @@ const WanV22Video2Video = () => {
                           )}
 
                           {generation.status === 'processing' && (
-                            <div className="mb-4 bg-gradient-to-br from-indigo-500/20 to-purple-500/20 rounded-lg p-8 text-center">
-                              <RefreshCw className="w-12 h-12 text-indigo-300 animate-spin mx-auto mb-2" />
-                              <p className="text-indigo-200">Transforming video...</p>
-                              <p className="text-indigo-300 text-sm">This may take 3-8 minutes</p>
+                            <div className="mb-4 bg-gradient-to-br from-violet-500/20 to-purple-500/20 rounded-lg p-8 text-center">
+                              <RefreshCw className="w-12 h-12 text-violet-300 animate-spin mx-auto mb-2" />
+                              <p className="text-violet-200">Transforming video...</p>
+                              <p className="text-violet-300 text-sm">This typically takes 2-5 minutes</p>
                             </div>
                           )}
 
@@ -910,6 +1211,9 @@ const WanV22Video2Video = () => {
                             <div className="mb-4 bg-red-500/20 rounded-lg p-4 text-center">
                               <X className="w-8 h-8 text-red-400 mx-auto mb-2" />
                               <p className="text-red-400 text-sm">Transformation failed</p>
+                              {generation.error_message && (
+                                <p className="text-red-300 text-xs mt-2">{generation.error_message}</p>
+                              )}
                             </div>
                           )}
 
@@ -919,22 +1223,25 @@ const WanV22Video2Video = () => {
                             </p>
                             <div className="grid grid-cols-2 gap-4">
                               <span>
-                                <strong>Strength:</strong> {generation.input_data?.strength}
+                                <strong>Resolution:</strong> {generation.input_data?.resolution}
                               </span>
                               <span>
-                                <strong>Resolution:</strong> {generation.input_data?.resolution}
+                                <strong>Strength:</strong> {generation.input_data?.strength}
                               </span>
                               <span>
                                 <strong>Frames:</strong> {generation.input_data?.numFrames}
                               </span>
                               <span>
-                                <strong>Tokens:</strong> {generation.tokens_used}
+                                <strong>FPS:</strong> {generation.input_data?.framesPerSecond}
                               </span>
                             </div>
                           </div>
 
                           <div className="flex items-center justify-between mt-4">
                             <div className="flex items-center space-x-4">
+                              <span className="text-purple-300 text-sm">
+                                {generation.tokens_used} tokens used
+                              </span>
                               {generation.input_data?.prompt && (
                                 <button
                                   onClick={() => copyPrompt(generation.input_data.prompt)}
@@ -948,7 +1255,7 @@ const WanV22Video2Video = () => {
                             <div className="flex space-x-2">
                               {generation.output_file_url && generation.status === 'completed' && (
                                 <button
-                                  onClick={() => handleDownload(generation.output_file_url)}
+                                  onClick={() => handleDownload(toCdnUrl(generation.output_file_url))}
                                   className="bg-green-500 hover:bg-green-600 text-white p-2 rounded-lg transition-colors"
                                   title="Download video"
                                 >
@@ -985,29 +1292,17 @@ const WanV22Video2Video = () => {
         toolName="WAN v2.2 Video2Video"
         details={nsfwError?.technical}
       />
-
+      
       {/* Safety Warning Modal */}
       <SafetyWarningModal
         isOpen={showSafetyWarning}
-        onClose={() => {
-          setShowSafetyWarning(false);
-          setSafetyWarningData(null);
-        }}
-        onContinue={() => {
-          setBypassSafetyCheck(true);
-          setShowSafetyWarning(false);
-          setSafetyWarningData(null);
-          setTimeout(() => handleGenerate(), 100);
-        }}
-        onModify={() => {
-          setShowSafetyWarning(false);
-          setSafetyWarningData(null);
-        }}
+        onClose={handleSafetyWarningClose}
+        onContinue={handleSafetyWarningContinue}
+        onModify={handleSafetyWarningModify}
         warningData={safetyWarningData}
         toolName="WAN v2.2 Video2Video"
       />
 
-      {/* Custom Styles */}
       <style>{`
         .animation-delay-200 {
           animation-delay: 200ms;
@@ -1020,7 +1315,7 @@ const WanV22Video2Video = () => {
           height: 20px;
           width: 20px;
           border-radius: 50%;
-          background: linear-gradient(to right, #6366F1, #8B5CF6);
+          background: linear-gradient(to right, #8B5CF6, #A855F7);
           cursor: pointer;
           border: 2px solid white;
         }
@@ -1028,7 +1323,7 @@ const WanV22Video2Video = () => {
           height: 20px;
           width: 20px;
           border-radius: 50%;
-          background: linear-gradient(to right, #6366F1, #8B5CF6);
+          background: linear-gradient(to right, #8B5CF6, #A855F7);
           cursor: pointer;
           border: 2px solid white;
         }
