@@ -317,13 +317,13 @@ const NewLanding = () => {
 
               <div className="pt-4">
                 <button
-                  onClick={() => navigate('/imgmotion-app')}
+                  onClick={() => navigate('/imgmotionapp')}
                   className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white font-bold py-3 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 inline-flex items-center space-x-2"
                 >
                   <span>Learn More About the App</span>
                   <ArrowRight className="w-5 h-5" />
                 </button>
-                <p className="text-cyan-300 text-sm mt-3">Coming March 2025 - Join the waitlist</p>
+                <p className="text-cyan-300 text-sm mt-3">Coming December 2025 - Join the waitlist</p>
               </div>
             </div>
           </div>
