@@ -1226,7 +1226,7 @@ const WanV22Video2Video = () => {
                             </p>
                             <div className="grid grid-cols-2 gap-4">
                               <span>
-                                <strong>Strength:</strong> {generation.input_data?.strength || 'N/A'}
+                                <strong>Resolution:</strong> {generation.input_data?.resolution}
                               </span>
                               <span>
                                 <strong>Resolution:</strong> {generation.input_data?.resolution || 'N/A'}
