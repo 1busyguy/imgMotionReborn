@@ -13,7 +13,6 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Settings from './pages/Settings';
 import Gallery from './pages/Gallery';
-import FluxGenerator from './pages/FluxGenerator';
 import FluxRedux from './pages/fal-tools/FluxRedux';
 import FluxKontext from './pages/fal-tools/FluxKontext';
 import MinimaxHailuo from './pages/fal-tools/MinimaxHailuo';
