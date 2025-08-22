@@ -1,4 +1,3 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import Stripe from 'https://esm.sh/stripe@14.21.0?target=deno&no-check';
 
@@ -8,7 +7,7 @@ const cryptoProvider = Stripe.createSubtleCryptoProvider();
 
 console.log("Stripe webhook handler loaded");
 
-serve(async (request) => {
+Deno.serve(async (request) => {
   console.log('🎯 Webhook received!');
   console.log('Headers:', Object.fromEntries(request.headers.entries()));
   
