@@ -117,40 +117,40 @@ const AdminRoute = ({ children }: { children: React.ReactNode }) => {
 
 function App() {
   useEffect(() => {
-  // Handle OAuth redirects and post-login navigation
-  const handleAuthStateChange = async (event: string, session: any) => {
-    console.log('Auth state change in App.tsx:', event, {
-      hasSession: !!session,
-      currentPath: window.location.pathname,
-      hasHash: !!window.location.hash
-    });
-
-    if (event === 'SIGNED_IN' && session?.user) {
-      // Check if we're coming from an OAuth callback (has access_token in URL)
-      const isOAuthCallback = window.location.hash.includes('access_token');
-      
-      // Check if we're on a public page that should redirect to dashboard after login
-      const publicPaths = ['/', '/login', '/signup'];
-      const shouldRedirect = publicPaths.includes(window.location.pathname) || isOAuthCallback;
-      
-      if (shouldRedirect) {
-        console.log('Redirecting to dashboard after successful sign-in');
-        // Use navigate for React Router navigation
-        navigate('/dashboard');
+    // Handle OAuth redirects and post-login navigation
+    const handleAuthStateChange = async (event: string, session: any) => {
+      console.log('Auth state change in App.tsx:', event, {
+        hasSession: !!session,
+        currentPath: window.location.pathname,
+        hasHash: !!window.location.hash
+      });
+  
+      if (event === 'SIGNED_IN' && session?.user) {
+        // Check if we're coming from an OAuth callback (has access_token in URL)
+        const isOAuthCallback = window.location.hash.includes('access_token');
         
-        // Clean up URL if it's an OAuth callback
-        if (isOAuthCallback) {
-          setTimeout(() => {
-            window.history.replaceState(null, '', '/dashboard');
-          }, 100);
+        // Check if we're on a public page that should redirect to dashboard after login
+        const publicPaths = ['/', '/login', '/signup'];
+        const shouldRedirect = publicPaths.includes(window.location.pathname) || isOAuthCallback;
+        
+        if (shouldRedirect) {
+          console.log('Redirecting to dashboard after successful sign-in');
+          // Use navigate for React Router navigation
+          navigate('/dashboard');
+          
+          // Clean up URL if it's an OAuth callback
+          if (isOAuthCallback) {
+            setTimeout(() => {
+              window.history.replaceState(null, '', '/dashboard');
+            }, 100);
+          }
         }
       }
-    }
-  };
-
-  const { data: { subscription } } = supabase.auth.onAuthStateChange(handleAuthStateChange);
-  return () => subscription.unsubscribe();
-}, [navigate]);
+    };
+  
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(handleAuthStateChange);
+    return () => subscription.unsubscribe();
+  }, [navigate]);
 
   const handleSignUpClick = () => {
     // Use React Router navigation instead of window.location
