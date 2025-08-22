@@ -1,105 +1,80 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { supabase } from '../lib/supabaseClient';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-forwarded-for, cf-connecting-ip',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-};
+export const useAuth = () => {
+  const [user, setUser] = useState(null);
+  const [profile, setProfile] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
-// Function to extract IP address from request headers
-function getClientIP(req: Request): string | null {
-  const headers = [
-    'cf-connecting-ip',      // Cloudflare
-  ];
-
-  for (const header of headers) {
-    const ip = req.headers.get(header);
-    if (ip) {
-      // Handle Google OAuth completion - only redirect if not already on dashboard
-      const value = req.headers.get(header);
-      if (value) {
-        if (window.location.pathname !== '/dashboard') {
-          console.log('Google OAuth completed, redirecting to dashboard...');
-        }
-        console.log(`📍 Login IP found in ${header}: ${ip}`);
-        return ip;
+  useEffect(() => {
+    // Get initial session
+    const getInitialSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        setUser(session.user);
+        await fetchProfile(session.user.id);
       }
-    }
-  }
+      setLoading(false);
+    };
 
-  return null;
-}
+    getInitialSession();
 
-serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
-  }
-
-  try {
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
-
-    // Get user from JWT
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      throw new Error('No authorization header');
-    }
-    
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
-
-    if (userError || !user) {
-      throw new Error('Unauthorized');
-    }
-
-    // Extract IP address from request
-    const clientIP = getClientIP(req);
-    
-    console.log('📍 Capturing login IP:', {
-      userId: user.id,
-      email: user.email,
-      clientIP: clientIP || 'unknown'
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (session?.user) {
+        setUser(session.user);
+        await fetchProfile(session.user.id);
+        
+        if (event === 'SIGNED_IN') {
+          navigate('/dashboard', { replace: true });
+        }
+      } else {
+        setUser(null);
+        setProfile(null);
+        if (event === 'SIGNED_OUT') {
+          navigate('/', { replace: true });
+        }
+      }
+      setLoading(false);
     });
 
-    // Update user profile with last login IP
-    const { error: updateError } = await supabase
-      .from('profiles')
-      .update({
-        last_login_ip: clientIP,
-        ip_updated_at: new Date().toISOString()
-      })
-      .eq('id', user.id);
+    return () => subscription.unsubscribe();
+  }, [navigate]);
 
-    if (updateError) {
-      console.error('❌ Error updating login IP:', updateError);
-      throw new Error(`Failed to update login IP: ${updateError.message}`);
+  const fetchProfile = async (userId) => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+
+      if (error) {
+        console.error('Error fetching profile:', error);
+        return;
+      }
+
+      setProfile(data);
+    } catch (error) {
+      console.error('Error in fetchProfile:', error);
     }
+  };
 
-    console.log('✅ Successfully captured login IP for user:', user.email);
+  const signOut = async () => {
+    try {
+      await supabase.auth.signOut();
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
+  };
 
-    return new Response(JSON.stringify({
-      success: true,
-      message: 'Login IP captured successfully',
-      userId: user.id,
-      timestamp: new Date().toISOString()
-    }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    });
-
-  } catch (error) {
-    console.error('❌ Error in capture-login-ip:', error);
-    
-    // Don't fail the login process if IP capture fails
-    return new Response(JSON.stringify({
-      success: false,
-      error: error.message,
-      message: 'IP capture failed but login can continue'
-    }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 200
-    });
-  }
-});
+  return {
+    user,
+    profile,
+    loading,
+    signOut,
+    fetchProfile
+  };
+};
