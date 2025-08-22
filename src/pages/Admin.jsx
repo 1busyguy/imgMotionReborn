@@ -469,7 +469,7 @@ const Admin = () => {
 
         if (!isAdmin) {
             console.log('❌ User is not admin, redirecting to dashboard');
-            navigate('/dashboard');
+            navigate('/');
             return;
         }
 
