@@ -1,3 +1,4 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import nacl from 'https://esm.sh/tweetnacl@1.0.3';
 
@@ -555,7 +556,7 @@ async function verifyFalSignature(headers, body) {
     return false;
 }
 
-Deno.serve(async (req) => {
+serve(async (req) => {
     // Handle CORS
     if (req.method === 'OPTIONS') {
         return new Response('ok', { headers: corsHeaders });
