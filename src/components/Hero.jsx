@@ -77,8 +77,8 @@ const Hero = () => {
           <div className="absolute bottom-20 left-20 w-5 h-5 bg-cyan-400 rounded-full opacity-50 animate-pulse animation-delay-2000"></div>
           <div className="absolute top-1/3 left-1/4 w-3 h-3 bg-yellow-400 rounded-full opacity-30 animate-pulse animation-delay-3000"></div>
           <div className="absolute bottom-1/3 right-1/4 w-4 h-4 bg-green-400 rounded-full opacity-40 animate-pulse animation-delay-4000"></div>
-        </div>
-      </div> */}
+        </div>  */}
+      </div> 
 
       {/* Header */}
       <header className="relative z-20 bg-white/10 backdrop-blur-md border-b border-white/20">
