@@ -1,105 +1,107 @@
-import React, { useState } from 'react';
-import { supabase } from '../lib/supabaseClient';
-import { Mail, AlertTriangle, RefreshCw, CheckCircle, X } from 'lucide-react';
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-const EmailVerificationBanner = ({ user }) => {
-  const [isResending, setIsResending] = useState(false);
-  const [resendSuccess, setResendSuccess] = useState(false);
-  const [isDismissed, setIsDismissed] = useState(false);
-  const [error, setError] = useState('');
-
-  const handleResendEmail = async () => {
-    setIsResending(true);
-    setError('');
-    
-    try {
-      const { error } = await supabase.auth.resend({
-        type: 'signup',
-        email: user.email,
-        options: {
-          emailRedirectTo: `https://imgmotion.com/dashboard`
-        }
-      });
-
-      if (error) throw error;
-      
-      setResendSuccess(true);
-      setTimeout(() => setResendSuccess(false), 5000);
-    } catch (error) {
-      console.error('Error resending email:', error);
-      setError(error.message);
-    } finally {
-      setIsResending(false);
-    }
-  };
-
-  if (isDismissed) return null;
-
-  return (
-    <div className="bg-gradient-to-r from-amber-500/20 to-orange-500/20 border border-amber-500/30 backdrop-blur-md rounded-2xl p-4 mb-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4">
-          <div className="w-10 h-10 bg-gradient-to-r from-amber-500 to-orange-500 rounded-xl flex items-center justify-center flex-shrink-0">
-            <Mail className="w-5 h-5 text-white" />
-          </div>
-          
-          <div className="flex-1">
-            <div className="flex items-center space-x-2 mb-1">
-              <AlertTriangle className="w-4 h-4 text-amber-400" />
-              <h3 className="text-white font-semibold">Email Verification Required</h3>
-            </div>
-            <p className="text-amber-200 text-sm">
-              Please check your email ({user.email}) and click the confirmation link to verify your account.
-            </p>
-            
-            {error && (
-              <p className="text-red-300 text-xs mt-1">{error}</p>
-            )}
-            
-            {resendSuccess && (
-              <div className="flex items-center space-x-1 mt-1">
-                <CheckCircle className="w-3 h-3 text-green-400" />
-                <p className="text-green-300 text-xs">Verification email sent!</p>
-              </div>
-            )}
-          </div>
-        </div>
-        
-        <div className="flex items-center space-x-2">
-          <button
-            onClick={handleResendEmail}
-            disabled={isResending || resendSuccess}
-            className="bg-amber-500 hover:bg-amber-600 disabled:bg-amber-700 disabled:cursor-not-allowed text-white font-medium py-2 px-4 rounded-lg transition-colors text-sm flex items-center space-x-2"
-          >
-            {isResending ? (
-              <>
-                <RefreshCw className="w-4 h-4 animate-spin" />
-                <span>Sending...</span>
-              </>
-            ) : resendSuccess ? (
-              <>
-                <CheckCircle className="w-4 h-4" />
-                <span>Sent!</span>
-              </>
-            ) : (
-              <>
-                <Mail className="w-4 h-4" />
-                <span>Resend Email</span>
-              </>
-            )}
-          </button>
-          
-          <button
-            onClick={() => setIsDismissed(true)}
-            className="text-amber-300 hover:text-amber-200 transition-colors p-1"
-            title="Dismiss banner"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-      </div>
-    </div>
-  );
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-forwarded-for, cf-connecting-ip',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
-export default EmailVerificationBanner;
+// Function to extract IP address from request headers
+function getClientIP(req: Request): string | null {
+  const headers = [
+    'cf-connecting-ip',      // Cloudflare
+    'x-forwarded-for',       // Standard proxy header
+    'x-real-ip',             // Nginx
+    'x-client-ip',           // Apache
+    'x-forwarded',           // General
+    'forwarded-for',         // Alternative
+    'forwarded'              // RFC 7239
+  ];
+
+  for (const header of headers) {
+    const value = req.headers.get(header);
+    if (value) {
+      const ip = value.split(',')[0].trim();
+      if (ip && ip !== 'unknown') {
+        console.log(`📍 Login IP found in ${header}: ${ip}`);
+        return ip;
+      }
+    }
+  }
+
+  return null;
+}
+
+serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders });
+  }
+
+  try {
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
+
+    // Get user from JWT
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      throw new Error('No authorization header');
+    }
+    
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+
+    if (userError || !user) {
+      throw new Error('Unauthorized');
+    }
+
+    // Extract IP address from request
+    const clientIP = getClientIP(req);
+    
+    console.log('📍 Capturing login IP:', {
+      userId: user.id,
+      email: user.email,
+      clientIP: clientIP || 'unknown'
+    });
+
+    // Update user profile with last login IP
+    const { error: updateError } = await supabase
+      .from('profiles')
+      .update({
+        last_login_ip: clientIP,
+        ip_updated_at: new Date().toISOString()
+      })
+      .eq('id', user.id);
+
+    if (updateError) {
+      console.error('❌ Error updating login IP:', updateError);
+      throw new Error(`Failed to update login IP: ${updateError.message}`);
+    }
+
+    console.log('✅ Successfully captured login IP for user:', user.email);
+
+    return new Response(JSON.stringify({
+      success: true,
+      message: 'Login IP captured successfully',
+      userId: user.id,
+      timestamp: new Date().toISOString()
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
+
+  } catch (error) {
+    console.error('❌ Error in capture-login-ip:', error);
+    
+    // Don't fail the login process if IP capture fails
+    return new Response(JSON.stringify({
+      success: false,
+      error: error.message,
+      message: 'IP capture failed but login can continue'
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 200
+    });
+  }
+});
