@@ -126,12 +126,6 @@ export const AI_TOOLS = {
     tokensRequired: 7,
     category: 'video'
   },
-  fal_wan_pro: {
-    name: 'WAN Pro Video',
-    description: 'Professional image-to-video generation',
-    tokensRequired: 124,
-    category: 'video'
-  },
   wan22_pro: {
     name: 'WAN 2.2 Professional',
     description: 'Latest model with 1080P support and improved motion stability',

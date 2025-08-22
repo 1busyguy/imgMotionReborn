@@ -36,7 +36,6 @@ import MMAudioVideo2 from './pages/fal-tools/MMAudioVideo2';
 import Omnihuman from './pages/fal-tools/Omnihuman';
 import WanV22Img2VideoLora from './pages/fal-tools/WanV22Img2VideoLora';
 import WanV22Video2Video from './pages/fal-tools/WanV22Video2Video';
-import FluxKontextMaxMulti from './pages/fal-tools/FluxKontextMaxMulti';
 import Admin from './pages/Admin';
 import About from './pages/About';
 import Contact from './pages/Contact';
@@ -229,14 +228,6 @@ function App() {
               element={
                 <ProtectedRoute>
                   <MinimaxHailuo />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/wan-pro" 
-              element={
-                <ProtectedRoute>
-                  <WanPro />
                 </ProtectedRoute>
               } 
             />

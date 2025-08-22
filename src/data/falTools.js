@@ -154,16 +154,6 @@ export const falTools = [
 
     // FUNCTIONAL TOOLS - Page 2 (positions 5-8)
     {
-        id: 12,
-        name: "WAN Pro Video",
-        description: "Professional image-to-video generation with high-quality motion synthesis",
-        image: toCdnUrl("https://images.pexels.com/photos/2873486/pexels-photo-2873486.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1"),
-        tokensRequired: "150+",
-        category: "video",
-        toolType: "fal_wan_pro",
-        route: "/wan-pro"
-    },
-    {
         id: 15,
         name: "Kling Pro Video",
         description: "Professional-grade image-to-video with Kling v2.1 Pro model",
