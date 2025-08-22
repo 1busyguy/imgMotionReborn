@@ -1132,6 +1132,7 @@ const WanV22Video2Video = () => {
                             <p className="text-purple-200 text-sm">
                               {generation.input_data?.strength ? `Strength: ${generation.input_data.strength} • ` : ''}
                               {generation.input_data?.resolution ? `Resolution: ${generation.input_data.resolution} • ` : ''}
+                            </p>
                           </div>
                           <div className="flex items-center space-x-3">
                             <div className="flex space-x-1">
@@ -1225,7 +1226,7 @@ const WanV22Video2Video = () => {
                             </p>
                             <div className="grid grid-cols-2 gap-4">
                               <span>
-                                <strong>Resolution:</strong> {generation.input_data?.resolution}
+                                <strong>Strength:</strong> {generation.input_data?.strength || 'N/A'}
                               </span>
                               <span>
                                 <strong>Resolution:</strong> {generation.input_data?.resolution || 'N/A'}
