@@ -450,54 +450,6 @@ function getUserFriendlyErrorMessage(errorInfo) {
     }
 }
 
-// Check if error message indicates NSFW content violation
-export const isNSFWError = (errorMessage) => {
-  if (!errorMessage || typeof errorMessage !== 'string') return false;
-  
-  const nsfwIndicators = [
-    'content policy',
-    'nsfw',
-    'inappropriate content',
-    'safety checker',
-    'content violation',
-    'policy violation',
-    'content filter',
-    'safety filter',
-    'inappropriate',
-    'explicit content'
-  ];
-  
-  const lowerMessage = errorMessage.toLowerCase();
-  return nsfwIndicators.some(indicator => lowerMessage.includes(indicator));
-};
-
-// Parse NSFW error details from error message
-export const parseNSFWError = (errorMessage) => {
-  if (!errorMessage) {
-    return {
-      type: 'content_policy',
-      message: 'Content policy violation detected',
-      technical: 'No error details available'
-    };
-  }
-  
-  return {
-    type: 'content_policy',
-    message: 'Your content was flagged by the safety system. Please try with different content.',
-    technical: errorMessage
-  };
-};
-
-// Check if error indicates content policy violation (alias for isNSFWError)
-export const isContentPolicyError = (errorMessage) => {
-  return isNSFWError(errorMessage);
-};
-
-// Parse content policy error details (alias for parseNSFWError)
-export const parseContentPolicyError = (errorMessage) => {
-  return parseNSFWError(errorMessage);
-};
-
 // Fetch and cache JWKS
 async function fetchJwks() {
     const now = Date.now();
