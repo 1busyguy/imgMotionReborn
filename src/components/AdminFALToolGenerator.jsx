@@ -10,7 +10,7 @@ import {
   Settings,
   Play,
   Download,
-  X,
+ X,
   Upload,
   Eye,
   EyeOff,
