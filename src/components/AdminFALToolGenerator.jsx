@@ -1167,11 +1167,11 @@ ${falParams}
 
   // Generate the actual React component code
       console.error('Error fetching profile:', error);
-    } finally {;
+    } finally {
       setLoading(false);
-    };
+    }
   };
-
+;
   const fetchGenerations = async () => {
     try {
       const { data, error } = await supabase
