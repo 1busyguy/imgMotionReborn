@@ -1171,7 +1171,7 @@ ${falParams}
       setLoading(false);
     }
   };
-;
+
   const fetchGenerations = async () => {
     try {
       const { data, error } = await supabase
