@@ -33,27 +33,26 @@ const Login = () => {
       if (error) throw error;
 
       if (data.user) {
-        // Check if email is confirmed
-        if (data.user.email_confirmed_at) {
-          // Update last login IP for record keeping (don't block login if this fails)
-          try {
-            await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/capture-login-ip`, {
-              method: 'POST',
-              headers: {
-                'Authorization': `Bearer ${data.session?.access_token}`,
-                'Content-Type': 'application/json'
-              }
-            });
-          } catch (ipError) {
-            console.warn('Login IP capture failed (non-critical):', ipError);
-          }
-          
-          navigate('/dashboard');
-        } else {
-          setError('Please check your email and click the confirmation link to verify your account before signing in.');
+  // Check if email is confirmed
+      if (data.user.email_confirmed_at) {
+        // Update last login IP for record keeping (don't block login if this fails)
+        try {
+          await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/capture-login-ip`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${data.session?.access_token}`,
+              'Content-Type': 'application/json'
+            }
+          });
+        } catch (ipError) {
+          console.warn('Login IP capture failed (non-critical):', ipError);
         }
-        // redirectTo: `https://imgmotion.com/dashboard`
+        
+        navigate('/dashboard'); // <-- This line ensures redirect to dashboard
+      } else {
+        setError('Please check your email and click the confirmation link to verify your account before signing in.');
       }
+    }
     } catch (error) {
       setError(error.message);
     } finally {
