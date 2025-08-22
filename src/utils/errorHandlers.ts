@@ -35,7 +35,7 @@ const corsHeaders = {
 };
 
 // Helper function to check if user should get watermarked content
-function shouldWatermarkContent(profile) {
+function shouldWatermarkContent(profile: any): boolean {
     if (!profile) return true; // Default to watermark if no profile
 
     // Check various tier fields (different apps might use different field names)
@@ -49,7 +49,7 @@ function shouldWatermarkContent(profile) {
 }
 
 // Helper function to determine if generation is a video
-function isVideoGeneration(toolType, outputUrl) {
+function isVideoGeneration(toolType: string, outputUrl: string): boolean {
     const toolTypeLower = toolType?.toLowerCase() || '';
 
     // Check tool type for video generation patterns
@@ -78,7 +78,7 @@ function isVideoGeneration(toolType, outputUrl) {
 }
 
 // Helper function to determine if generation is an image
-function isImageGeneration(toolType, outputUrl) {
+function isImageGeneration(toolType: string, outputUrl: string): boolean {
     const toolTypeLower = toolType?.toLowerCase() || '';
 
     // Check tool type for image generation patterns
@@ -102,7 +102,7 @@ function isImageGeneration(toolType, outputUrl) {
 }
 
 // Helper function to call FFmpeg service with support for both endpoint patterns
-async function callFFmpegService(endpoint, data) {
+async function callFFmpegService(endpoint: string, data: any) {
     if (!FFMPEG_SERVICE_URL || !ENABLE_FFMPEG_PROCESSING) {
         console.log('🔇 FFmpeg processing disabled or not configured');
         return null;
@@ -142,7 +142,7 @@ async function callFFmpegService(endpoint, data) {
 }
 
 // Process VIDEO ONLY with FFmpeg (frame extraction + conditional watermarking)
-async function processVideoWithFFmpeg(generation, videoUrl, userProfile) {
+async function processVideoWithFFmpeg(generation: any, videoUrl: string, userProfile: any) {
     if (!FFMPEG_SERVICE_URL || !ENABLE_FFMPEG_PROCESSING) {
         console.log('🔇 FFmpeg processing disabled or not configured');
         return;
@@ -259,7 +259,7 @@ async function processVideoWithFFmpeg(generation, videoUrl, userProfile) {
 }
 
 // Enhanced logging function for FAL.ai webhook responses
-function logWebhookResponse(event, generation) {
+function logWebhookResponse(event: any, generation: any) {
     console.log('📊 === FAL.AI WEBHOOK RESPONSE ANALYSIS ===');
     console.log('🔍 Event Status:', event.status);
     console.log('🔍 Event Type:', typeof event);
@@ -294,7 +294,7 @@ function logWebhookResponse(event, generation) {
 }
 
 // Enhanced error handling for webhook failures
-function handleWebhookError(event, generation) {
+function handleWebhookError(event: any, generation: any) {
     console.log('🚨 === PROCESSING WEBHOOK ERROR ===');
 
     let errorMessage = 'Generation failed';
@@ -410,7 +410,7 @@ function handleWebhookError(event, generation) {
 }
 
 // Generate user-friendly error messages based on FAL.ai error types
-function getUserFriendlyErrorMessage(errorInfo) {
+function getUserFriendlyErrorMessage(errorInfo: any): string {
     const { type, message, context, location } = errorInfo;
     
     switch (type) {
