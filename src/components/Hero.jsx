@@ -71,14 +71,14 @@ const Hero = () => {
       {/*  <div className="absolute inset-0 bg-gradient-to-br from-purple-900/80 via-blue-900/70 to-indigo-900/80"></div>*/}
         
         {/* Animated Particles */}
-        <div className="absolute inset-0">
+     {/*   <div className="absolute inset-0">
           <div className="absolute top-20 left-10 w-4 h-4 bg-purple-400 rounded-full opacity-60 animate-pulse"></div>
           <div className="absolute top-40 right-20 w-6 h-6 bg-pink-400 rounded-full opacity-40 animate-pulse animation-delay-1000"></div>
           <div className="absolute bottom-20 left-20 w-5 h-5 bg-cyan-400 rounded-full opacity-50 animate-pulse animation-delay-2000"></div>
           <div className="absolute top-1/3 left-1/4 w-3 h-3 bg-yellow-400 rounded-full opacity-30 animate-pulse animation-delay-3000"></div>
           <div className="absolute bottom-1/3 right-1/4 w-4 h-4 bg-green-400 rounded-full opacity-40 animate-pulse animation-delay-4000"></div>
         </div>
-      </div>
+      </div> */}
 
       {/* Header */}
       <header className="relative z-20 bg-white/10 backdrop-blur-md border-b border-white/20">
