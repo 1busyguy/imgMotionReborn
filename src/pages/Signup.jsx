@@ -43,7 +43,7 @@ const Signup = () => {
         email: formData.email,
         password: formData.password,
         options: {
-          emailRedirectTo: `https://imgmotion.com/`
+          emailRedirectTo: `https://imgmotion.com/dashboard`
         }
       });
 
