@@ -103,7 +103,6 @@ const UserShowcase = () => {
       'fal_flux_kontext_lora': 'FLUX Kontext LoRA',
       'fal_flux_redux': 'FLUX Redux Pro',
       'fal_minimax_hailuo': 'Minimax Hailuo Video',
-      'fal_wan_pro': 'WAN Pro Video',
       'fal_kling_pro': 'Kling Pro Video',
       'fal_ltxv': 'LTXV Video Creator',
       'fal_video_upscaler': 'FAL Video Upscaler',

@@ -16,7 +16,6 @@ export const safeScanConfig = {
 
   toolsToScan: {
     'fal_wan_v22_video2video': true,
-    'fal_wan_pro': true,
     'fal_kling_pro': true,
     'fal_minimax_hailuo': true,
     'fal_veo2': true,
