@@ -17,7 +17,7 @@ const EmailVerificationBanner = ({ user }) => {
         type: 'signup',
         email: user.email,
         options: {
-          emailRedirectTo: `https://imgmotion.com/`
+          emailRedirectTo: `https://imgmotion.com/dashboard`
         }
       });
 
