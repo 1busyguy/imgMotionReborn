@@ -13,12 +13,17 @@ function getClientIP(req: Request): string | null {
     'cf-connecting-ip',      // Cloudflare
   ];
 
+  for (const header of headers) {
+    const ip = req.headers.get(header);
+    if (ip) {
       // Handle Google OAuth completion - only redirect if not already on dashboard
-    const value = req.headers.get(header);
+      const value = req.headers.get(header);
+      if (value) {
         if (window.location.pathname !== '/dashboard') {
           console.log('Google OAuth completed, redirecting to dashboard...');
-        console.log(`📍 Login IP found in ${header}: ${ip}`);
         }
+        console.log(`📍 Login IP found in ${header}: ${ip}`);
+        return ip;
       }
     }
   }
