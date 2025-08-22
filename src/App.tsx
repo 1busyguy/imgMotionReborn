@@ -368,14 +368,6 @@ function App() {
               } 
             />
             <Route 
-              path="/flux-kontext-max-multi" 
-              element={
-                <ProtectedRoute>
-                  <FluxKontextMaxMulti />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
               path="/admin" 
               element={
                 <ProtectedRoute>
