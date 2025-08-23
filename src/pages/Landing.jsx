@@ -399,7 +399,7 @@ const NewLanding = () => {
           </div>
           
           <p className="text-white/70 text-sm mt-6">
-            imgMotion available now • AR app launching March 2025
+            imgMotion available now • AR app launching Decemeber 2025
           </p>
         </div>
       </section>
