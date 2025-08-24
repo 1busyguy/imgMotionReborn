@@ -599,6 +599,36 @@ const WanV22Video2Video = () => {
     }
   };
 
+  // ---------- NEW: Safe title normalization helper ----------
+  // Some rows store generation_name as JSON (object or JSON string). This ensures we always display a human-readable title.
+  const getGenerationTitle = (g) => {
+    const name = g?.generation_name;
+    const fallback = `Video Transformation ${new Date(g?.created_at).toLocaleDateString()}`;
+
+    if (!name) return fallback;
+
+    // If it's a JSON string, parse it
+    if (typeof name === 'string') {
+      try {
+        const parsed = JSON.parse(name);
+        if (parsed && typeof parsed === 'object') {
+          return parsed.title || parsed.name || parsed.text || fallback;
+        }
+        return name;
+      } catch {
+        return name; // plain string
+      }
+    }
+
+    // If it's already an object (json/jsonb from Supabase), pick common title fields
+    if (typeof name === 'object') {
+      return name.title || name.name || name.text || fallback;
+    }
+
+    return String(name);
+  };
+  // ---------------------------------------------------------
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center">
@@ -898,7 +928,7 @@ const WanV22Video2Video = () => {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-purple-200 mb-2">
+                      <label className="block text sm font-medium text-purple-200 mb-2">
                         Guidance Scale 2: {config.guidanceScale2}
                       </label>
                       <input
@@ -1126,8 +1156,9 @@ const WanV22Video2Video = () => {
                       <div key={generation.id} className="bg-white/5 rounded-lg p-4">
                         <div className="flex items-center justify-between">
                           <div>
+                            {/* Title now normalized to string even if JSON is stored */}
                             <p className="text-white font-medium">
-                              {generation.generation_name || `Video Transformation ${new Date(generation.created_at).toLocaleDateString()}`}
+                              {getGenerationTitle(generation)}
                             </p>
                             <p className="text-purple-200 text-sm">
                               {generation.input_data?.strength ? `Strength: ${generation.input_data.strength} • ` : ''}
@@ -1153,12 +1184,15 @@ const WanV22Video2Video = () => {
               <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6">
                 <div className="flex items-center justify-between mb-6">
                   <h3 className="text-lg font-semibold text-white">Transformed Videos</h3>
-                  <button
-                    onClick={() => handleDownload(toCdnUrl(selectedGeneration.output_file_url))}
-                    className="text-purple-400 hover:text-purple-300 transition-colors"
-                  >
-                    <RefreshCw className="w-4 h-4" />
-                  </button>
+                  {/* Guarded: only show download button if a selected generation exists */}
+                  {selectedGeneration?.output_file_url && (
+                    <button
+                      onClick={() => handleDownload(toCdnUrl(selectedGeneration.output_file_url))}
+                      className="text-purple-400 hover:text-purple-300 transition-colors"
+                    >
+                      <RefreshCw className="w-4 h-4" />
+                    </button>
+                  )}
                 </div>
 
                 {generations.length === 0 ? (
@@ -1177,8 +1211,9 @@ const WanV22Video2Video = () => {
                         <div className="p-4">
                           <div className="flex items-center justify-between mb-3">
                             <div>
+                              {/* Title now normalized to string even if JSON is stored */}
                               <h4 className="font-medium text-white">
-                                {generation.generation_name}
+                                {getGenerationTitle(generation)}
                               </h4>
                               <p className="text-purple-200 text-sm">
                                 {new Date(generation.created_at).toLocaleString()}
@@ -1225,9 +1260,7 @@ const WanV22Video2Video = () => {
                               <strong>Prompt:</strong> {generation.input_data?.prompt || 'No prompt available'}
                             </p>
                             <div className="grid grid-cols-2 gap-4">
-                              <span>
-                                <strong>Resolution:</strong> {generation.input_data?.resolution}
-                              </span>
+                              {/* Removed duplicate "Resolution" line; keep a single clean entry */}
                               <span>
                                 <strong>Resolution:</strong> {generation.input_data?.resolution || 'N/A'}
                               </span>
