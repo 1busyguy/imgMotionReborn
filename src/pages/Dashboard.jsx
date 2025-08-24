@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { useRealtimeActivity } from '../hooks/useRealtimeActivity';
 import AIToolModal from '../components/AIToolModal';
-import { allTools } from '../data/data.jsx';
+import { allTools } from '../data/data';
 import EmailVerificationBanner from '../components/EmailVerificationBanner';
 import { 
   Zap, 

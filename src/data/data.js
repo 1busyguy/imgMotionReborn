@@ -111,7 +111,7 @@ export const tokenPackages = [
 ];
 
 // Import FAL tools
-import { falTools } from './falTools.jsx';
+import { falTools } from './falTools.js';
 
 // Combine original tools with FAL tools - ensure all tools are included
 export const allTools = [...tools, ...falTools];

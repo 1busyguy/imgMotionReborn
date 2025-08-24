@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toCdnUrl } from '../utils/cdnHelpers';
 import { tools } from '../data/data';
-import { falTools } from '../data/falTools.jsx';
+import { falTools } from '../data/falTools';
 import { Zap, Image, Video, Wand2, ChevronLeft, ChevronRight } from 'lucide-react';
 
 const Tools = ({ onSignUpClick }) => {
