@@ -90,21 +90,9 @@ export const getThumbnailUrl = (generation) => {
     // For WAN v2.2 tools specifically, check if imageUrl is stored differently
     if (generation.tool_type?.includes('wan_v22') || generation.tool_type?.includes('fal_wan_v22')) {
       const wanImageUrl = generation.input_data?.imageUrl || 
-    // WAN v2.2 tools store input images in multiple possible locations
-    const wanImageUrl = generation.input_data?.imageUrl || 
-                       generation.input_data?.image_url ||
-                       generation.metadata?.imageUrl ||
-                       generation.metadata?.image_url ||
-                       generation.metadata?.source_image_url ||
-                       generation.metadata?.input_image_url ||
-                       generation.metadata?.original_image_url ||
-                       // Check for WAN v2.2 specific metadata structure
-                       generation.metadata?.wan_input_image ||
-                       generation.metadata?.request_params?.image_url ||
-                       generation.metadata?.fal_request_details?.request_params?.image_url ||
-                       // Check for stored parameters in metadata
-                       generation.metadata?.generation_params?.imageUrl ||
-                       generation.metadata?.generation_params?.image_url;
+                         generation.metadata?.imageUrl ||
+                         generation.metadata?.source_image_url;
+      
       if (wanImageUrl) {
         return toCdnUrl(wanImageUrl);
       }
