@@ -63,9 +63,50 @@ export const getThumbnailUrl = (generation) => {
     return toCdnUrl(generation.metadata.watermark_processing.thumbnail_url);
   }
   
-  // Fallback to input image for video generations
+  // Enhanced fallback logic for video generations
+  // Check if this is a video generation tool
+  const isVideoGeneration = generation.tool_type?.includes('video') || 
+                           generation.tool_type?.includes('wan') || 
+                           generation.tool_type?.includes('kling') || 
+                           generation.tool_type?.includes('minimax') || 
+                           generation.tool_type?.includes('veo') || 
+                           generation.tool_type?.includes('ltxv') || 
+                           generation.tool_type?.includes('seedance') || 
+                           generation.tool_type === 'ai_scene_gen' ||
+                           generation.tool_type?.includes('omnihuman');
+  
+  if (isVideoGeneration) {
+    // For video generations, use input image as thumbnail fallback
+    // Check multiple possible locations for input image
+    const inputImageUrl = generation.input_data?.imageUrl || 
+                         generation.input_data?.image_url ||
+                         generation.metadata?.input_image_url ||
+                         generation.metadata?.original_image_url;
+    
+    if (inputImageUrl) {
+      return toCdnUrl(inputImageUrl);
+    }
+    
+    // For WAN v2.2 tools specifically, check if imageUrl is stored differently
+    if (generation.tool_type?.includes('wan_v22') || generation.tool_type?.includes('fal_wan_v22')) {
+      const wanImageUrl = generation.input_data?.imageUrl || 
+                         generation.metadata?.imageUrl ||
+                         generation.metadata?.source_image_url;
+      
+      if (wanImageUrl) {
+        return toCdnUrl(wanImageUrl);
+      }
+    }
+  }
+  
+  // For image generations, check if there's a source image used
   if (generation.input_data?.imageUrl) {
     return toCdnUrl(generation.input_data.imageUrl);
+  }
+  
+  // Final fallback - check for any image URL in metadata
+  if (generation.metadata?.source_image || generation.metadata?.input_image) {
+    return toCdnUrl(generation.metadata.source_image || generation.metadata.input_image);
   }
   
   return null;
