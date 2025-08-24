@@ -83,12 +83,36 @@ const Gallery = () => {
     
     return [url];
   };
-
-  // Helper function to get primary image URL
-  const getPrimaryImageUrl = (url) => {
-    const urls = getAllImageUrls(url);
-    return urls.length > 0 ? urls[0] : null;
+  
+  // Turn a URL string into just its file name (keeps extension, strips query/hash)
+  const filenameFromUrl = (value) => {
+    try {
+      const u = new URL(value);
+      const last = (u.pathname || '').split('/').pop() || '';
+      return decodeURIComponent(last.split('?')[0].split('#')[0]) || value;
+    } catch {
+      // Not a full URL; still try to grab last path segment for things like "folder/name.mp4"
+      if (typeof value === 'string' && value.includes('/')) {
+        const last = value.split('/').pop();
+        return decodeURIComponent(last.split('?')[0].split('#')[0]);
+      }
+      return value;
+    }
   };
+  
+  const formatConfigValue = (key, value) => {
+    // Collapse URLs (or keys that look like URLs) to just the filename
+    if (typeof value === 'string' && (/^https?:\/\//i.test(value) || /url/i.test(key))) {
+      return filenameFromUrl(value);
+    }
+    return typeof value === 'object' ? JSON.stringify(value) : String(value);
+  };
+    
+    // Helper function to get primary image URL
+    const getPrimaryImageUrl = (url) => {
+      const urls = getAllImageUrls(url);
+      return urls.length > 0 ? urls[0] : null;
+    };
 
   // Helper function to get thumbnail for text-based video tools
   const getThumbnailForTextVideoTool = (generation) => {
