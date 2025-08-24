@@ -633,8 +633,8 @@ const Gallery = () => {
                 />
               ) : (
               <OptimizedVideo
-                src={primaryUrl}
-                poster={generation.thumbnail_url || generation.metadata?.thumbnail_url || generation.input_data?.imageUrl}
+                src={toCdnUrl(primaryUrl)}
+                poster={getVideoPoster(generation)}
                 className="w-full h-full object-cover rounded-lg"
                 controls={false}
                 preload="metadata"
@@ -1044,7 +1044,8 @@ const Gallery = () => {
                       // Show thumbnail first, then video for text-to-video tools
                       <div className="space-y-4">
                         <OptimizedImage
-                          src={selectedGeneration.thumbnail_url}
+                          src={toCdnUrl(primaryUrl)}
+                          poster={getVideoPoster(generation)}
                           alt={`${selectedGeneration.generation_name} thumbnail`}
                           className="w-full max-h-96 object-contain rounded-lg"
                         />
