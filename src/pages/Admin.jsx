@@ -389,9 +389,44 @@ const filenameFromUrl = (value) => {
   }
 };
 
-// Present configuration values in a user-friendly way
+// Present configuration values in a user-friendly way, including LoRA titles
 const formatConfigValue = (key, value) => {
-  // Collapse anything that looks like a URL to just the filename
+  const keyLower = String(key || '').toLowerCase();
+
+  // Special handling for LoRA values (arrays/objects/JSON strings)
+  if (keyLower.includes('lora')) {
+    const extractLoraTitle = (item) => {
+      if (!item) return '';
+      const maybe = item.title || item.name || item.modelName || item.displayName || item.weight_name;
+      if (maybe && typeof maybe === 'string') return maybe;
+      const url = item.path || item.url || item.href;
+      if (typeof url === 'string') {
+        try {
+          const u = new URL(url);
+          const last = (u.pathname || '').split('/').pop() || '';
+          if (/^\d+$/.test(last)) return `#${last}`; // civitai id fallback
+          return decodeURIComponent(last.split('?')[0].split('#')[0]);
+        } catch {
+          if (url.includes('/')) {
+            const last = url.split('/').pop();
+            return decodeURIComponent(last.split('?')[0].split('#')[0]);
+          }
+        }
+      }
+      try { return JSON.stringify(item); } catch { return String(item); }
+    };
+
+    try {
+      const parsed = (typeof value === 'string' && value.trim().startsWith('[')) ? JSON.parse(value) : value;
+      if (Array.isArray(parsed)) return parsed.map(extractLoraTitle).filter(Boolean).join(', ');
+      if (parsed && typeof parsed === 'object') return extractLoraTitle(parsed);
+      return typeof value === 'string' ? value : String(value);
+    } catch {
+      return typeof value === 'string' ? value : String(value);
+    }
+  }
+
+  // Collapse URL-like strings to filename
   if (typeof value === 'string' && (/^https?:\/\//i.test(value) || /url/i.test(key))) {
     return filenameFromUrl(value);
   }
