@@ -1073,34 +1073,42 @@ const Gallery = () => {
                 </div>
               )}
 
+              {/* -------- Polished details + configuration layout (UI-only changes) -------- */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
+                {/* Details Card */}
+                <div className="rounded-xl border border-white/10 bg-white/5 p-4">
                   <h4 className="text-lg font-semibold text-white mb-3">Generation Details</h4>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-purple-200">Status:</span>
-                      <span className={`px-2 py-1 rounded text-xs ${getStatusColor(selectedGeneration.status)}`}>
-                        {selectedGeneration.status}
+                  <div className="space-y-3 text-sm">
+                    <div className="grid grid-cols-12 gap-3 items-center">
+                      <span className="col-span-5 text-purple-200">Status</span>
+                      <span className="col-span-7 justify-self-end">
+                        <span className={`px-2 py-1 rounded text-xs border ${getStatusColor(selectedGeneration.status)}`}>
+                          {selectedGeneration.status}
+                        </span>
                       </span>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-purple-200">Tool:</span>
-                      <span className="text-white">{selectedGeneration.tool_name}</span>
+                    <div className="grid grid-cols-12 gap-3 items-center">
+                      <span className="col-span-5 text-purple-200">Tool</span>
+                      <span className="col-span-7 text-white justify-self-end text-right break-words">
+                        {selectedGeneration.tool_name}
+                      </span>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-purple-200">Tokens Used:</span>
-                      <span className="text-white">{selectedGeneration.tokens_used}</span>
+                    <div className="grid grid-cols-12 gap-3 items-center">
+                      <span className="col-span-5 text-purple-200">Tokens Used</span>
+                      <span className="col-span-7 text-white justify-self-end text-right">
+                        {selectedGeneration.tokens_used}
+                      </span>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-purple-200">Created:</span>
-                      <span className="text-white text-right">
+                    <div className="grid grid-cols-12 gap-3 items-start">
+                      <span className="col-span-5 text-purple-200">Created</span>
+                      <span className="col-span-7 text-white justify-self-end text-right break-words">
                         {new Date(selectedGeneration.created_at).toLocaleString()}
                       </span>
                     </div>
                     {selectedGeneration.completed_at && (
-                      <div className="flex justify-between">
-                        <span className="text-purple-200">Completed:</span>
-                        <span className="text-white text-right">
+                      <div className="grid grid-cols-12 gap-3 items-start">
+                        <span className="col-span-5 text-purple-200">Completed</span>
+                        <span className="col-span-7 text-white justify-self-end text-right break-words">
                           {new Date(selectedGeneration.completed_at).toLocaleString()}
                         </span>
                       </div>
@@ -1108,20 +1116,27 @@ const Gallery = () => {
                   </div>
                 </div>
 
-                <div>
+                {/* Configuration Card */}
+                <div className="rounded-xl border border-white/10 bg-white/5 p-4">
                   <h4 className="text-lg font-semibold text-white mb-3">Configuration</h4>
-                  <div className="space-y-2 text-sm max-h-48 overflow-y-auto">
-                    {selectedGeneration.input_data && Object.entries(selectedGeneration.input_data).map(([key, value]) => (
-                      <div key={key} className="flex justify-between">
-                        <span className="text-purple-200 capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}:</span>
-                        <span className="text-white text-right max-w-xs truncate">
-                          {typeof value === 'object' ? JSON.stringify(value) : String(value)}
-                        </span>
-                      </div>
-                    ))}
+                  <div className="space-y-3 text-sm">
+                    {selectedGeneration.input_data && Object.entries(selectedGeneration.input_data).map(([key, value]) => {
+                      const label = key.replace(/([A-Z])/g, ' $1').trim();
+                      const stringValue = typeof value === 'object' ? JSON.stringify(value) : String(value);
+                      const isLongText = ['prompt', 'negativePrompt', 'description', 'caption'].includes(key.toLowerCase());
+                      return (
+                        <div key={key} className="grid grid-cols-12 gap-3 items-start">
+                          <span className="col-span-5 text-purple-200 capitalize">{label}:</span>
+                          <span className={`col-span-7 justify-self-end text-right break-words ${isLongText ? 'whitespace-pre-wrap bg-black/20 border border-white/10 rounded-md px-3 py-2 text-white' : 'text-white'}`} title={stringValue}>
+                            {stringValue}
+                          </span>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               </div>
+              {/* ----------------------------------------------------------------------- */}
 
               <div className="flex flex-col sm:flex-row justify-end gap-3 mt-6">
                 {selectedGeneration.output_file_url && (
