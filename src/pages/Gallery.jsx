@@ -1123,18 +1123,18 @@ const Gallery = () => {
                     {selectedGeneration.input_data && Object.entries(selectedGeneration.input_data).map(([key, value]) => {
                       const label = key.replace(/([A-Z])/g, ' $1').trim();
                       const displayValue = formatConfigValue(key, value);
-                        const isLongText = ['prompt', 'negativeprompt', 'description', 'caption'].includes(key.toLowerCase());
-                        ...
-                        <span
-                          className={`col-span-7 justify-self-end text-right break-words ${
-                            isLongText ? 'whitespace-pre-wrap bg-black/20 border border-white/10 rounded-md px-3 py-2 text-white' : 'text-white'
-                          }`}
-                          // keep the full URL in a tooltip when we collapse to a filename
-                          title={typeof value === 'string' ? value : undefined}
-                        >
-                          {displayValue}
-                        </span>
-                        </div>
+                      const isLongText = ['prompt', 'negativeprompt', 'description', 'caption'].includes(key.toLowerCase());
+                      ...
+                      <span
+                        className={`col-span-7 justify-self-end text-right break-words ${
+                          isLongText ? 'whitespace-pre-wrap bg-black/20 border border-white/10 rounded-md px-3 py-2 text-white' : 'text-white'
+                        }`}
+                        // keep the full URL in a tooltip when we collapse to a filename
+                        title={typeof value === 'string' ? value : undefined}
+                      >
+                        {displayValue}
+                      </span>
+                      </div>
                       );
                     })}
                   </div>
