@@ -114,10 +114,27 @@ const Gallery = () => {
       return urls.length > 0 ? urls[0] : null;
     };
 
+  // Gallery.jsx (near your other helpers)
+   const getVideoPoster = (g) => {
+     const c = g?.input_data || {};
+     const candidates = [
+       g?.thumbnail_url,
+       g?.metadata?.thumbnail_url,
+       c.thumbnail_url,
+       c.imageUrl,
+       c.image_url,
+       c.input_image_url,
+       c.init_image,
+       c.image,
+     ].filter(Boolean);
+     return candidates.length ? toCdnUrl(candidates[0]) : null;
+    };
+
   // Helper function to get thumbnail for text-based video tools
   const getThumbnailForTextVideoTool = (generation) => {
     const textVideoTools = [
       'fal_wan_v22_text2video_lora',
+      'fal_wan_v22_img2video_lora',
       'fal_wan_v22_video2video', 
       'fal_video_upscaler',
       'fal_mmaudio_video2'
