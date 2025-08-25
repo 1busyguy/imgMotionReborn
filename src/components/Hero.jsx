@@ -167,19 +167,19 @@ const Hero = () => {
 
               {/* Mobile Menu */}
               {isMobileMenuOpen && (
-                <div className="absolute top-full right-0 mt-2 w-64 bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 shadow-2xl">
+                <div className="absolute top-full right-0 mt-2 w-64 bg-gray-900/95 backdrop-blur-md rounded-2xl border border-white/30 shadow-2xl">
                   <div className="p-4 space-y-4">
-                    <a href="#tools" className="block text-purple-200 hover:text-white transition-colors py-2">Tools</a>
-                    <a href="/imgmotionapp" className="block text-purple-200 hover:text-white transition-colors py-2">APP</a>
-                    <a href="#pricing" className="block text-purple-200 hover:text-white transition-colors py-2">Pricing</a>
-                    <a href="/showcase" className="block text-purple-200 hover:text-white transition-colors py-2">Showcase</a>
-                    <a href="/about" className="block text-purple-200 hover:text-white transition-colors py-2">About</a>
-                    <a href="/contact" className="block text-purple-200 hover:text-white transition-colors py-2">Contact</a>
-                    <hr className="border-white/20" />
+                    <a href="#tools" className="block text-white hover:text-purple-200 transition-colors py-2 px-2 rounded-lg hover:bg-white/10">Tools</a>
+                    <a href="/imgmotionapp" className="block text-white hover:text-purple-200 transition-colors py-2 px-2 rounded-lg hover:bg-white/10">APP</a>
+                    <a href="/pricing" className="block text-white hover:text-purple-200 transition-colors py-2 px-2 rounded-lg hover:bg-white/10">Pricing</a>
+                    <a href="/showcase" className="block text-white hover:text-purple-200 transition-colors py-2 px-2 rounded-lg hover:bg-white/10">Showcase</a>
+                    <a href="/about" className="block text-white hover:text-purple-200 transition-colors py-2 px-2 rounded-lg hover:bg-white/10">About</a>
+                    <a href="/contact" className="block text-white hover:text-purple-200 transition-colors py-2 px-2 rounded-lg hover:bg-white/10">Contact</a>
+                    <hr className="border-white/30" />
                     {user && profile ? (
                       <>
                         {/* Mobile User Info */}
-                        <div className="flex items-center space-x-3 py-2">
+                        <div className="flex items-center space-x-3 py-3 px-3 bg-white/10 rounded-lg">
                           <div className="w-8 h-8 bg-gradient-to-r from-purple-400 to-pink-400 rounded-full flex items-center justify-center text-white font-semibold text-xs">
                             {profile?.avatar_url ? (
                               <img 
@@ -193,7 +193,7 @@ const Hero = () => {
                           </div>
                           <div>
                             <div className="text-white font-medium text-sm">{user.email}</div>
-                            <div className="text-purple-300 text-xs">
+                            <div className="text-purple-200 text-xs">
                               {(profile?.tokens || 0) + (profile?.purchased_tokens || 0)} tokens
                             </div>
                           </div>
@@ -209,7 +209,7 @@ const Hero = () => {
                       <>
                         <button
                           onClick={() => navigate('/login')}
-                          className="w-full flex items-center space-x-2 text-purple-200 hover:text-white transition-colors py-2"
+                          className="w-full flex items-center space-x-2 text-white hover:text-purple-200 transition-colors py-2 px-2 rounded-lg hover:bg-white/10"
                         >
                           <LogIn className="w-4 h-4" />
                           <span>Sign In</span>
