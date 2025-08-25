@@ -111,6 +111,71 @@ const BriaBackgroundRemover = () => {
     }
   };
 
+  const parseErrorMessage = (errorMessage) => {
+    try {
+      // Try to parse as JSON first
+      const errorData = JSON.parse(errorMessage);
+      
+      // Handle FAL API error format
+      if (errorData.detail && Array.isArray(errorData.detail)) {
+        const firstError = errorData.detail[0];
+        
+        // Check for content policy violations (422 errors)
+        if (firstError.type === 'content_policy_violation' || 
+            errorMessage.includes('422') || 
+            errorMessage.includes('flagged by a content checker')) {
+          return {
+            type: 'content_policy_violation',
+            message: 'Content flagged by safety system',
+            userMessage: firstError.msg || 'The content could not be processed because it contained material flagged by a content checker.',
+            technical: errorMessage,
+            suggestions: [
+              'Try using different, family-friendly content',
+              'Avoid suggestive or inappropriate language',
+              'Ensure images comply with content policy',
+              'Review the content guidelines'
+            ],
+            input: firstError.input || null,
+            url: firstError.url || null
+          };
+        }
+        
+        return {
+          type: 'api_error',
+          message: firstError.msg || 'Generation failed',
+          userMessage: firstError.msg || 'An error occurred during generation',
+          technical: errorMessage,
+          suggestions: [
+            'Try again with different parameters',
+            'Contact support if the issue persists'
+          ]
+        };
+      }
+      
+      // Handle other error formats
+      return {
+        type: 'api_error',
+        message: errorData.message || errorData.error || 'Generation failed',
+        userMessage: errorData.message || errorData.error || 'An error occurred during generation',
+        technical: errorMessage,
+        suggestions: ['Try again or contact support']
+      };
+    } catch (e) {
+      // Fallback if JSON parsing fails
+    }
+    
+    return {
+      type: 'unknown_error',
+      message: 'Generation failed',
+      userMessage: errorMessage,
+      technical: errorMessage,
+      suggestions: [
+        'Try again with different content',
+        'Contact support if the issue persists'
+      ]
+    };
+  };
+
   const handleRealtimeUpdate = (payload) => {
     const { eventType, new: newRecord, old: oldRecord } = payload;
     
@@ -155,70 +220,6 @@ const BriaBackgroundRemover = () => {
       if (newRecord?.status === 'completed' && newRecord?.output_file_url) {
         console.log('🎉 Background removal completed successfully! Has output:', !!newRecord.output_file_url);
       }
-      
-      // Show failure notification for failed generations
-      if (newRecord?.status === 'failed') {
-        console.log('Background removal failed:', newRecord.error_message);
-        
-        // Show user-friendly error notification
-        setTimeout(() => {
-          if (newRecord.error_message) {
-            // Check if it's a content policy violation (422 error)
-            if (newRecord.error_message.includes('422') || 
-          return {
-            type: 'content_policy_violation',
-            message: 'Content flagged by safety system',
-            userMessage: firstError.msg || 'The content could not be processed because it contained material flagged by a content checker.',
-            technical: errorMessage,
-            suggestions: [
-              'Try using different, family-friendly content',
-              'Avoid suggestive or inappropriate language',
-              'Ensure images comply with content policy',
-              'Review the content guidelines'
-            ],
-            input: firstError.input || null,
-            url: firstError.url || null
-          };
-        }
-        
-        return {
-          type: 'api_error',
-          message: firstError.msg || 'Generation failed',
-          userMessage: firstError.msg || 'An error occurred during generation',
-          technical: errorMessage,
-          suggestions: [
-            'Try again with different parameters',
-            'Contact support if the issue persists'
-          ]
-        };
-      }
-      
-      // Handle other error formats
-      return {
-        type: 'api_error',
-        message: errorData.message || errorData.error || 'Generation failed',
-        userMessage: errorData.message || errorData.error || 'An error occurred during generation',
-        technical: errorMessage,
-        suggestions: ['Try again or contact support']
-      };
-    }
-  } catch (e) {
-    // Fallback if JSON parsing fails
-  }
-  
-  return {
-    type: 'unknown_error',
-    message: 'Generation failed',
-    userMessage: errorMessage,
-    technical: errorMessage,
-    suggestions: [
-      'Try again with different content',
-      'Contact support if the issue persists'
-    ]
-  };
-};
-
-/**
       
       // Show failure notification for failed generations
       if (newRecord?.status === 'failed') {
