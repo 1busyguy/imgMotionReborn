@@ -138,19 +138,15 @@ function App() {
       if (shouldRedirect) {
         console.log('Redirecting to dashboard after successful sign-in');
         
-        // Clean the URL hash immediately if it's an OAuth callback to prevent querySelector errors
+        // Clean the URL first if it's an OAuth callback
         if (isOAuthCallback) {
-          // Clear the hash immediately to prevent any code from trying to use it as a selector
-          window.location.hash = '';
-          // Use setTimeout to ensure hash is cleared before navigation
-          setTimeout(() => {
-            window.history.replaceState(null, '', '/dashboard');
-            window.dispatchEvent(new PopStateEvent('popstate'));
-          }, 100);
+          window.history.replaceState(null, '', '/dashboard');
         } else {
           window.history.pushState(null, '', '/dashboard');
-          window.dispatchEvent(new PopStateEvent('popstate'));
         }
+        
+        // Trigger a popstate event to make React Router respond to the URL change
+        window.dispatchEvent(new PopStateEvent('popstate'));
       }
     }
     
