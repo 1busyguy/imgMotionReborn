@@ -243,7 +243,6 @@ export const falTools = [
         toolType: "fal_veo3",
         route: "/veo3-standard"
     },
-];
   // COMING SOON TOOLS - Page 3+ (positions 9+)
  //   {
  //       id: 26,
