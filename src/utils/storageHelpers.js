@@ -239,6 +239,18 @@ export const AI_TOOLS = {
     description: 'Transform existing videos with AI - change style, content, and motion while preserving structure',
     tokensRequired: 25, // Base cost, varies by resolution and frames
     category: 'video'
+  },
+  fal_veo3_fast: {
+    name: 'VEO3 Fast',
+    description: 'Fast image-to-video generation with Google\'s VEO3 model',
+    tokensRequired: 288, // Base cost, varies by audio and resolution
+    category: 'video'
+  },
+  fal_veo3: {
+    name: 'VEO3 Standard',
+    description: 'High-quality image-to-video generation with Google\'s VEO3 model',
+    tokensRequired: 534, // Base cost, varies by audio and resolution
+    category: 'video'
   }
 };
 
