@@ -7,11 +7,12 @@ import { isNSFWError, parseNSFWError } from '../../utils/errorHandlers';
 import { toCdnUrl } from '../../utils/cdnHelpers';
 import { performSafetyAnalysis, shouldShowWarning, getSafetyWarningMessage, logSafetyAnalysis } from '../../utils/safescan';
 import NSFWAlert from '../../components/NSFWAlert';
+import ThemedAlert from '../../components/ThemedAlert';
 import SafetyWarningModal from '../../components/SafetyWarningModal';
 import { 
   ArrowLeft, 
   Zap, 
-  Image as ImageIcon, 
+  Video, 
   Upload, 
   Download, 
   Trash2, 
@@ -19,21 +20,25 @@ import {
   Settings,
   Copy,
   X,
-  Scissors,
-  Layers,
-  Eye,
-  EyeOff
+  Play,
+  TrendingUp,
+  Film,
+  Monitor,
+  Smartphone,
+  Square,
+  Maximize2
 } from 'lucide-react';
 
-const BriaBackgroundRemover = () => {
+const FalVideoUpscaler = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   
-  // Configuration state - based on BRIA API parameters
+  // Configuration state - based on FAL Video Upscaler API
   const [config, setConfig] = useState({
-    imageUrl: ''
+    videoUrl: '',
+    scale: 2
   });
   
   // Generation state
@@ -41,12 +46,26 @@ const BriaBackgroundRemover = () => {
   const [activeGenerations, setActiveGenerations] = useState([]);
   const [selectedGeneration, setSelectedGeneration] = useState(null);
   const [generating, setGenerating] = useState(false);
-  const [uploadingImage, setUploadingImage] = useState(false);
+  const [uploadingVideo, setUploadingVideo] = useState(false);
   const [showNSFWAlert, setShowNSFWAlert] = useState(false);
   const [nsfwError, setNsfwError] = useState(null);
+  const [videoAnalysis, setVideoAnalysis] = useState(null);
+  const [analyzingVideo, setAnalyzingVideo] = useState(false);
   const [showSafetyWarning, setShowSafetyWarning] = useState(false);
   const [safetyWarningData, setSafetyWarningData] = useState(null);
   const [bypassSafetyCheck, setBypassSafetyCheck] = useState(false);
+  const [alertConfig, setAlertConfig] = useState({
+    show: false,
+    type: 'error',
+    title: '',
+    message: ''
+  });
+
+  // Scale options
+  const scaleOptions = [
+    { label: '2x Upscale', value: 2, description: 'Double the resolution' },
+    { label: '4x Upscale', value: 4, description: 'Quadruple the resolution' }
+  ];
 
   useEffect(() => {
     if (user) {
@@ -55,23 +74,23 @@ const BriaBackgroundRemover = () => {
       
       // Set up real-time subscription for this specific tool type
       const subscription = supabase
-        .channel('bria_bg_remove_generations')
+        .channel('fal_video_upscaler_generations')
         .on(
           'postgres_changes',
           {
             event: '*',
             schema: 'public',
             table: 'ai_generations',
-            filter: `user_id=eq.${user.id},tool_type=eq.fal_bria_bg_remove`
+            filter: `user_id=eq.${user.id},tool_type=eq.fal_video_upscaler`
           },
           (payload) => {
-            console.log('🔄 BRIA Background Remover Real-time update received:', payload);
+            console.log('🔄 FAL Video Upscaler Real-time update received:', payload);
             handleRealtimeUpdate(payload);
           }
         )
         .subscribe();
 
-      console.log('Real-time subscription set up for BRIA Background Remover');
+      console.log('Real-time subscription set up for FAL Video Upscaler');
       return () => subscription.unsubscribe();
     }
   }, [user]);
@@ -99,7 +118,7 @@ const BriaBackgroundRemover = () => {
         .from('ai_generations')
         .select('*')
         .eq('user_id', user.id)
-        .eq('tool_type', 'fal_bria_bg_remove')
+        .eq('tool_type', 'fal_video_upscaler')
         .order('created_at', { ascending: false })
         .limit(20);
 
@@ -129,7 +148,7 @@ const BriaBackgroundRemover = () => {
           
           // Debug the update
           if (newRecord.status === 'completed') {
-            console.log('✅ Background removal completed! Output URL:', newRecord.output_file_url);
+            console.log('✅ Generation completed! Output URL:', newRecord.output_file_url);
           }
           
           return updated;
@@ -153,68 +172,152 @@ const BriaBackgroundRemover = () => {
       setActiveGenerations(current => current.filter(g => g.id !== newRecord?.id));
       
       if (newRecord?.status === 'completed' && newRecord?.output_file_url) {
-        console.log('🎉 Background removal completed successfully! Has output:', !!newRecord.output_file_url);
-      }
-      
-      // Show failure notification for failed generations
-      if (newRecord?.status === 'failed') {
-        console.log('Background removal failed:', newRecord.error_message);
-        
-        // Show user-friendly error notification
-        setTimeout(() => {
-          if (newRecord.error_message) {
-            // Check if it's a content policy violation (422 error)
-            if (newRecord.error_message.includes('422') || 
-                newRecord.error_message.includes('content_policy_violation') ||
-                newRecord.error_message.includes('flagged by a content checker')) {
-              
-              alert(`Generation Failed: Content Policy Violation\n\nYour content was flagged by the AI safety system. Please try with different content that complies with the content policy.\n\nNote: Tokens are not refunded for policy violations.`);
-            } else if (newRecord.error_message.includes('500')) {
-              alert(`Generation Failed: Server Error\n\nThere was a temporary issue with the AI service. Please try again in a few minutes.\n\nIf this persists, contact support for token refund.`);
-            } else {
-              alert(`Generation Failed\n\n${newRecord.error_message}\n\nPlease try again or contact support if the issue persists.`);
-            }
-          } else {
-            alert('Generation failed. Please try again or contact support if the issue persists.');
-          }
-        }, 1000); // Small delay to ensure UI has updated
+        console.log('🎉 Video upscaling completed successfully! Has output:', !!newRecord.output_file_url);
       }
     }
   };
 
-  const handleImageUpload = async (event) => {
+  // Show themed alert
+  const showAlert = (type, title, message, autoClose = true) => {
+    setAlertConfig({
+      show: true,
+      type,
+      title,
+      message
+    });
+    
+    if (autoClose) {
+      setTimeout(() => {
+        setAlertConfig(prev => ({ ...prev, show: false }));
+      }, 5000);
+    }
+  };
+
+  // Close alert
+  const closeAlert = () => {
+    setAlertConfig(prev => ({ ...prev, show: false }));
+  };
+
+  // Analyze video to get dimensions and calculate megapixels
+  const analyzeVideo = (file) => {
+    return new Promise((resolve, reject) => {
+      const video = document.createElement('video');
+      video.preload = 'metadata';
+      
+      video.onloadedmetadata = () => {
+        const width = video.videoWidth;
+        const height = video.videoHeight;
+        const duration = video.duration;
+        const frameRate = 30; // Standard frame rate for calculation
+        const totalFrames = Math.round(duration * frameRate);
+        
+        // Calculate megapixels for original video
+        const megapixels = (width * height) / 1000000;
+        
+        resolve({
+          width,
+          height,
+          duration,
+          frameRate,
+          totalFrames,
+          megapixels,
+          resolution: `${width}x${height}`
+        });
+        
+        // Clean up
+        URL.revokeObjectURL(video.src);
+      };
+      
+      video.onerror = () => {
+        URL.revokeObjectURL(video.src);
+        reject(new Error('Failed to analyze video'));
+      };
+      
+      video.src = URL.createObjectURL(file);
+    });
+  };
+
+  const handleVideoUpload = async (event) => {
     const file = event.target.files[0];
     if (!file) return;
 
-    if (!file.type.startsWith('image/')) {
-      alert('Please select an image file');
+    if (!file.type.startsWith('video/')) {
+      showAlert('error', 'Invalid File Type', 'Please select a video file (MP4, MOV, AVI, etc.)');
       return;
     }
 
-    if (file.size > 10 * 1024 * 1024) {
-      alert('File size must be less than 10MB');
+    if (file.size > 100 * 1024 * 1024) { // 50MB limit for videos
+      showAlert('error', 'File Too Large', 'Video file size must be less than 100MB. Please compress your video or select a smaller file.');
       return;
     }
 
-    setUploadingImage(true);
+    setUploadingVideo(true);
+    setAnalyzingVideo(true);
     try {
-      const { url } = await uploadFile(file, 'bria-bg-remove-input');
-      setConfig(prev => ({ ...prev, imageUrl: url }));
+      // First analyze the video locally
+      const analysis = await analyzeVideo(file);
+      console.log('Video analysis:', analysis);
+      
+      // Check frame limit (1000 frames max)
+      if (analysis.totalFrames > 1000) {
+        showAlert(
+          'error', 
+          'Video Too Long', 
+          `Your video has ${analysis.totalFrames} frames, but the maximum allowed is 1000 frames. Please upload a shorter video or reduce the frame rate.`,
+          false // Don't auto-close this important error
+        );
+        return;
+      }
+      
+      setVideoAnalysis(analysis);
+      
+      // Then upload to storage
+      const { url } = await uploadFile(file, 'video-upscaler-input');
+      setConfig(prev => ({ ...prev, videoUrl: url }));
     } catch (error) {
-      console.error('Error uploading image:', error);
-      alert('Error uploading image. Please try again.');
+      console.error('Error uploading video:', error);
+      showAlert('error', 'Upload Failed', `Error uploading video: ${error.message}. Please try again.`);
     } finally {
-      setUploadingImage(false);
+      setAnalyzingVideo(false);
+    }
+    
+    try {
+      // Continue with upload process
+    } finally {
+      setUploadingVideo(false);
     }
   };
 
   const calculateTokenCost = () => {
-    return 5; // Fixed cost for BRIA background removal
+    if (!videoAnalysis) {
+      return 5; // Fallback to minimum cost if no analysis
+    }
+    
+    const { width, height, totalFrames, duration, frameRate } = videoAnalysis;
+    
+    // Calculate upscaled dimensions
+    const upscaledWidth = width * config.scale;
+    const upscaledHeight = height * config.scale;
+    
+    // Calculate megapixels per frame for upscaled video
+    const megapixels = (upscaledWidth * upscaledHeight) / 1000000; // Convert to megapixels
+    
+    // Multiply by total frames (duration × fps)
+    const totalMegapixels = megapixels * totalFrames;
+    
+    // Cost calculation: $0.001333 per megapixel × total frames, $0.01 per token
+    const costPerMegapixel = 0.001333;
+    const costPerToken = 0.01;
+    const totalCostUSD = totalMegapixels * costPerMegapixel;
+    const totalTokens = Math.ceil(totalCostUSD / costPerToken);
+    
+    // Minimum cost of 5 tokens
+    return Math.max(5, totalTokens);
   };
 
   const handleGenerate = async () => {
-    if (!config.imageUrl) {
-      alert('Please upload an image');
+    if (!config.videoUrl) {
+      showAlert('warning', 'No Video Selected', 'Please upload a video file before starting the upscaling process.');
       return;
     }
 
@@ -222,9 +325,9 @@ const BriaBackgroundRemover = () => {
     if (!bypassSafetyCheck) {
       try {
         const analysisResult = await performSafetyAnalysis(
-          config.imageUrl,
-          null, // No prompt for background removal
-          'fal_bria_bg_remove'
+          null, // No image analysis for video input
+          null, // No prompt for video upscaling
+          'fal_video_upscaler'
         );
 
         logSafetyAnalysis(analysisResult, 'pre_generation_check');
@@ -244,18 +347,22 @@ const BriaBackgroundRemover = () => {
     const tokenCost = calculateTokenCost();
     const totalTokens = (profile.tokens || 0) + (profile.purchased_tokens || 0);
     if (totalTokens < tokenCost) {
-      alert('Insufficient tokens. Please upgrade your plan.');
+      showAlert(
+        'error', 
+        'Insufficient Tokens', 
+        `You need ${tokenCost} tokens but only have ${totalTokens}. Please purchase more tokens or upgrade your plan.`
+      );
       return;
     }
 
     setGenerating(true);
     try {
-      console.log('🚀 Starting BRIA Background Remover generation...');
+      console.log('🚀 Starting FAL Video Upscaler generation...');
       
       // Create generation record
       const generation = await createAIGeneration(
-        'fal_bria_bg_remove',
-        'Background Removal',
+        'fal_video_upscaler',
+        `Video Upscale ${config.scale}x`,
         config,
         tokenCost
       );
@@ -274,8 +381,8 @@ const BriaBackgroundRemover = () => {
 
       console.log('💰 Tokens deducted, calling Edge Function...');
 
-      // Call Edge Function for background removal
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/fal-bria-bg-remove`, {
+      // Call Edge Function using direct fetch (same pattern as MinimaxHailuo, WanPro, etc.)
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/fal-video-upscaler`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session.access_token}`,
@@ -283,7 +390,8 @@ const BriaBackgroundRemover = () => {
         },
         body: JSON.stringify({
           generationId: generation.id,
-          ...config
+          ...config,
+          videoAnalysis: videoAnalysis
         })
       });
 
@@ -292,20 +400,16 @@ const BriaBackgroundRemover = () => {
       if (!response.ok) {
         const errorData = await response.json();
         console.error('Edge Function error:', errorData);
-        throw new Error(errorData.error || 'Background removal failed');
+        throw new Error(errorData.error || 'Video upscaling failed');
       }
 
       const result = await response.json();
       console.log('Edge Function result:', result);
 
-      console.log('🎉 Background removal request completed successfully');
+      console.log('🎉 Video upscaling request completed successfully');
 
     } catch (error) {
-      console.error('❌ Error with background removal:', error);
-      
-      // Remove from local state if there was an error
-      setGenerations(current => current.filter(g => g.id !== generation?.id));
-      setActiveGenerations(current => current.filter(g => g.id !== generation?.id));
+      console.error('❌ Error generating:', error);
       
       // Check if it's an NSFW content error
       if (isNSFWError(error.message)) {
@@ -313,21 +417,21 @@ const BriaBackgroundRemover = () => {
         setNsfwError(nsfwDetails);
         setShowNSFWAlert(true);
       } else {
-        alert(`Error: ${error.message}`);
+        showAlert('error', 'Generation Failed', `Video upscaling failed: ${error.message}`);
       }
     } finally {
       setGenerating(false);
     }
   };
 
-  const handleDownload = async (imageUrl) => {
+  const handleDownload = async (videoUrl) => {
     try {
-      const response = await fetch(toCdnUrl(imageUrl));
+      const response = await fetch(toCdnUrl(videoUrl));
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `background-removed-${Date.now()}.png`;
+      link.download = `upscaled-video-${config.scale}x-${Date.now()}.mp4`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -336,8 +440,8 @@ const BriaBackgroundRemover = () => {
       console.error('Download failed:', error);
       // Fallback to direct link
       const link = document.createElement('a');
-      link.href = toCdnUrl(imageUrl);
-      link.download = `background-removed-${Date.now()}.png`;
+      link.href = toCdnUrl(videoUrl);
+      link.download = `upscaled-video-${config.scale}x-${Date.now()}.mp4`;
       link.target = '_blank';
       document.body.appendChild(link);
       link.click();
@@ -346,7 +450,7 @@ const BriaBackgroundRemover = () => {
   };
 
   const handleDelete = async (generationId) => {
-    if (!confirm('Are you sure you want to remove this generation? It will be hidden from your account.')) return;
+    if (!window.confirm('Are you sure you want to remove this generation? It will be hidden from your account.')) return;
 
     try {
       // Use soft delete function instead of hard delete
@@ -362,7 +466,7 @@ const BriaBackgroundRemover = () => {
       }
     } catch (error) {
       console.error('Error deleting generation:', error);
-      alert('Error removing generation. Please try again.');
+      showAlert('error', 'Remove Failed', 'Error removing generation. Please try again.');
     }
   };
 
@@ -403,12 +507,12 @@ const BriaBackgroundRemover = () => {
               </button>
               <div className="h-6 w-px bg-white/20"></div>
               <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-xl flex items-center justify-center">
-                  <Scissors className="w-5 h-5 text-white" />
+                <div className="w-10 h-10 bg-gradient-to-r from-green-500 to-emerald-500 rounded-xl flex items-center justify-center">
+                  <TrendingUp className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <h1 className="text-xl font-bold text-white">BRIA Background Remover</h1>
-                  <p className="text-purple-200 text-sm">Professional AI-powered background removal with precision edge detection</p>
+                  <h1 className="text-xl font-bold text-white">FAL Video Upscaler</h1>
+                  <p className="text-purple-200 text-sm">Enhance video quality with AI-powered upscaling</p>
                 </div>
               </div>
             </div>
@@ -430,69 +534,91 @@ const BriaBackgroundRemover = () => {
       </header>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Themed Alert */}
+        <ThemedAlert
+          type={alertConfig.type}
+          title={alertConfig.title}
+          message={alertConfig.message}
+          isOpen={alertConfig.show}
+          onClose={closeAlert}
+        />
+        
         <div className="grid lg:grid-cols-3 gap-8">
           {/* Configuration Panel - Left Side */}
           <div className="lg:col-span-1">
             <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 sticky top-8">
               <div className="flex items-center space-x-2 mb-6">
                 <Settings className="w-5 h-5 text-purple-400" />
-                <h2 className="text-lg font-semibold text-white">Background Removal</h2>
+                <h2 className="text-lg font-semibold text-white">Upscaling Configuration</h2>
               </div>
 
               <div className="space-y-6">
-                {/* Image Upload */}
+                {/* Video Upload */}
                 <div>
                   <label className="block text-sm font-medium text-purple-200 mb-2">
-                    <ImageIcon className="w-4 h-4 inline mr-1" />
-                    Source Image *
+                    <Video className="w-4 h-4 inline mr-1" />
+                    Source Video * (1000 frames limit)
                   </label>
                   <div 
                     className="border-2 border-dashed border-white/30 rounded-lg p-4 text-center transition-colors hover:border-white/50"
                     onDragOver={(e) => {
                       e.preventDefault();
-                      e.currentTarget.classList.add('border-indigo-400', 'bg-indigo-500/10');
+                      e.currentTarget.classList.add('border-green-400', 'bg-green-500/10');
                     }}
                     onDragLeave={(e) => {
                       e.preventDefault();
-                      e.currentTarget.classList.remove('border-indigo-400', 'bg-indigo-500/10');
+                      e.currentTarget.classList.remove('border-green-400', 'bg-green-500/10');
                     }}
                     onDrop={(e) => {
                       e.preventDefault();
-                      e.currentTarget.classList.remove('border-indigo-400', 'bg-indigo-500/10');
+                      e.currentTarget.classList.remove('border-green-400', 'bg-green-500/10');
                       const files = e.dataTransfer.files;
                       if (files.length > 0) {
                         const event = { target: { files } };
-                        handleImageUpload(event);
+                        handleVideoUpload(event);
                       }
                     }}
                   >
                     <input
                       type="file"
-                      accept="image/*"
-                      onChange={handleImageUpload}
+                      accept="video/*"
+                      onChange={handleVideoUpload}
                       className="hidden"
-                      id="image-upload"
-                      disabled={uploadingImage}
+                      id="video-upload"
+                      disabled={uploadingVideo}
                     />
-                    <label htmlFor="image-upload" className="cursor-pointer">
-                      {config.imageUrl ? (
+                    <label htmlFor="video-upload" className="cursor-pointer">
+                      {config.videoUrl ? (
                         <div className="space-y-2">
-                          <img 
-                            src={config.imageUrl} 
-                            alt="Source" 
-                            className="w-full h-32 object-contain rounded-lg bg-black/20"
-                            loading="lazy"                            
+                          <video 
+                            src={config.videoUrl} 
+                            className="w-full h-32 object-cover rounded-lg bg-black/20"
+                            muted
+                            preload="metadata"                            
+                            loading="lazy"
                           />
-                          <p className="text-purple-200 text-sm">Click to change</p>
+                          <p className="text-purple-200 text-sm">
+                            {analyzingVideo ? 'Analyzing video...' : 'Click to change'}
+                          </p>
+                          {videoAnalysis && (
+                            <div className="text-xs text-purple-300 space-y-1">
+                              <p>Resolution: {videoAnalysis.resolution}</p>
+                              <p>Duration: {Math.round(videoAnalysis.duration)}s</p>
+                              <p>Frames: {videoAnalysis.totalFrames}</p>
+                              <p>Total Pixels: {(videoAnalysis.totalPixels / 1000000).toFixed(1)}M</p>
+                            </div>
+                          )}
                         </div>
                       ) : (
                         <div>
                           <Upload className="w-8 h-8 text-purple-300 mx-auto mb-2" />
                           <p className="text-purple-200">
-                            {uploadingImage ? 'Uploading...' : 'Upload or drag & drop image'}
+                            {uploadingVideo ? 'Uploading...' : 
+                             analyzingVideo ? 'Analyzing...' : 
+                             'Upload or drag & drop video'}
                           </p>
                           <p className="text-purple-300 text-xs mt-1">
-                            Professional edge detection and background removal • Drag & drop supported
+                            MP4, MOV, AVI • Max 100MB • Max 1000 frames • Drag & drop supported
                           </p>
                         </div>
                       )}
@@ -500,44 +626,87 @@ const BriaBackgroundRemover = () => {
                   </div>
                 </div>
 
-                {/* Features Info */}
-                <div className="bg-indigo-500/10 border border-indigo-500/30 rounded-lg p-4">
-                  <h3 className="text-white font-medium mb-2 flex items-center">
-                    <Layers className="w-4 h-4 mr-2" />
-                    BRIA Features
-                  </h3>
-                  <ul className="text-indigo-200 text-sm space-y-1">
-                    <li>• Precision edge detection</li>
-                    <li>• Hair and fine detail preservation</li>
-                    <li>• Professional quality results</li>
-                    <li>• Transparent PNG output</li>
-                  </ul>
+                {/* Scale Factor */}
+                <div>
+                  <label className="block text-sm font-medium text-purple-200 mb-2">
+                    <TrendingUp className="w-4 h-4 inline mr-1" />
+                    Upscaling Factor
+                  </label>
+                  <div className="grid grid-cols-1 gap-2">
+                    {scaleOptions.map((option) => (
+                      <button
+                        key={option.value}
+                        onClick={() => setConfig(prev => ({ ...prev, scale: option.value }))}
+                        className={`px-4 py-3 rounded-lg text-sm font-medium transition-all text-left ${
+                          config.scale === option.value
+                            ? 'bg-green-500 text-white'
+                            : 'bg-white/10 text-purple-200 hover:bg-white/20'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span>{option.label}</span>
+                          {videoAnalysis && (
+                            <span className="text-xs opacity-75">
+                              {calculateTokenCost()} tokens
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs opacity-75 mt-1">{option.description}</p>
+                      </button>
+                    ))}
+                  </div>
                 </div>
+
+                {/* Cost Breakdown */}
+                {videoAnalysis && (
+                  <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-4">
+                    <h3 className="text-green-200 font-medium mb-2 flex items-center">
+                      <Zap className="w-4 h-4 mr-2" />
+                      Cost Calculation
+                    </h3>
+                    <div className="text-green-300 text-sm space-y-1">
+                      <p>Original: {videoAnalysis.width} × {videoAnalysis.height}</p>
+                      <p>Upscaled: {videoAnalysis.width * config.scale} × {videoAnalysis.height * config.scale}</p>
+                      <p>Upscaled MP: {((videoAnalysis.width * config.scale * videoAnalysis.height * config.scale) / 1000000).toFixed(2)}MP per frame</p>
+                      <p>Duration: {Math.round(videoAnalysis.duration)}s × {videoAnalysis.frameRate} fps</p>
+                      <p>Total Frames: {videoAnalysis.totalFrames}</p>
+                      <p>Total MP: {((videoAnalysis.width * config.scale * videoAnalysis.height * config.scale * videoAnalysis.totalFrames) / 1000000).toFixed(1)}MP</p>
+                      <p>Formula: {((videoAnalysis.width * config.scale * videoAnalysis.height * config.scale) / 1000000).toFixed(2)}MP × {videoAnalysis.totalFrames} frames</p>
+                      <p>Cost: ${((videoAnalysis.width * config.scale * videoAnalysis.height * config.scale * videoAnalysis.totalFrames) / 1000000 * 0.001333).toFixed(4)} USD</p>
+                      <p className="font-medium">Total: {calculateTokenCost()} tokens</p>
+                    </div>
+                  </div>
+                )}
 
                 {/* Generate Button */}
                 <button
                   onClick={handleGenerate}
-                  disabled={generating || !config.imageUrl}
-                  className="w-full bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white font-semibold py-4 px-6 rounded-lg transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center space-x-2"
+                  disabled={generating || !config.videoUrl || analyzingVideo}
+                  className="w-full bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white font-semibold py-4 px-6 rounded-lg transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center space-x-2"
                 >
                   {generating ? (
                     <>
                       <RefreshCw className="w-4 h-4 animate-spin" />
-                      <span>Removing Background...</span>
+                      <span>Upscaling Video...</span>
+                    </>
+                  ) : analyzingVideo ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                      <span>Analyzing Video...</span>
                     </>
                   ) : (
                     <>
-                      <Scissors className="w-4 h-4" />
-                      <span>Remove Background ({calculateTokenCost()} tokens)</span>
+                      <TrendingUp className="w-4 h-4" />
+                      <span>Upscale Video ({calculateTokenCost()} tokens)</span>
                     </>
                   )}
                 </button>
 
                 {/* Processing Note */}
-                <div className="bg-indigo-500/10 border border-indigo-500/30 rounded-lg p-3">
-                  <p className="text-indigo-200 text-xs">
-                    <Scissors className="w-3 h-3 inline mr-1" />
-                    Background removal typically takes 30-60 seconds with professional quality results.
+                <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-3">
+                  <p className="text-green-200 text-xs">
+                    <Film className="w-3 h-3 inline mr-1" />
+                    Video upscaling may take 3-8 minutes. Cost: $0.001333 per megapixel of upscaled video.
                   </p>
                 </div>
               </div>
@@ -552,19 +721,20 @@ const BriaBackgroundRemover = () => {
                 <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6">
                   <div className="flex items-center space-x-2 mb-4">
                     <RefreshCw className="w-5 h-5 text-yellow-400 animate-spin" />
-                    <h3 className="text-lg font-semibold text-white">Processing Images ({activeGenerations.length})</h3>
+                    <h3 className="text-lg font-semibold text-white">Processing Videos ({activeGenerations.length})</h3>
                   </div>
                   <div className="space-y-3">
-                    {generations.slice(0, window.innerWidth >= 1024 ? 1 : generations.length).map((generation) => (
+                    {activeGenerations.map((generation) => (
                       <div key={generation.id} className="bg-white/5 rounded-lg p-4">
                         <div className="flex items-center justify-between">
                           <div>
                             <p className="text-white font-medium">{generation.generation_name}</p>
                             <p className="text-purple-200 text-sm">
+                              Scale: {generation.input_data?.scale}x • 
                               Started: {new Date(generation.created_at).toLocaleTimeString()}
                             </p>
                             <p className="text-purple-300 text-xs mt-1">
-                              Background removal typically takes 30-60 seconds
+                              Video upscaling typically takes 3-8 minutes
                             </p>
                           </div>
                           <div className="flex items-center space-x-3">
@@ -585,7 +755,7 @@ const BriaBackgroundRemover = () => {
               {/* Completed Generations */}
               <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6">
                 <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-lg font-semibold text-white">Background Removed Images</h3>
+                  <h3 className="text-lg font-semibold text-white">Upscaled Videos</h3>
                   <button
                     onClick={fetchGenerations}
                     className="text-purple-400 hover:text-purple-300 transition-colors"
@@ -596,9 +766,9 @@ const BriaBackgroundRemover = () => {
 
                 {generations.length === 0 ? (
                   <div className="text-center py-12">
-                    <Scissors className="w-16 h-16 text-purple-300 mx-auto mb-4 opacity-50" />
-                    <p className="text-purple-200 text-lg">No background removals yet</p>
-                    <p className="text-purple-300 text-sm">Upload an image to remove its background with professional quality</p>
+                    <TrendingUp className="w-16 h-16 text-purple-300 mx-auto mb-4 opacity-50" />
+                    <p className="text-purple-200 text-lg">No videos upscaled yet</p>
+                    <p className="text-purple-300 text-sm">Upload a video to enhance its quality with AI upscaling</p>
                   </div>
                 ) : (
                   <div className="space-y-6">
@@ -624,84 +794,60 @@ const BriaBackgroundRemover = () => {
 
                           {generation.output_file_url && generation.status === 'completed' && (
                             <div className="mb-4">
-                              <div className="grid grid-cols-2 gap-4">
-                                {/* Original Image */}
-                                <div>
-                                  <p className="text-purple-200 text-sm mb-2 flex items-center">
-                                    <Eye className="w-4 h-4 mr-1" />
-                                    Original
-                                  </p>
-                                  <img
-                                    src={toCdnUrl(generation.input_data?.imageUrl)}
-                                    alt="Original"
-                                    className="w-full rounded-lg"
-                                    loading="lazy"
-                                  />
-                                </div>
-                                
-                                {/* Background Removed */}
-                                <div>
-                                  <p className="text-green-200 text-sm mb-2 flex items-center">
-                                    <EyeOff className="w-4 h-4 mr-1" />
-                                    Background Removed
-                                  </p>
-                                  <div className="relative">
-                                    <img
-                                      src={toCdnUrl(generation.output_file_url)}
-                                      alt="Background Removed"
-                                      className="w-full rounded-lg"                                      
-                                      loading="lazy"
-                                      style={{
-                                        background: 'linear-gradient(45deg, #ccc 25%, transparent 25%), linear-gradient(-45deg, #ccc 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #ccc 75%), linear-gradient(-45deg, transparent 75%, #ccc 75%)',
-                                        backgroundSize: '20px 20px',
-                                        backgroundPosition: '0 0, 0 10px, 10px -10px, -10px 0px'
-                                      }}
-                                    />
-                                  </div>
-                                </div>
-                              </div>
+                              <video
+                                src={toCdnUrl(generation.output_file_url)}
+                                controls
+                                className="w-full rounded-lg max-h-96"
+                                preload="metadata"
+                              >
+                                Your browser does not support the video tag.
+                              </video>
                             </div>
                           )}
 
                           {generation.status === 'processing' && (
-                            <div className="mb-4 bg-gradient-to-br from-indigo-500/20 to-purple-500/20 rounded-lg p-8 text-center">
-                              <RefreshCw className="w-12 h-12 text-indigo-300 animate-spin mx-auto mb-2" />
-                              <p className="text-indigo-200">Removing background...</p>
-                              <p className="text-indigo-300 text-sm">This may take 30-60 seconds</p>
+                            <div className="mb-4 bg-gradient-to-br from-green-500/20 to-emerald-500/20 rounded-lg p-8 text-center">
+                              <RefreshCw className="w-12 h-12 text-green-300 animate-spin mx-auto mb-2" />
+                              <p className="text-green-200">Upscaling video quality...</p>
+                              <p className="text-green-300 text-sm">This may take 3-8 minutes</p>
                             </div>
                           )}
 
                           {generation.status === 'failed' && (
                             <div className="mb-4 bg-red-500/20 rounded-lg p-4 text-center">
                               <X className="w-8 h-8 text-red-400 mx-auto mb-2" />
-                              <p className="text-red-400 text-sm">Background removal failed</p>
+                              <p className="text-red-400 text-sm">Upscaling failed</p>
                             </div>
                           )}
 
-                          <div className="flex items-center justify-between mt-4">
-                            <div className="flex items-center space-x-4">
-                              <span className="text-purple-300 text-sm">
-                                {generation.tokens_used} tokens used
+                          <div className="space-y-2 text-sm text-purple-300">
+                            <div className="flex items-center justify-between">
+                              <span>
+                                <strong>Scale Factor:</strong> {generation.input_data?.scale}x
+                              </span>
+                              <span>
+                                <strong>Tokens Used:</strong> {generation.tokens_used}
                               </span>
                             </div>
-                            <div className="flex space-x-2">
-                              {generation.output_file_url && generation.status === 'completed' && (
-                                <button
-                                  onClick={() => handleDownload(generation.output_file_url)}
-                                  className="bg-green-500 hover:bg-green-600 text-white p-2 rounded-lg transition-colors"
-                                  title="Download background removed image"
-                                >
-                                  <Download className="w-4 h-4" />
-                                </button>
-                              )}
+                          </div>
+
+                          <div className="flex items-center justify-end mt-4 space-x-2">
+                            {generation.output_file_url && generation.status === 'completed' && (
                               <button
-                                onClick={() => handleDelete(generation.id)}
-                                className="bg-red-500 hover:bg-red-600 text-white p-2 rounded-lg transition-colors"
-                                title="Delete generation"
+                                onClick={() => handleDownload(generation.output_file_url)}
+                                className="bg-green-500 hover:bg-green-600 text-white p-2 rounded-lg transition-colors"
+                                title="Download upscaled video"
                               >
-                                <Trash2 className="w-4 h-4" />
+                                <Download className="w-4 h-4" />
                               </button>
-                            </div>
+                            )}
+                            <button
+                              onClick={() => handleDelete(generation.id)}
+                              className="bg-red-500 hover:bg-red-600 text-white p-2 rounded-lg transition-colors"
+                              title="Delete generation"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
                           </div>
                         </div>
                       </div>
@@ -731,42 +877,14 @@ const BriaBackgroundRemover = () => {
 
               {selectedGeneration.output_file_url && (
                 <div className="mb-6">
-                  <div className="grid grid-cols-2 gap-6">
-                    {/* Original Image */}
-                    <div>
-                      <h4 className="text-lg font-semibold text-white mb-3 flex items-center">
-                        <Eye className="w-5 h-5 mr-2" />
-                        Original Image
-                      </h4>
-                      <img
-                        src={toCdnUrl(selectedGeneration.input_data?.imageUrl)}
-                        alt="Original"
-                        className="w-full rounded-lg"                        
-                        loading="lazy"
-                      />
-                    </div>
-                    
-                    {/* Background Removed */}
-                    <div>
-                      <h4 className="text-lg font-semibold text-white mb-3 flex items-center">
-                        <EyeOff className="w-5 h-5 mr-2" />
-                        Background Removed
-                      </h4>
-                      <div className="relative">
-                        <img
-                          src={toCdnUrl(selectedGeneration.output_file_url)}
-                          alt="Background Removed"
-                          className="w-full rounded-lg"                          
-                          loading="lazy"
-                          style={{
-                            background: 'linear-gradient(45deg, #ccc 25%, transparent 25%), linear-gradient(-45deg, #ccc 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #ccc 75%), linear-gradient(-45deg, transparent 75%, #ccc 75%)',
-                            backgroundSize: '20px 20px',
-                            backgroundPosition: '0 0, 0 10px, 10px -10px, -10px 0px'
-                          }}
-                        />
-                      </div>
-                    </div>
-                  </div>
+                  <video
+                    src={toCdnUrl(selectedGeneration.output_file_url)}
+                    controls
+                    className="w-full max-h-96 rounded-lg"
+                    preload="metadata"
+                  >
+                    Your browser does not support the video tag.
+                  </video>
                 </div>
               )}
 
@@ -808,11 +926,11 @@ const BriaBackgroundRemover = () => {
                 </div>
 
                 <div>
-                  <h4 className="text-lg font-semibold text-white mb-3">Processing Info</h4>
+                  <h4 className="text-lg font-semibold text-white mb-3">Configuration</h4>
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
-                      <span className="text-purple-200">Model:</span>
-                      <span className="text-white">BRIA Background Remover</span>
+                      <span className="text-purple-200">Scale Factor:</span>
+                      <span className="text-white">{selectedGeneration.input_data?.scale}x</span>
                     </div>
                     {selectedGeneration.metadata?.processing_time && (
                       <div className="flex justify-between">
@@ -820,10 +938,18 @@ const BriaBackgroundRemover = () => {
                         <span className="text-white">{selectedGeneration.metadata.processing_time}</span>
                       </div>
                     )}
-                    <div className="flex justify-between">
-                      <span className="text-purple-200">Output Format:</span>
-                      <span className="text-white">PNG (Transparent)</span>
-                    </div>
+                    {selectedGeneration.metadata?.original_resolution && (
+                      <div className="flex justify-between">
+                        <span className="text-purple-200">Original Resolution:</span>
+                        <span className="text-white">{selectedGeneration.metadata.original_resolution}</span>
+                      </div>
+                    )}
+                    {selectedGeneration.metadata?.upscaled_resolution && (
+                      <div className="flex justify-between">
+                        <span className="text-purple-200">Upscaled Resolution:</span>
+                        <span className="text-white">{selectedGeneration.metadata.upscaled_resolution}</span>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -835,7 +961,7 @@ const BriaBackgroundRemover = () => {
                     className="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors flex items-center space-x-2"
                   >
                     <Download className="w-4 h-4" />
-                    <span>Download PNG</span>
+                    <span>Download Upscaled Video</span>
                   </button>
                 )}
                 <button
@@ -857,7 +983,7 @@ const BriaBackgroundRemover = () => {
           setShowNSFWAlert(false);
           setNsfwError(null);
         }}
-        toolName="BRIA Background Remover"
+        toolName="FAL Video Upscaler"
         details={nsfwError?.technical}
       />
 
@@ -879,7 +1005,7 @@ const BriaBackgroundRemover = () => {
           setSafetyWarningData(null);
         }}
         warningData={safetyWarningData}
-        toolName="BRIA Background Remover"
+        toolName="FAL Video Upscaler"
       />
 
       {/* Custom Styles */}
@@ -895,4 +1021,4 @@ const BriaBackgroundRemover = () => {
   );
 };
 
-export default BriaBackgroundRemover;
+export default FalVideoUpscaler;
