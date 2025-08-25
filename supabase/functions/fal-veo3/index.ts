@@ -96,9 +96,7 @@ serve(async (req) => {
       prompt,
       duration = "8s",
       generateAudio = true,
-      resolution = "720p",
-      negativePrompt,
-      enhancePrompt = true
+      resolution = "720p"
     } = await req.json();
 
     generationId = reqGenerationId;
@@ -139,14 +137,8 @@ serve(async (req) => {
       image_url: imageUrl,
       duration: duration,
       generate_audio: generateAudio,
-      resolution: resolution,
-      enhance_prompt: enhancePrompt
+      resolution: resolution
     };
-
-    // Add optional parameters
-    if (negativePrompt && negativePrompt.trim()) {
-      falParams.negative_prompt = negativePrompt.trim();
-    }
 
     console.log('📡 Submitting to FAL.ai queue with webhook:', JSON.stringify(falParams, null, 2));
 

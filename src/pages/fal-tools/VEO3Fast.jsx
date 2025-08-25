@@ -69,10 +69,7 @@ const VEO3Fast = () => {
 
   // Duration options (API expects string with 's' suffix)
   const durationOptions = [
-    { label: '4 seconds', value: "4s", cost: 32 },
-    { label: '6 seconds', value: "6s", cost: 48 },
     { label: '8 seconds', value: "8s", cost: 64 },
-    { label: '10 seconds', value: "10s", cost: 80 }
   ];
 
   // Resolution options
@@ -271,9 +268,8 @@ const VEO3Fast = () => {
   };
 
   const calculateTokenCost = () => {
-    // Base cost: 8 tokens per second
-    const seconds = parseInt(config.duration.replace('s', ''));
-    return seconds * 8;
+    // Fixed cost: 64 tokens for 8 seconds
+    return 64;
   };
 
   const handleGenerate = async () => {
@@ -613,23 +609,11 @@ const VEO3Fast = () => {
                 <div>
                   <label className="block text-sm font-medium text-purple-200 mb-2">
                     <Clock className="w-4 h-4 inline mr-1" />
-                    Video Duration
+                    Duration: {config.duration}
                   </label>
-                  <div className="grid grid-cols-2 gap-2">
-                    {durationOptions.map((option) => (
-                      <button
-                        key={option.value}
-                        onClick={() => setConfig(prev => ({ ...prev, duration: option.value }))}
-                        className={`px-2 py-2 rounded-lg text-xs font-medium transition-all ${
-                          config.duration === option.value
-                            ? 'bg-red-500 text-white'
-                            : 'bg-white/10 text-purple-200 hover:bg-white/20'
-                        }`}
-                      >
-                        {option.label}
-                        <div className="text-xs opacity-75">({option.cost} tokens)</div>
-                      </button>
-                    ))}
+                  <div className="bg-white/10 border border-white/20 rounded-lg p-3 text-center">
+                    <span className="text-white font-medium">8 seconds</span>
+                    <p className="text-purple-300 text-xs mt-1">Fixed duration for VEO3 Fast</p>
                   </div>
                 </div>
 
@@ -871,8 +855,8 @@ const VEO3Fast = () => {
                           </div>
                         </div>
                       </div>
-                    ))}
-                  </div>
+                    <span>Generate Video (64 tokens)</span>
+                  VEO3 Fast generation may take 2-5 minutes. Fixed 8-second duration, 64 tokens.
                 )}
               </div>
             </div>

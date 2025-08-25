@@ -95,8 +95,6 @@ serve(async (req) => {
       imageUrl,
       prompt,
       duration = "8s",
-      generateAudio = true,
-      resolution = "720p"
     } = await req.json();
 
     generationId = reqGenerationId;
@@ -135,11 +133,6 @@ serve(async (req) => {
     const falParams = {
       prompt: prompt.trim(),
       image_url: imageUrl,
-      duration: duration,
-      generate_audio: generateAudio,
-      resolution: resolution
-    };
-
     console.log('📡 Submitting to FAL.ai queue with webhook:', JSON.stringify(falParams, null, 2));
 
     // Use FAL.ai queue system with webhook

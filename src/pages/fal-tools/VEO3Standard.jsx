@@ -45,9 +45,7 @@ const VEO3Standard = () => {
     prompt: '',
     duration: "8s",
     generateAudio: true,
-    resolution: "720p",
-    negativePrompt: '',
-    enhancePrompt: true
+    resolution: "720p"
   });
   
   // Generation state
@@ -72,10 +70,7 @@ const VEO3Standard = () => {
 
   // Duration options (API expects string with 's' suffix)
   const durationOptions = [
-    { label: '4 seconds', value: "4s", cost: 64 },
-    { label: '6 seconds', value: "6s", cost: 96 },
     { label: '8 seconds', value: "8s", cost: 128 },
-    { label: '10 seconds', value: "10s", cost: 160 }
   ];
 
   // Resolution options
@@ -266,9 +261,8 @@ const VEO3Standard = () => {
   };
 
   const calculateTokenCost = () => {
-    // Base cost: 16 tokens per second for VEO3 Standard (higher quality than Fast)
-    const seconds = parseInt(config.duration.replace('s', ''));
-    return seconds * 16;
+    // Fixed cost: 128 tokens for 8 seconds (16 tokens per second)
+    return 128;
   };
 
   const handleGenerate = async () => {
@@ -604,41 +598,15 @@ const VEO3Standard = () => {
                   </div>
                 </div>
 
-                {/* Negative Prompt */}
-                <div>
-                  <label className="block text-sm font-medium text-purple-200 mb-2">
-                    Negative Prompt (Optional)
-                  </label>
-                  <textarea
-                    value={config.negativePrompt}
-                    onChange={(e) => setConfig(prev => ({ ...prev, negativePrompt: e.target.value }))}
-                    placeholder="What you don't want to see..."
-                    className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-purple-300 focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
-                    rows={2}
-                  />
-                </div>
-
                 {/* Duration */}
                 <div>
                   <label className="block text-sm font-medium text-purple-200 mb-2">
                     <Clock className="w-4 h-4 inline mr-1" />
-                    Video Duration
+                    Duration: {config.duration}
                   </label>
-                  <div className="grid grid-cols-2 gap-2">
-                    {durationOptions.map((option) => (
-                      <button
-                        key={option.value}
-                        onClick={() => setConfig(prev => ({ ...prev, duration: option.value }))}
-                        className={`px-2 py-2 rounded-lg text-xs font-medium transition-all ${
-                          config.duration === option.value
-                            ? 'bg-violet-500 text-white'
-                            : 'bg-white/10 text-purple-200 hover:bg-white/20'
-                        }`}
-                      >
-                        {option.label}
-                        <div className="text-xs opacity-75">({option.cost} tokens)</div>
-                      </button>
-                    ))}
+                  <div className="bg-white/10 border border-white/20 rounded-lg p-3 text-center">
+                    <span className="text-white font-medium">8 seconds</span>
+                    <p className="text-purple-300 text-xs mt-1">Fixed duration for VEO3 Standard</p>
                   </div>
                 </div>
 
@@ -681,27 +649,6 @@ const VEO3Standard = () => {
                       </span>
                       <p className="text-purple-300 text-xs">
                         Add AI-generated audio to match the video
-                      </p>
-                    </div>
-                  </label>
-                </div>
-
-                {/* Enhance Prompt */}
-                <div>
-                  <label className="flex items-center space-x-3">
-                    <input
-                      type="checkbox"
-                      checked={config.enhancePrompt}
-                      onChange={(e) => setConfig(prev => ({ ...prev, enhancePrompt: e.target.checked }))}
-                      className="w-4 h-4 text-violet-600 bg-white/10 border-white/20 rounded focus:ring-violet-500"
-                    />
-                    <div>
-                      <span className="text-white font-medium flex items-center">
-                        <Sparkles className="w-4 h-4 mr-1" />
-                        Enhance Prompt
-                      </span>
-                      <p className="text-purple-300 text-xs">
-                        AI will enhance your prompt for better results
                       </p>
                     </div>
                   </label>
@@ -901,8 +848,8 @@ const VEO3Standard = () => {
                           </div>
                         </div>
                       </div>
-                    ))}
-                  </div>
+                    <span>Generate Video (128 tokens)</span>
+                  VEO3 Standard generation may take 5-12 minutes. Fixed 8-second duration, 128 tokens.
                 )}
               </div>
             </div>
