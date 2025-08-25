@@ -46,6 +46,7 @@ import FAQ from './pages/FAQ';
 import Careers from './pages/Careers';
 import Pricing from './pages/Pricing';
 import ImgMotionApp from './pages/ImgMotionApp';
+import ScrollToTop from "./components/ScrollToTop";
 
 // Protected Route Component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -183,6 +184,7 @@ function App() {
 
   return (
     <Router>
+      <ScrollToTop /> {/* <-- add it here, just once */}
       <MaintenanceWrapper>
         <div className="App">
           <Routes>
