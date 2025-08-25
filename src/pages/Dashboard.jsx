@@ -47,12 +47,20 @@ const Dashboard = () => {
   useEffect(() => {
     getUser();
     
-    // Clean up URL hash after OAuth callback to prevent reload issues
-    if (window.location.hash.includes('access_token')) {
-      console.log('OAuth callback detected, cleaning URL...');
-      // Clean the URL hash without triggering a reload
-      window.history.replaceState(null, '', window.location.pathname + window.location.search);
-    }
+    // Clean up URL hash after OAuth callback to prevent querySelector errors
+    const cleanupOAuthHash = () => {
+      if (window.location.hash.includes('access_token')) {
+        console.log('OAuth callback detected in Dashboard, cleaning URL hash...');
+        // Immediately clear the hash to prevent any code from using it as a CSS selector
+        window.location.hash = '';
+        // Clean the URL completely
+        window.history.replaceState(null, '', window.location.pathname + window.location.search);
+      }
+    };
+    
+    // Clean immediately and also after a short delay
+    cleanupOAuthHash();
+    setTimeout(cleanupOAuthHash, 100);
   }, []);
 
   // Separate effect for IP capture to avoid infinite loops
