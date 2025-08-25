@@ -44,18 +44,72 @@ const Dashboard = () => {
   const toolsPerPage = 4;
   const totalPages = Math.ceil(allTools.length / toolsPerPage);
 
-  // First useEffect - handles initial setup and OAuth cleanup
-  useEffect(() => {
-    // Clean up URL hash after OAuth callback to prevent reload issues
-    if (window.location.hash && window.location.hash.includes('access_token')) {
-      console.log('OAuth callback detected, cleaning URL...');
-      // Clean the URL hash without triggering a reload
-      window.history.replaceState(null, '', window.location.pathname + window.location.search);
-    }
+  // Replace the first useEffect in Dashboard.jsx with this:
+useEffect(() => {
+  let mounted = true;
+  
+  // Listen for auth state changes
+  const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    if (!mounted) return;
     
-    // Get user data
-    getUser();
-  }, []);
+    console.log('Dashboard auth state changed:', event);
+    
+    if (session?.user) {
+      setUser(session.user);
+      
+      // Fetch profile
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', session.user.id)
+        .single();
+        
+      if (profile) {
+        setProfile(profile);
+      } else if (error?.code === 'PGRST116') {
+        // Create profile if it doesn't exist
+        const { data: newProfile } = await supabase
+          .from('profiles')
+          .insert({
+            id: session.user.id,
+            email: session.user.email,
+            tokens: 200,
+            subscription_status: 'free'
+          })
+          .select()
+          .single();
+          
+        if (newProfile) {
+          setProfile(newProfile);
+        }
+      }
+      
+      setLoading(false);
+    } else {
+      // No session - redirect to login
+      console.log('No session in Dashboard, redirecting to login');
+      navigate('/login');
+    }
+  });
+  
+  // Initial session check
+  supabase.auth.getSession().then(({ data: { session } }) => {
+    if (!mounted) return;
+    
+    if (session?.user) {
+      setUser(session.user);
+      // Fetch profile...
+    } else if (!window.location.hash.includes('access_token')) {
+      // Only redirect if we're not processing OAuth
+      navigate('/login');
+    }
+  });
+  
+  return () => {
+    mounted = false;
+    subscription.unsubscribe();
+  };
+}, [navigate]);
 
   // Second useEffect - for IP capture (keep this as is)
   useEffect(() => {
