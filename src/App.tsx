@@ -46,7 +46,6 @@ import FAQ from './pages/FAQ';
 import Careers from './pages/Careers';
 import Pricing from './pages/Pricing';
 import ImgMotionApp from './pages/ImgMotionApp';
-import ScrollToTop from "./components/ScrollToTop";
 
 // Protected Route Component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -117,32 +116,35 @@ const AdminRoute = ({ children }: { children: React.ReactNode }) => {
 };
 
 function App() {
-  // In App.tsx, update the useEffect to remove the hash cleanup:
-useEffect(() => {
-  // Remove this block - it's now handled in main.tsx
-  // if (window.location.hash && window.location.hash.includes('access_token')) {
-  //   console.log('OAuth callback detected, cleaning URL...');
-  //   window.history.replaceState(null, '', window.location.pathname);
-  // }
-
-  // Handle OAuth redirects and post-login navigation
+  useEffect(() => {
+  // Handle OAuth redirects, post-login navigation, and sign-out navigation
   const handleAuthStateChange = async (event: string, session: any) => {
     console.log('Auth state change in App.tsx:', event, {
       hasSession: !!session,
-      currentPath: window.location.pathname
+      currentPath: window.location.pathname,
+      hasHash: !!window.location.hash
     });
 
+    // Handle sign in
     if (event === 'SIGNED_IN' && session?.user) {
+      // Check if we're coming from an OAuth callback (has access_token in URL)
+      const isOAuthCallback = window.location.hash.includes('access_token');
+      
       // Check if we're on a public page that should redirect to dashboard after login
       const publicPaths = ['/', '/login', '/signup'];
-      const currentPath = window.location.pathname;
+      const shouldRedirect = publicPaths.includes(window.location.pathname) || isOAuthCallback;
       
-      // Always redirect to dashboard after sign in if we're on a public page
-      if (publicPaths.includes(currentPath)) {
+      if (shouldRedirect) {
         console.log('Redirecting to dashboard after successful sign-in');
         
-        // Navigate to dashboard
-        window.history.pushState(null, '', '/dashboard');
+        // Clean the URL first if it's an OAuth callback
+        if (isOAuthCallback) {
+          window.history.replaceState(null, '', '/dashboard');
+        } else {
+          window.history.pushState(null, '', '/dashboard');
+        }
+        
+        // Trigger a popstate event to make React Router respond to the URL change
         window.dispatchEvent(new PopStateEvent('popstate'));
       }
     }
@@ -181,7 +183,6 @@ useEffect(() => {
 
   return (
     <Router>
-      <ScrollToTop /> {/* <-- add it here, just once */}
       <MaintenanceWrapper>
         <div className="App">
           <Routes>
