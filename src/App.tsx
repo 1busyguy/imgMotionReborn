@@ -119,11 +119,11 @@ const AdminRoute = ({ children }: { children: React.ReactNode }) => {
 function App() {
   useEffect(() => {
   // Clean up OAuth hash IMMEDIATELY if present
-  if (window.location.hash && window.location.hash.includes('access_token')) {
-    console.log('OAuth callback detected, cleaning URL...');
-    // Replace the URL immediately without the hash
-    window.history.replaceState(null, '', window.location.pathname);
-  }
+   // Remove this block - it's now handled in main.tsx
+  // if (window.location.hash && window.location.hash.includes('access_token')) {
+  //   console.log('OAuth callback detected, cleaning URL...');
+  //   window.history.replaceState(null, '', window.location.pathname);
+  // }
 
   // Handle OAuth redirects, post-login navigation, and sign-out navigation
   const handleAuthStateChange = async (event: string, session: any) => {
