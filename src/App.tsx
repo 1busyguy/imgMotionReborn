@@ -36,7 +36,6 @@ import WanV22Img2VideoLora from './pages/fal-tools/WanV22Img2VideoLora';
 import WanV22Video2Video from './pages/fal-tools/WanV22Video2Video';
 import FluxKontextMaxMulti from './pages/fal-tools/FluxKontextMaxMulti';
 import WanV22Text2VideoLora from './pages/fal-tools/WanV22Text2VideoLora';
-import VEO3Fast from './pages/fal-tools/VEO3Fast';
 import VEO3Standard from './pages/fal-tools/VEO3Standard';
 import Admin from './pages/Admin';
 import Showcase from './pages/Showcase';
