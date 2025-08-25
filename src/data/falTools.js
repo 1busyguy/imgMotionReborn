@@ -243,25 +243,4 @@ export const falTools = [
         toolType: "fal_veo3",
         route: "/veo3-standard"
     },
-  // COMING SOON TOOLS - Page 3+ (positions 9+)
- //   {
- //       id: 26,
- //       name: "CassetteAI Music Generator",
- //       description: "Generate original music tracks with AI - from chill beats to epic orchestral pieces",
- //       image: toCdnUrl("https://images.pexels.com/photos/164821/pexels-photo-164821.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1"),
- //       tokensRequired: "15+",
- //       category: "audio",
- //       toolType: "fal_cassetteai_music",
- //       route: "/cassetteai-music"
- //   },
- //   {
- //       id: 22,
- //       name: "HiDream I1 Dev",
- //       description: "Advanced text-to-image generation with HiDream I1 development model",
- //       image: toCdnUrl("https://images.pexels.com/photos/956999/milky-way-starry-sky-night-sky-star-956999.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1"),
-  //      tokensRequired: "7+",
-  //      category: "image",
-  //      toolType: "fal_hidream_i1",
-  //      route: "/hidream-i1"
-  //  },
 ];
