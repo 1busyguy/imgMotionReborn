@@ -848,8 +848,8 @@ const VEO3Standard = () => {
                           </div>
                         </div>
                       </div>
-                    <span>Generate Video (128 tokens)</span>
-                  VEO3 Standard generation may take 5-12 minutes. Fixed 8-second duration, 128 tokens.
+                    ))}
+                  </div>
                 )}
               </div>
             </div>
