@@ -855,8 +855,8 @@ const VEO3Fast = () => {
                           </div>
                         </div>
                       </div>
-                    <span>Generate Video (64 tokens)</span>
-                  VEO3 Fast generation may take 2-5 minutes. Fixed 8-second duration, 64 tokens.
+                    ))}
+                  </div>
                 )}
               </div>
             </div>
