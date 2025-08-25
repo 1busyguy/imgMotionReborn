@@ -135,7 +135,9 @@ const Gallery = () => {
     const textVideoTools = [
       'fal_wan_v22_text2video_lora',
       'fal_wan_v22_img2video_lora',
-      'fal_wan_v22_video2video', 
+      'fal_wan_v22_video2video',
+      'fal_veo3_fast',
+      'fal_veo3',
       'fal_video_upscaler',
       'fal_mmaudio_video2'
     ];
