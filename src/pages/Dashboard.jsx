@@ -44,25 +44,20 @@ const Dashboard = () => {
   const toolsPerPage = 4;
   const totalPages = Math.ceil(allTools.length / toolsPerPage);
 
+  // First useEffect - handles initial setup and OAuth cleanup
   useEffect(() => {
-    getUser();
-    
     // Clean up URL hash after OAuth callback to prevent reload issues
-    if (window.location.hash.includes('access_token')) {
+    if (window.location.hash && window.location.hash.includes('access_token')) {
       console.log('OAuth callback detected, cleaning URL...');
       // Clean the URL hash without triggering a reload
       window.history.replaceState(null, '', window.location.pathname + window.location.search);
     }
+    
+    // Get user data
+    getUser();
   }, []);
 
-  useEffect(() => {
-  // Clean up any OAuth hash if it's still in the URL
-  if (window.location.hash && window.location.hash.includes('access_token')) {
-    window.history.replaceState(null, '', window.location.pathname);
-  }
-}, []);
-
-  // Separate effect for IP capture to avoid infinite loops
+  // Second useEffect - for IP capture (keep this as is)
   useEffect(() => {
     if (!user) return;
     
@@ -141,7 +136,7 @@ const Dashboard = () => {
             .insert({
               id: user.id,
               email: user.email,
-              tokens: 250,
+              tokens: 200,  // Changed from 250 to 200 to match your free tier
               subscription_status: 'free'
             })
             .select()
