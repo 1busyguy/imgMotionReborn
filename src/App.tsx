@@ -117,23 +117,21 @@ const AdminRoute = ({ children }: { children: React.ReactNode }) => {
 };
 
 function App() {
-  useEffect(() => {
-  // Clean up OAuth hash IMMEDIATELY if present
-   // Remove this block - it's now handled in main.tsx
+  // In App.tsx, update the useEffect to remove the hash cleanup:
+useEffect(() => {
+  // Remove this block - it's now handled in main.tsx
   // if (window.location.hash && window.location.hash.includes('access_token')) {
   //   console.log('OAuth callback detected, cleaning URL...');
   //   window.history.replaceState(null, '', window.location.pathname);
   // }
 
-  // Handle OAuth redirects, post-login navigation, and sign-out navigation
+  // Handle OAuth redirects and post-login navigation
   const handleAuthStateChange = async (event: string, session: any) => {
     console.log('Auth state change in App.tsx:', event, {
       hasSession: !!session,
-      currentPath: window.location.pathname,
-      hasHash: !!window.location.hash
+      currentPath: window.location.pathname
     });
 
-    // Handle sign in
     if (event === 'SIGNED_IN' && session?.user) {
       // Check if we're on a public page that should redirect to dashboard after login
       const publicPaths = ['/', '/login', '/signup'];
