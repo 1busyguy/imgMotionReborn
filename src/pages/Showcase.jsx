@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
-import { toCdnUrl } from '../utils/cdnHelpers';
+import { toCdnUrl, getThumbnailUrl } from '../utils/cdnHelpers';
 import { useAuth } from '../hooks/useAuth';
 import { 
   ArrowLeft, 
@@ -409,12 +409,39 @@ const Showcase = () => {
                 {/* Media Thumbnail */}
                 <div className="relative overflow-hidden">
                   {creation.type === 'video' ? (
-                    <video
-                      src={toCdnUrl(creation.videoUrl)}
-                      className="w-full h-auto object-cover group-hover:scale-105 transition-transform duration-300"
-                      muted
-                      preload="metadata"
-                    />
+                    <div className="relative">
+                      <video
+                        src={toCdnUrl(creation.videoUrl)}
+                        poster={getThumbnailUrl(creation.originalData) || toCdnUrl(creation.videoUrl)}
+                        className="w-full h-auto object-cover group-hover:scale-105 transition-transform duration-300"
+                        muted
+                        preload="metadata"
+                        playsInline
+                        onError={(e) => {
+                          // Fallback to thumbnail image if video fails to load
+                          const thumbnailUrl = getThumbnailUrl(creation.originalData);
+                          if (thumbnailUrl && e.target.poster !== thumbnailUrl) {
+                            e.target.poster = thumbnailUrl;
+                          }
+                        }}
+                      />
+                      {/* Fallback thumbnail overlay for mobile */}
+                      {getThumbnailUrl(creation.originalData) && (
+                        <img
+                          src={getThumbnailUrl(creation.originalData)}
+                          alt={creation.title}
+                          className="absolute inset-0 w-full h-full object-cover opacity-0 pointer-events-none"
+                          loading="lazy"
+                          onLoad={(e) => {
+                            // Show thumbnail if video poster fails on mobile
+                            const video = e.target.parentElement.querySelector('video');
+                            if (video && !video.poster) {
+                              e.target.style.opacity = '1';
+                            }
+                          }}
+                        />
+                      )}
+                    </div>
                   ) : creation.type === 'audio' ? (
                     <div className="w-full aspect-square bg-gradient-to-br from-pink-500/20 to-rose-500/20 flex items-center justify-center">
                       <div className="w-24 h-24 bg-gradient-to-r from-pink-500 to-rose-500 rounded-full flex items-center justify-center">
@@ -423,7 +450,7 @@ const Showcase = () => {
                     </div>
                   ) : (
                     <img
-                      src={toCdnUrl(creation.thumbnailUrl)}
+                      src={getThumbnailUrl(creation.originalData) || toCdnUrl(creation.thumbnailUrl)}
                       alt={creation.title}
                       className="w-full h-auto object-cover group-hover:scale-105 transition-transform duration-300"
                       loading="lazy"
@@ -516,10 +543,19 @@ const Showcase = () => {
               {selectedMedia.type === 'video' ? (
                 <video
                   src={toCdnUrl(selectedMedia.videoUrl)}
+                  poster={getThumbnailUrl(selectedMedia.originalData) || toCdnUrl(selectedMedia.videoUrl)}
                   controls
                   autoPlay
                   className="w-full max-h-[70vh] object-contain bg-black"
+                  playsInline
                   preload="metadata"
+                  onError={(e) => {
+                    // Fallback to thumbnail if video fails
+                    const thumbnailUrl = getThumbnailUrl(selectedMedia.originalData);
+                    if (thumbnailUrl && e.target.poster !== thumbnailUrl) {
+                      e.target.poster = thumbnailUrl;
+                    }
+                  }}
                 >
                   Your browser does not support the video tag.
                 </video>
@@ -541,7 +577,7 @@ const Showcase = () => {
                 </div>
               ) : (
                 <img
-                  src={toCdnUrl(selectedMedia.thumbnailUrl)}
+                  src={getThumbnailUrl(selectedMedia.originalData) || toCdnUrl(selectedMedia.thumbnailUrl)}
                   alt={selectedMedia.title}
                   className="w-full max-h-[70vh] object-contain bg-black"
                   loading="lazy"
