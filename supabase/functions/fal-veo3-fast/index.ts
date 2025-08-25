@@ -133,6 +133,7 @@ serve(async (req) => {
     const falParams = {
       prompt: prompt.trim(),
       image_url: imageUrl,
+    }
     console.log('📡 Submitting to FAL.ai queue with webhook:', JSON.stringify(falParams, null, 2));
 
     // Use FAL.ai queue system with webhook
