@@ -228,7 +228,7 @@ export const falTools = [
         name: "VEO3 Fast",
         description: "Fast image-to-video generation with Google's VEO3 model - quick turnaround with excellent quality",
         image: toCdnUrl("https://images.pexels.com/photos/3861958/pexels-photo-3861958.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1"),
-        tokensRequired: "40+",
+        tokensRequired: "288+",
         category: "video",
         toolType: "fal_veo3_fast",
         route: "/veo3-fast"
@@ -238,7 +238,7 @@ export const falTools = [
         name: "VEO3 Standard",
         description: "High-quality image-to-video generation with Google's VEO3 model - premium quality with longer processing",
         image: toCdnUrl("https://images.pexels.com/photos/3861958/pexels-photo-3861958.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1"),
-        tokensRequired: "80+",
+        tokensRequired: "534+",
         category: "video",
         toolType: "fal_veo3",
         route: "/veo3-standard"

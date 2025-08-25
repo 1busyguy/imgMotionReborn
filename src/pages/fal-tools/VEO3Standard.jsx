@@ -689,7 +689,7 @@ const VEO3Standard = () => {
                 <div className="bg-violet-500/10 border border-violet-500/30 rounded-lg p-3">
                   <p className="text-violet-200 text-xs">
                     <Film className="w-3 h-3 inline mr-1" />
-                    VEO3 Standard generation may take 5-12 minutes. Higher quality than Fast. Cost: 16 tokens per second.
+                    VEO3 Standard generation may take 5-12 minutes. Higher quality than Fast. Cost varies by audio and resolution.
                   </p>
                 </div>
               </div>

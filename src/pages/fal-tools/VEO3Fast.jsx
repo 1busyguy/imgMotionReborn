@@ -673,20 +673,6 @@ const VEO3Fast = () => {
                   </label>
                 </div>
 
-                {/* Cost Display */}
-                <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4">
-                  <h3 className="text-red-200 font-medium mb-2 flex items-center">
-                    <Zap className="w-4 h-4 mr-2" />
-                    Cost Calculation
-                  </h3>
-                  <div className="text-red-300 text-sm space-y-1">
-                    <p>Duration: 8 seconds (fixed)</p>
-                    <p>Audio: {config.generateAudio ? 'ON (+139 tokens)' : 'OFF (base cost)'}</p>
-                    <p>Resolution: {config.resolution} {config.resolution === '1080p' ? '(2x cost)' : ''}</p>
-                    <p className="font-medium text-red-200">Total: {calculateTokenCost()} tokens</p>
-                  </div>
-                </div>
-
                 {/* Generate Button */}
                 <button
                   onClick={handleGenerate}
@@ -710,7 +696,7 @@ const VEO3Fast = () => {
                 <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3">
                   <p className="text-red-200 text-xs">
                     <Film className="w-3 h-3 inline mr-1" />
-                    VEO3 Fast generation may take 2-5 minutes. Cost: 8 tokens per second.
+                    VEO3 Fast generation may take 2-8 minutes. Cost varies by audio and resolution settings.
                   </p>
                 </div>
               </div>
