@@ -73,6 +73,8 @@ export const getThumbnailUrl = (generation) => {
                            generation.tool_type?.includes('ltxv') || 
                            generation.tool_type?.includes('seedance') || 
                            generation.tool_type === 'ai_scene_gen' ||
+                           generation.tool_type?.includes('veo3') ||
+                           generation.tool_type?.includes('veo3-fast') ||
                            generation.tool_type?.includes('omnihuman');
   
   if (isVideoGeneration) {
