@@ -155,30 +155,6 @@ const BriaBackgroundRemover = () => {
       if (newRecord?.status === 'completed' && newRecord?.output_file_url) {
         console.log('🎉 Background removal completed successfully! Has output:', !!newRecord.output_file_url);
       }
-      
-      // Show failure notification for failed generations
-      if (newRecord?.status === 'failed') {
-        console.log('Background removal failed:', newRecord.error_message);
-        
-        // Show user-friendly error notification
-        setTimeout(() => {
-          if (newRecord.error_message) {
-            // Check if it's a content policy violation (422 error)
-            if (newRecord.error_message.includes('422') || 
-                newRecord.error_message.includes('content_policy_violation') ||
-                newRecord.error_message.includes('flagged by a content checker')) {
-              
-              alert(`Generation Failed: Content Policy Violation\n\nYour content was flagged by the AI safety system. Please try with different content that complies with the content policy.\n\nNote: Tokens are not refunded for policy violations.`);
-            } else if (newRecord.error_message.includes('500')) {
-              alert(`Generation Failed: Server Error\n\nThere was a temporary issue with the AI service. Please try again in a few minutes.\n\nIf this persists, contact support for token refund.`);
-            } else {
-              alert(`Generation Failed\n\n${newRecord.error_message}\n\nPlease try again or contact support if the issue persists.`);
-            }
-          } else {
-            alert('Generation failed. Please try again or contact support if the issue persists.');
-          }
-        }, 1000); // Small delay to ensure UI has updated
-      }
     }
   };
 
