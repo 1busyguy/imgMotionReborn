@@ -95,6 +95,8 @@ serve(async (req) => {
       imageUrl,
       prompt,
       duration = "8s",
+      generateAudio = true,
+      resolution = "720p"
     } = await req.json();
 
     generationId = reqGenerationId;
