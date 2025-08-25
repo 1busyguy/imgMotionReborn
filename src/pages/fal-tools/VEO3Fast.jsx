@@ -268,8 +268,20 @@ const VEO3Fast = () => {
   };
 
   const calculateTokenCost = () => {
-    // Fixed cost: 64 tokens for 8 seconds
-    return 64;
+    // VEO3 Fast token costs based on audio and resolution
+    let baseCost;
+    if (config.generateAudio) {
+      baseCost = 427; // Audio ON
+    } else {
+      baseCost = 288; // Audio OFF
+    }
+    
+    // Double cost for 1080p resolution
+    if (config.resolution === '1080p') {
+      baseCost = baseCost * 2;
+    }
+    
+    return baseCost;
   };
 
   const handleGenerate = async () => {
