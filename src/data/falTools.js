@@ -242,7 +242,7 @@ export const falTools = [
    //       tokensRequired: "40+",
   //        category: "video",
   //        toolType: "fal_veo3_fast",
-        route: "/veo3-fast"
+    //      route: "/veo3-fast"
   //    },
  //     {
   //        id: 34,
