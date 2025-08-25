@@ -30,11 +30,6 @@ import {
   BookOpen,
   Gift
 } from 'lucide-react';
-
-
-useEffect(() => { window.scrollTo(0, 0); }, []);
-
-
 const ImgMotionApp = () => {
   const [activeFeature, setActiveFeature] = useState(0);
   const [activeUseCase, setActiveUseCase] = useState(0);
