@@ -1,117 +1,191 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../hooks/useAuth';
-import { toCdnUrl, getThumbnailUrl } from '../utils/cdnHelpers';
+import { useDebounce } from '../hooks/useDebounce';
+import { allTools } from '../data/data';
+import { toCdnUrl } from '../utils/cdnHelpers';
+import OptimizedImage from '../components/OptimizedImage';
+import OptimizedVideo from '../components/OptimizedVideo';
 import { 
   ArrowLeft, 
   Zap, 
-  Upload, 
+  Search, 
+  Filter, 
   Download, 
   Trash2, 
+  Grid3X3, 
+  List, 
+  Calendar,
+  User,
+  Eye,
+  ExternalLink,
   RefreshCw,
-  Search,
-  Filter,
-  Grid,
-  List,
-  Play,
+  SortAsc,
+  SortDesc,
   Image as ImageIcon,
   Video,
   Music,
-  X,
-  Calendar,
-  Clock,
-  User,
-  Eye,
+  Play,
+  Pause,
   Volume2,
-  Copy,
-  ExternalLink
+  VolumeX,
+  ZoomIn,
+  Archive,
+  X
 } from 'lucide-react';
 
 const Gallery = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [profile, setProfile] = useState(null);
-  const [generations, setGenerations] = useState([]);
-  const [filteredGenerations, setFilteredGenerations] = useState([]);
+  const [allGenerations, setAllGenerations] = useState([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterStatus, setFilterStatus] = useState('all');
+  const debouncedSearchTerm = useDebounce(searchTerm, 300);
   const [filterTool, setFilterTool] = useState('all');
-  const [sortBy, setSortBy] = useState('newest');
+  const [filterStatus, setFilterStatus] = useState('all');
+  const [filterDate, setFilterDate] = useState('all');
+  const [sortBy, setSortBy] = useState('date');
   const [viewMode, setViewMode] = useState('grid');
   const [selectedGeneration, setSelectedGeneration] = useState(null);
   const [showViewer, setShowViewer] = useState(false);
+  const [currentlyPlaying, setCurrentlyPlaying] = useState(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [volume, setVolume] = useState(0.7);
+  const [isMuted, setIsMuted] = useState(false);
+  const audioRef = useRef(null);
+  const [allUniqueTools, setAllUniqueTools] = useState([]);
+  const [expandedImageIndex, setExpandedImageIndex] = useState(null);
+  const [showExpandedImage, setShowExpandedImage] = useState(false);
+  
+  // Pagination settings
+  const ITEMS_PER_PAGE = 20;
+  
+  // Helper function to get all image URLs from a generation's output
+  const getAllImageUrls = (url) => {
+    if (!url) return [];
+    
+    // Handle JSON array format from FLUX tools
+    if (typeof url === 'string' && url.startsWith('[')) {
+      try {
+        const urlArray = JSON.parse(url);
+        return Array.isArray(urlArray) ? urlArray : [url];
+      } catch (error) {
+        console.warn('Failed to parse image URL array:', error);
+        return [url];
+      }
+    }
+    
+    return [url];
+  };
+  
+  // Turn a URL string into just its file name (keeps extension, strips query/hash)
+  const filenameFromUrl = (value) => {
+    try {
+      const u = new URL(value);
+      const last = (u.pathname || '').split('/').pop() || '';
+      return decodeURIComponent(last.split('?')[0].split('#')[0]) || value;
+    } catch {
+      // Not a full URL; still try to grab last path segment for things like "folder/name.mp4"
+      if (typeof value === 'string' && value.includes('/')) {
+        const last = value.split('/').pop();
+        return decodeURIComponent(last.split('?')[0].split('#')[0]);
+      }
+      return value;
+    }
+  };
+  
+  const formatConfigValue = (key, value) => {
+    // Collapse URLs (or keys that look like URLs) to just the filename
+    if (typeof value === 'string' && (/^https?:\/\//i.test(value) || /url/i.test(key))) {
+      return filenameFromUrl(value);
+    }
+    return typeof value === 'object' ? JSON.stringify(value) : String(value);
+  };
+    
+    // Helper function to get primary image URL
+    const getPrimaryImageUrl = (url) => {
+      const urls = getAllImageUrls(url);
+      return urls.length > 0 ? urls[0] : null;
+    };
+
+  // Gallery.jsx (near your other helpers)
+   const getVideoPoster = (g) => {
+     const c = g?.input_data || {};
+     const candidates = [
+       g?.thumbnail_url,
+       g?.metadata?.thumbnail_url,
+       c.thumbnail_url,
+       c.imageUrl,
+       c.image_url,
+       c.input_image_url,
+       c.init_image,
+       c.image,
+     ].filter(Boolean);
+     return candidates.length ? toCdnUrl(candidates[0]) : null;
+    };
+
+  // Helper function to get thumbnail for text-based video tools
+  const getThumbnailForTextVideoTool = (generation) => {
+    const textVideoTools = [
+      'fal_wan_v22_text2video_lora',
+      'fal_wan_v22_img2video_lora',
+      'fal_wan_v22_video2video', 
+      'fal_video_upscaler',
+      'fal_mmaudio_video2'
+    ];
+    
+    if (textVideoTools.includes(generation.tool_type)) {
+      // Return the thumbnail_url from the database if it exists
+      return generation.thumbnail_url || null;
+    }
+    
+    return null;
+  };
 
   useEffect(() => {
     if (user) {
       fetchProfile();
       fetchGenerations();
-      
-      // Set up real-time subscription for user's generations
-      const subscription = supabase
-        .channel('user_generations')
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'ai_generations',
-            filter: `user_id=eq.${user.id}`
-          },
-          (payload) => {
-            console.log('Real-time update received:', payload);
-            handleRealtimeUpdate(payload);
-          }
-        )
-        .subscribe();
-
-      console.log('Real-time subscription set up for user generations');
-      return () => subscription.unsubscribe();
+      fetchAllUniqueTools();
     }
-  }, [user]);
+  }, [user, currentPage, debouncedSearchTerm, filterTool, filterStatus, filterDate, sortBy]);
 
-  // Filter and search effect
+  // Audio player effects
   useEffect(() => {
-    let filtered = [...generations];
+    const audio = audioRef.current;
+    if (!audio) return;
 
-    // Apply search filter
-    if (searchTerm) {
-      filtered = filtered.filter(gen => 
-        gen.generation_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        gen.tool_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (gen.input_data?.prompt && gen.input_data.prompt.toLowerCase().includes(searchTerm.toLowerCase()))
-      );
+    const updateTime = () => setCurrentTime(audio.currentTime);
+    const updateDuration = () => setDuration(audio.duration);
+    const handleEnded = () => {
+      setIsPlaying(false);
+      setCurrentTime(0);
+      setCurrentlyPlaying(null);
+    };
+
+    audio.addEventListener('timeupdate', updateTime);
+    audio.addEventListener('loadedmetadata', updateDuration);
+    audio.addEventListener('ended', handleEnded);
+
+    return () => {
+      audio.removeEventListener('timeupdate', updateTime);
+      audio.removeEventListener('loadedmetadata', updateDuration);
+      audio.removeEventListener('ended', handleEnded);
+    };
+  }, [currentlyPlaying]);
+
+  // Update audio volume
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.volume = isMuted ? 0 : volume;
     }
-
-    // Apply status filter
-    if (filterStatus !== 'all') {
-      filtered = filtered.filter(gen => gen.status === filterStatus);
-    }
-
-    // Apply tool filter
-    if (filterTool !== 'all') {
-      filtered = filtered.filter(gen => gen.tool_type === filterTool);
-    }
-
-    // Apply sorting
-    filtered.sort((a, b) => {
-      switch (sortBy) {
-        case 'newest':
-          return new Date(b.created_at) - new Date(a.created_at);
-        case 'oldest':
-          return new Date(a.created_at) - new Date(b.created_at);
-        case 'name':
-          return a.generation_name.localeCompare(b.generation_name);
-        case 'tokens':
-          return (b.tokens_used || 0) - (a.tokens_used || 0);
-        default:
-          return new Date(b.created_at) - new Date(a.created_at);
-      }
-    });
-
-    setFilteredGenerations(filtered);
-  }, [generations, searchTerm, filterStatus, filterTool, sortBy]);
+  }, [volume, isMuted]);
 
   const fetchProfile = async () => {
     try {
@@ -130,15 +204,84 @@ const Gallery = () => {
 
   const fetchGenerations = async () => {
     try {
-      const { data, error } = await supabase
+      setLoading(true);
+      
+      // Build query with filters
+      let query = supabase
         .from('ai_generations')
-        .select('*')
+        .select(`
+          id,
+          generation_name,
+          tool_type,
+          tool_name,
+          status,
+          tokens_used,
+          created_at,
+          completed_at,
+          output_file_url,
+          thumbnail_url,
+          input_data,
+          metadata
+        `, { count: 'exact' })
         .eq('user_id', user.id)
-        .is('deleted_at', null)
-        .order('created_at', { ascending: false });
+        .is('deleted_at', null);
+
+      // Apply filters before pagination
+      if (debouncedSearchTerm) {
+        const searchLower = debouncedSearchTerm.toLowerCase();
+        query = query.or(`generation_name.ilike.%${searchLower}%,tool_name.ilike.%${searchLower}%,input_data->>prompt.ilike.%${searchLower}%`);
+      }
+
+      if (filterTool !== 'all') {
+        query = query.eq('tool_type', filterTool);
+      }
+
+      if (filterStatus !== 'all') {
+        query = query.eq('status', filterStatus);
+      }
+
+      if (filterDate !== 'all') {
+        const now = new Date();
+        const filterDate_ms = {
+          'today': 24 * 60 * 60 * 1000,
+          'week': 7 * 24 * 60 * 60 * 1000,
+          'month': 30 * 24 * 60 * 60 * 1000
+        }[filterDate];
+        
+        if (filterDate_ms) {
+          const cutoffDate = new Date(now.getTime() - filterDate_ms).toISOString();
+          query = query.gte('created_at', cutoffDate);
+        }
+      }
+
+      // Apply sorting
+      switch (sortBy) {
+        case 'name':
+          query = query.order('generation_name', { ascending: true });
+          break;
+        case 'tool':
+          query = query.order('tool_name', { ascending: true });
+          break;
+        case 'tokens':
+          query = query.order('tokens_used', { ascending: false });
+          break;
+        case 'status':
+          query = query.order('status', { ascending: true });
+          break;
+        case 'date':
+        default:
+          query = query.order('created_at', { ascending: false });
+          break;
+      }
+
+      // Apply pagination after all filters
+      const { data, error, count } = await query
+        .range((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE - 1);
 
       if (error) throw error;
-      setGenerations(data || []);
+      
+      setAllGenerations(data || []);
+      setTotalPages(Math.ceil((count || 0) / ITEMS_PER_PAGE));
     } catch (error) {
       console.error('Error fetching generations:', error);
     } finally {
@@ -146,83 +289,286 @@ const Gallery = () => {
     }
   };
 
-  const handleRealtimeUpdate = (payload) => {
-    const { eventType, new: newRecord, old: oldRecord } = payload;
-    
-    setGenerations(current => {
-      switch (eventType) {
-        case 'INSERT':
-          return [newRecord, ...current];
-        case 'UPDATE':
-          return current.map(item => 
-            item.id === newRecord.id ? newRecord : item
-          );
-        case 'DELETE':
-          return current.filter(item => item.id !== oldRecord.id);
-        default:
-          return current;
-      }
-    });
-  };
-
-  const handleDelete = async (generationId) => {
-    if (!confirm('Are you sure you want to remove this generation? It will be hidden from your account.')) return;
-
+  const fetchAllUniqueTools = async () => {
     try {
-      const { data, error } = await supabase.rpc('soft_delete_generation', {
-        generation_id: generationId,
-        user_id: user.id
-      });
+      // Fetch all unique tool_type values from user's generations
+      const { data, error } = await supabase
+        .from('ai_generations')
+        .select('tool_type, tool_name')
+        .eq('user_id', user.id)
+        .is('deleted_at', null);
 
       if (error) throw error;
       
-      if (!data) {
-        throw new Error('Generation not found or already removed');
-      }
+      // Get unique tools with their display names
+      const uniqueToolsMap = new Map();
+      data?.forEach(gen => {
+        if (gen.tool_type && !uniqueToolsMap.has(gen.tool_type)) {
+          uniqueToolsMap.set(gen.tool_type, gen.tool_name || gen.tool_type);
+        }
+      });
+      
+      // Convert to array and sort by display name
+      const uniqueToolsArray = Array.from(uniqueToolsMap.entries())
+        .map(([type, name]) => ({ type, name }))
+        .sort((a, b) => a.name.localeCompare(b.name));
+      
+      setAllUniqueTools(uniqueToolsArray);
     } catch (error) {
-      console.error('Error deleting generation:', error);
-      alert('Error removing generation. Please try again.');
+      console.error('Error fetching unique tools:', error);
     }
   };
 
-  const handleDownload = async (generation) => {
-    try {
-      const url = getContentUrl(generation);
-      const response = await fetch(toCdnUrl(url));
-      const blob = await response.blob();
-      const downloadUrl = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = downloadUrl;
+  // Since filtering is now done at database level, just use the fetched data
+  const filteredGenerations = allGenerations;
+
+  // Pagination handlers
+  const handlePageChange = useCallback((page) => {
+    setCurrentPage(page);
+  }, []);
+
+  const handlePrevPage = useCallback(() => {
+    if (currentPage > 1) {
+      handlePageChange(currentPage - 1);
+    }
+  }, [currentPage, handlePageChange]);
+
+  const handleNextPage = useCallback(() => {
+    if (currentPage < totalPages) {
+      handlePageChange(currentPage + 1);
+    }
+  }, [currentPage, totalPages, handlePageChange]);
+
+  // Audio player functions
+  const handleSeek = (e) => {
+    if (audioRef.current) {
+      const rect = e.currentTarget.getBoundingClientRect();
+      const percent = (e.clientX - rect.left) / rect.width;
+      const newTime = percent * duration;
+      audioRef.current.currentTime = newTime;
+      setCurrentTime(newTime);
+    }
+  };
+
+  const toggleMute = () => {
+    setIsMuted(!isMuted);
+  };
+
+  const formatTime = (time) => {
+    const minutes = Math.floor(time / 60);
+    const seconds = Math.floor(time % 60);
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  };
+
+  const handleDownload = useCallback(async (generation) => {
+    if (!generation || !generation.output_file_url) {
+      alert('No file available for download');
+      return;
+    }
+    
+    // For image generations, check if multiple images exist
+    if (!isVideoType(generation.tool_type) && !isAudioType(generation.tool_type)) {
+      const imageUrls = getAllImageUrls(generation.output_file_url);
       
-      // Determine file extension based on content type
-      const isVideo = getMediaType(generation.tool_type) === 'video';
-      const isAudio = getMediaType(generation.tool_type) === 'audio';
-      const extension = isVideo ? 'mp4' : isAudio ? 'mp3' : 'png';
+      // If multiple images, create a zip file
+      if (imageUrls.length > 1) {
+        await downloadMultipleImagesAsZip(imageUrls.map(url => toCdnUrl(url)), generation.generation_name);
+        return;
+      }
+    }
+    
+    // Single file download (existing logic)
+    try {
+      const response = await fetch(toCdnUrl(generation.output_file_url));
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      
+      // Determine file extension based on tool type
+      let extension = 'jpg';
+      if (generation.tool_type?.includes('video') || generation.tool_type?.includes('kling') || generation.tool_type?.includes('wan') || generation.tool_type?.includes('minimax') || generation.tool_type?.includes('veo') || generation.tool_type?.includes('ltxv') || generation.tool_type?.includes('seedance') || generation.tool_type?.includes('fal_wan_v22_a14b') || generation.tool_type?.includes('fal_omnihuman')) {
+        extension = 'mp4';
+      } else if (generation.tool_type?.includes('music') || generation.tool_type?.includes('cassetteai')) {
+        extension = 'mp3';
+      }
       
       link.download = `${generation.generation_name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.${extension}`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      window.URL.revokeObjectURL(downloadUrl);
+      window.URL.revokeObjectURL(url);
     } catch (error) {
       console.error('Download failed:', error);
-      // Fallback to direct link
-      const url = getContentUrl(generation);
+      alert('Download failed. Please try again.');
+    }
+  }, []);
+
+  const downloadMultipleImagesAsZip = async (imageUrls, generationName) => {
+    try {
+      // Import JSZip dynamically
+      const JSZip = (await import('https://esm.sh/jszip@3.10.1')).default;
+      const zip = new JSZip();
+      
+      console.log(`📦 Creating zip with ${imageUrls.length} images...`);
+      
+      // Download all images and add to zip
+      for (let i = 0; i < imageUrls.length; i++) {
+        try {
+          const response = await fetch(toCdnUrl(imageUrls[i]));
+          if (!response.ok) {
+            console.warn(`Failed to download image ${i + 1}:`, response.status);
+            continue;
+          }
+          
+          const blob = await response.blob();
+          const filename = `image_${i + 1}.jpg`;
+          zip.file(filename, blob);
+          console.log(`✅ Added ${filename} to zip`);
+        } catch (error) {
+          console.warn(`Error downloading image ${i + 1}:`, error);
+        }
+      }
+      
+      // Generate zip file
+      console.log('📦 Generating zip file...');
+      const zipBlob = await zip.generateAsync({ type: 'blob' });
+      
+      // Download zip file
+      const url = window.URL.createObjectURL(zipBlob);
       const link = document.createElement('a');
-      link.href = toCdnUrl(url);
-      link.download = `${generation.generation_name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}`;
-      link.target = '_blank';
+      link.href = url;
+      link.download = `${generationName.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_images.zip`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
+      console.log('✅ Zip download completed');
+    } catch (error) {
+      console.error('❌ Zip creation failed:', error);
+      alert('Failed to create zip file. Downloading images individually...');
+      
+      // Fallback: download images individually
+      for (let i = 0; i < imageUrls.length; i++) {
+        try {
+          const response = await fetch(toCdnUrl(imageUrls[i]));
+          const blob = await response.blob();
+          const url = window.URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = `${generationName.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_${i + 1}.jpg`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          window.URL.revokeObjectURL(url);
+          
+          // Small delay between downloads
+          if (i < imageUrls.length - 1) {
+            await new Promise(resolve => setTimeout(resolve, 500));
+          }
+        } catch (downloadError) {
+          console.error(`Failed to download image ${i + 1}:`, downloadError);
+        }
+      }
     }
   };
 
-  const copyPrompt = (prompt) => {
-    navigator.clipboard.writeText(prompt);
-  };
+ const handleDelete = useCallback(async (generationId) => {
+  if (!confirm('Are you sure you want to remove this generation? It will be hidden from your account.')) return;
+  
+  try {
+    // Get fresh user data
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    
+    if (!user) {
+      console.error('No authenticated user found');
+      alert('Please log in to delete generations');
+      // Optionally redirect to login
+      navigate('/login');
+      return;
+    }
 
-  const getStatusColor = (status) => {
+    // Stop playing if this track is currently playing
+    if (currentlyPlaying === generationId) {
+      audioRef.current?.pause();
+      setCurrentlyPlaying(null);
+      setIsPlaying(false);
+    }
+    
+    // Use soft delete function
+    const { data, error } = await supabase.rpc('soft_delete_generation', {
+      generation_id: generationId,
+      user_id: user.id  // Now user is guaranteed to exist
+    });
+    
+    if (error) throw error;
+    
+    if (!data) {
+      throw new Error('Generation not found or already removed');
+    }
+    
+    // Remove from local state immediately for instant UI feedback
+    setAllGenerations(current => current.filter(g => g.id !== generationId));
+    
+    // Stop playing if this item is currently playing (double-check)
+    if (currentlyPlaying === generationId) {
+      audioRef.current?.pause();
+      setCurrentlyPlaying(null);
+      setIsPlaying(false);
+    }
+  } catch (error) {
+    console.error('Error deleting generation:', error);
+    alert('Error removing generation. Please try again.');
+  }
+}, [currentlyPlaying, navigate]);
+
+  const handlePlay = useCallback((generation) => {
+    if (currentlyPlaying === generation.id && isPlaying) {
+      audioRef.current?.pause();
+      setIsPlaying(false);
+    } else {
+      if (currentlyPlaying !== generation.id) {
+        setCurrentlyPlaying(generation.id);
+        setCurrentTime(0);
+      }
+      audioRef.current?.play();
+      setIsPlaying(true);
+    }
+  }, [currentlyPlaying, isPlaying]);
+
+  const getImageUrls = useCallback((outputFileUrl) => {
+    if (!outputFileUrl) return [];
+    
+    try {
+      if (typeof outputFileUrl === 'string' && outputFileUrl.startsWith('[')) {
+        const parsed = JSON.parse(outputFileUrl);
+        return Array.isArray(parsed) ? parsed : [outputFileUrl];
+      }
+      return [outputFileUrl];
+    } catch {
+      return [outputFileUrl];
+    }
+  }, []);
+
+  const getMediaType = useCallback((generation) => {
+    const toolType = generation.tool_type;
+    
+    if (toolType?.includes('video') || toolType?.includes('kling') || toolType?.includes('wan') || 
+        toolType?.includes('minimax') || toolType?.includes('veo') || toolType?.includes('ltxv') || 
+        toolType?.includes('seedance') || toolType?.includes('fal_wan_v22_a14b') || 
+        toolType?.includes('ai_scene_gen') || toolType?.includes('fal_omnihuman') ||
+        toolType?.includes('fal_mmaudio_video2')) {
+      return 'video';
+    } else if (toolType?.includes('music') || toolType?.includes('cassetteai') || 
+               toolType?.includes('fal_mmaudio_v2')) {
+      return 'audio';
+    } else {
+      return 'image';
+    }
+  }, []);
+
+  const getStatusColor = useCallback((status) => {
     switch (status) {
       case 'completed':
         return 'bg-green-500/20 text-green-400 border-green-500/30';
@@ -233,61 +579,209 @@ const Gallery = () => {
       default:
         return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
     }
-  };
+  }, []);
 
-  const getMediaType = (toolType) => {
+  const getToolIcon = useCallback((toolType) => {
     if (toolType?.includes('video') || toolType?.includes('kling') || toolType?.includes('wan') || 
         toolType?.includes('minimax') || toolType?.includes('veo') || toolType?.includes('ltxv') || 
-        toolType?.includes('seedance') || toolType === 'ai_scene_gen' || toolType?.includes('omnihuman')) {
-      return 'video';
-    } else if (toolType?.includes('music') || toolType?.includes('cassetteai') || toolType?.includes('mmaudio')) {
-      return 'audio';
+        toolType?.includes('seedance') || toolType?.includes('fal_wan_v22_a14b') || 
+        toolType?.includes('ai_scene_gen') || toolType?.includes('fal_omnihuman')) {
+      return <Video className="w-4 h-4" />;
+    } else if (toolType?.includes('music') || toolType?.includes('cassetteai')) {
+      return <Music className="w-4 h-4" />;
     } else {
-      return 'image';
+      return <ImageIcon className="w-4 h-4" />;
     }
+  }, []);
+
+  const isVideoType = (toolType) => {
+    return toolType?.includes('video') || toolType?.includes('fal_omnihuman') || toolType?.includes('kling') || toolType?.includes('wan') || toolType?.includes('minimax') || toolType?.includes('veo') || toolType?.includes('ltxv') || toolType?.includes('seedance') || toolType?.includes('fal_wan_v22_a14b') || toolType?.includes('ai_scene_gen') || toolType?.includes('fal_wan_v22_video2video') || toolType?.includes('fal_mmaudio_video2');
   };
 
-  const getContentUrl = (generation) => {
-    // Check if user should see watermarked content
-    const needsWatermark = !profile || 
-                          profile.subscription_status === 'free' || 
-                          profile.subscription_tier === 'free';
-    
-    // If watermarked version exists and user should see it
-    if (needsWatermark && generation.metadata?.watermarked_url) {
-      return generation.metadata.watermarked_url;
-    }
-    
-    // Otherwise return original content
-    return generation.output_file_url;
+  const isAudioType = (toolType) => {
+    return toolType?.includes('music') || toolType?.includes('cassetteai') || toolType?.includes('fal_mmaudio_v2');
   };
 
-  const getToolIcon = (toolType) => {
-    const mediaType = getMediaType(toolType);
-    switch (mediaType) {
-      case 'video':
-        return <Video className="w-4 h-4" />;
-      case 'audio':
-        return <Music className="w-4 h-4" />;
-      default:
-        return <ImageIcon className="w-4 h-4" />;
-    }
-  };
+  // Memoized generation card component for performance
+  const GenerationCard = React.memo(({ generation, index }) => {
+    const mediaType = getMediaType(generation);
+    const imageUrls = getImageUrls(generation.output_file_url);
+    const primaryUrl = imageUrls[0];
+    const thumbnailUrl = getThumbnailForTextVideoTool(generation);
 
-  const getUniqueTools = () => {
-    const tools = [...new Set(generations.map(g => g.tool_type))];
-    return tools.sort();
-  };
-
-  const handleMediaClick = (generation) => {
-    setSelectedGeneration(generation);
-    setShowViewer(true);
-  };
-
-  const closeViewer = () => {
-    setShowViewer(false);
-    setSelectedGeneration(null);
-  };
+    return (
+      <div
+        key={generation.id}
+        className={`bg-white/5 rounded-lg overflow-hidden hover:bg-white/10 transition-all duration-200 cursor-pointer ${
+          viewMode === 'list' ? 'flex items-center space-x-4 p-4' : ''
+        }`}
+        onClick={() => {
+          setSelectedGeneration(generation);
+          setShowViewer(true);
+        }}
+      >
+        {/* Media Thumbnail */}
+        <div className={`relative ${viewMode === 'list' ? 'w-24 h-24 flex-shrink-0' : 'w-full h-48'}`}>
+          {primaryUrl ? (
+            mediaType === 'video' ? (
+              thumbnailUrl && generation.thumbnail_url ? (
+                // Use the actual thumbnail image for text-to-video tools
+                <OptimizedImage
+                  src={thumbnailUrl}
+                  alt={generation.generation_name}
+                  className="w-full h-full object-cover rounded-lg"
+                />
+              ) : (
+              <OptimizedVideo
+                src={toCdnUrl(primaryUrl)}
+                poster={getVideoPoster(generation)}
+                className="w-full h-full object-cover rounded-lg"
+                controls={false}
+                preload="metadata"
+                muted={true}
+                playsInline={true}
+              />
+              )
+            ) : mediaType === 'audio' ? (
+              <div className="w-full h-full bg-gradient-to-br from-pink-500/20 to-rose-500/20 rounded-lg flex items-center justify-center">
+                <div className="text-center">
+                  <Music className="w-8 h-8 text-pink-400 mx-auto mb-2" />
+                  <p className="text-pink-300 text-xs">Audio Track</p>
+                </div>
+              </div>
+            ) : (
+              <OptimizedImage
+                src={primaryUrl}
+                alt={generation.generation_name}
+                className="w-full h-full object-cover rounded-lg"
+              />
+            )
+          ) : (
+            <div className="w-full h-full bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-lg flex items-center justify-center">
+              {thumbnailUrl ? (
+                <div className="w-full h-full bg-gray-200 animate-pulse rounded-lg flex items-center justify-center">
+                  <span className="text-gray-500 text-xs">Loading thumbnail...</span>
+                </div>
+              ) : (
+                getToolIcon(generation.tool_type)
+              )}
+            </div>
+          )}
+          
+          {/* Multiple images indicator */}
+          {imageUrls.length > 1 && (
+            <div className="absolute top-2 left-2 bg-black/70 text-white px-2 py-1 rounded-lg text-xs font-medium">
+              +{imageUrls.length - 1} more
+            </div>
+          )}
+          
+          {/* Status badge */}
+          <div className={`absolute top-2 right-2 px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(generation.status)}`}>
+            {generation.status}
+          </div>
+          
+          {/* Play button for videos */}
+          {mediaType === 'video' && (
+            <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity duration-200">
+              <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center">
+                <Play className="w-6 h-6 text-white ml-1" />
+              </div>
+            </div>
+          )}
+          
+          {/* Play button for audio */}
+          {mediaType === 'audio' && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handlePlay(generation);
+              }}
+              className={`absolute bottom-2 right-2 w-8 h-8 rounded-full flex items-center justify-center transition-all ${
+                currentlyPlaying === generation.id && isPlaying
+                  ? 'bg-pink-500 text-white'
+                  : 'bg-black/50 text-white hover:bg-pink-500'
+              }`}
+            >
+              {currentlyPlaying === generation.id && isPlaying ? 
+                <Pause className="w-4 h-4" /> : 
+                <Play className="w-4 h-4 ml-0.5" />
+              }
+            </button>
+          )}
+        </div>
+        
+        {/* Content */}
+        <div className={`${viewMode === 'list' ? 'flex-1' : 'p-4'}`}>
+          <div className="flex items-center justify-between mb-2">
+            <h3 className={`font-medium text-white truncate ${viewMode === 'list' ? 'text-base' : 'text-sm'}`}>
+              {generation.generation_name}
+            </h3>
+            {viewMode === 'grid' && (
+              <div className="flex space-x-1">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDownload(generation);
+                  }}
+                  className="bg-green-500 hover:bg-green-600 text-white p-1.5 rounded-lg transition-colors"
+                  title="Download"
+                >
+                  <Download className="w-3 h-3" />
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDelete(generation.id);
+                  }}
+                  className="bg-red-500 hover:bg-red-600 text-white p-1.5 rounded-lg transition-colors"
+                  title="Delete"
+                >
+                  <Trash2 className="w-3 h-3" />
+                </button>
+              </div>
+            )}
+          </div>
+          
+          <div className={`flex items-center space-x-2 mb-2 ${viewMode === 'list' ? 'text-sm' : 'text-xs'}`}>
+            <div className="w-4 h-4 bg-gradient-to-r from-purple-500 to-pink-500 rounded flex items-center justify-center text-white">
+              {getToolIcon(generation.tool_type)}
+            </div>
+            <span className="text-purple-200 truncate">{generation.tool_name}</span>
+          </div>
+          
+          <div className={`flex items-center justify-between text-purple-300 ${viewMode === 'list' ? 'text-sm' : 'text-xs'}`}>
+            <span>{generation.tokens_used} tokens</span>
+            <span>{new Date(generation.created_at).toLocaleDateString()}</span>
+          </div>
+          
+          {viewMode === 'list' && (
+            <div className="flex space-x-2 mt-3">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDownload(generation);
+                }}
+                className="bg-green-500 hover:bg-green-600 text-white p-2 rounded-lg transition-colors"
+                title="Download"
+              >
+                <Download className="w-4 h-4" />
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDelete(generation.id);
+                }}
+                className="bg-red-500 hover:bg-red-600 text-white p-2 rounded-lg transition-colors"
+                title="Delete"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  });
 
   if (loading) {
     return (
@@ -312,24 +806,16 @@ const Gallery = () => {
                 <span>Back to Dashboard</span>
               </button>
               <div className="h-6 w-px bg-white/20"></div>
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl flex items-center justify-center">
-                  <Upload className="w-5 h-5 text-white" />
-                </div>
-                <h1 className="text-xl font-bold text-white">My Gallery</h1>
-              </div>
+              <h1 className="text-xl font-bold text-white">My Gallery</h1>
             </div>
             
             <div className="flex items-center space-x-4">
               <button
-                onClick={() => navigate('/settings?tab=billing')}
-                className="flex items-center space-x-2 hover:bg-white/10 px-3 py-2 rounded-lg transition-colors group"
-                title="Click to manage billing and tokens"
+                onClick={fetchGenerations}
+                className="flex items-center space-x-2 text-purple-200 hover:text-white transition-colors"
               >
-                <Zap className="w-4 h-4 text-purple-400" />
-                <span className="text-white font-semibold text-sm group-hover:text-purple-200">
-                  {(profile?.tokens || 0) + (profile?.purchased_tokens || 0)} tokens
-                </span>
+                <RefreshCw className="w-4 h-4" />
+                <span>Refresh</span>
               </button>
             </div>
           </div>
@@ -337,436 +823,498 @@ const Gallery = () => {
       </header>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Filters and Search */}
+        {/* Filters and Controls */}
         <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 mb-8">
-          <div className="flex flex-col lg:flex-row gap-4 items-center justify-between">
+          <div className="flex flex-col gap-4 mb-4">
             {/* Search */}
-            <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-purple-300 w-4 h-4" />
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
               <input
                 type="text"
-                placeholder="Search generations..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-purple-300 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                placeholder="Search generations..."
+                className="w-full pl-10 pr-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-500"
               />
             </div>
 
             {/* Filters */}
-            <div className="flex items-center space-x-4">
-              <select
-                value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value)}
-                className="bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
-              >
-                <option value="all" className="bg-gray-800">All Status</option>
-                <option value="completed" className="bg-gray-800">Completed</option>
-                <option value="processing" className="bg-gray-800">Processing</option>
-                <option value="failed" className="bg-gray-800">Failed</option>
-              </select>
-
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               <select
                 value={filterTool}
                 onChange={(e) => setFilterTool(e.target.value)}
-                className="bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                className="px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 [&>option]:bg-gray-800 [&>option]:text-white"
               >
-                <option value="all" className="bg-gray-800">All Tools</option>
-                {getUniqueTools().map(tool => (
-                  <option key={tool} value={tool} className="bg-gray-800">
-                    {tool.replace('fal_', '').replace(/_/g, ' ')}
-                  </option>
+                <option value="all">All Tools</option>
+                {allUniqueTools.map(tool => (
+                  <option key={tool.type} value={tool.type}>{tool.name}</option>
                 ))}
+              </select>
+
+              <select
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value)}
+                className="px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 [&>option]:bg-gray-800 [&>option]:text-white"
+              >
+                <option value="all" className="bg-gray-800 text-white">All Status</option>
+                <option value="completed" className="bg-gray-800 text-white">Completed</option>
+                <option value="processing" className="bg-gray-800 text-white">Processing</option>
+                <option value="failed" className="bg-gray-800 text-white">Failed</option>
+              </select>
+
+              <select
+                value={filterDate}
+                onChange={(e) => setFilterDate(e.target.value)}
+                className="px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 [&>option]:bg-gray-800 [&>option]:text-white"
+              >
+                <option value="all" className="bg-gray-800 text-white">All Time</option>
+                <option value="today" className="bg-gray-800 text-white">Today</option>
+                <option value="week" className="bg-gray-800 text-white">This Week</option>
+                <option value="month" className="bg-gray-800 text-white">This Month</option>
               </select>
 
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
-                className="bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                className="px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 [&>option]:bg-gray-800 [&>option]:text-white"
               >
-                <option value="newest" className="bg-gray-800">Newest First</option>
-                <option value="oldest" className="bg-gray-800">Oldest First</option>
-                <option value="name" className="bg-gray-800">Name A-Z</option>
-                <option value="tokens" className="bg-gray-800">Most Tokens</option>
+                <option value="date" className="bg-gray-800 text-white">Date</option>
+                <option value="name" className="bg-gray-800 text-white">Name</option>
+                <option value="tool" className="bg-gray-800 text-white">Tool</option>
+                <option value="tokens" className="bg-gray-800 text-white">Tokens</option>
+                <option value="status" className="bg-gray-800 text-white">Status</option>
               </select>
-
-              <button
-                onClick={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}
-                className="bg-white/10 hover:bg-white/20 border border-white/20 rounded-lg p-2 text-white transition-colors"
-              >
-                {viewMode === 'grid' ? <List className="w-4 h-4" /> : <Grid className="w-4 h-4" />}
-              </button>
-
-              <button
-                onClick={fetchGenerations}
-                className="bg-white/10 hover:bg-white/20 border border-white/20 rounded-lg p-2 text-white transition-colors"
-              >
-                <RefreshCw className="w-4 h-4" />
-              </button>
             </div>
           </div>
 
-          {/* Stats */}
-          <div className="mt-4 flex items-center space-x-6 text-sm text-purple-200">
-            <span>Total: {generations.length}</span>
-            <span>Showing: {filteredGenerations.length}</span>
-            <span>Completed: {generations.filter(g => g.status === 'completed').length}</span>
-            <span>Processing: {generations.filter(g => g.status === 'processing').length}</span>
+          {/* View Mode Toggle */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => setViewMode('grid')}
+                className={`p-2 rounded-lg transition-colors ${
+                  viewMode === 'grid' 
+                    ? 'bg-purple-500 text-white' 
+                    : 'bg-white/10 text-purple-200 hover:bg-white/20'
+                }`}
+              >
+                <Grid3X3 className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => setViewMode('list')}
+                className={`p-2 rounded-lg transition-colors ${
+                  viewMode === 'list' 
+                    ? 'bg-purple-500 text-white' 
+                    : 'bg-white/10 text-purple-200 hover:bg-white/20'
+                }`}
+              >
+                <List className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Results Info */}
+            <div className="text-purple-200 text-sm">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-4 space-y-1 sm:space-y-0">
+                <span>
+                  Showing {((currentPage - 1) * ITEMS_PER_PAGE) + 1}-{Math.min(currentPage * ITEMS_PER_PAGE, (currentPage - 1) * ITEMS_PER_PAGE + filteredGenerations.length)} of {totalPages * ITEMS_PER_PAGE}
+                </span>
+                <span>
+                  Page {currentPage} of {totalPages}
+                </span>
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Content */}
+        {/* Generations Grid/List */}
         {filteredGenerations.length === 0 ? (
           <div className="text-center py-16">
-            <div className="w-24 h-24 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-6">
-              <Upload className="w-12 h-12 text-purple-300" />
+            <div className="w-16 h-16 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-4">
+              <ImageIcon className="w-8 h-8 text-purple-300" />
             </div>
-            <h3 className="text-2xl font-bold text-white mb-4">
-              {generations.length === 0 ? 'No Generations Yet' : 'No Results Found'}
-            </h3>
-            <p className="text-purple-200 max-w-md mx-auto">
-              {generations.length === 0 
-                ? 'Start creating amazing content with our AI tools to see your gallery come to life.'
-                : 'Try adjusting your search or filter criteria to find what you\'re looking for.'
+            <h3 className="text-xl font-semibold text-white mb-2">No generations found</h3>
+            <p className="text-purple-200 mb-6">
+              {searchTerm || filterTool !== 'all' || filterStatus !== 'all' 
+                ? 'Try adjusting your filters or search terms'
+                : 'Start creating with our AI tools to see your generations here'
               }
             </p>
-            {generations.length === 0 && (
-              <button
-                onClick={() => navigate('/dashboard')}
-                className="mt-6 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-300 transform hover:scale-105"
-              >
-                Start Creating
-              </button>
-            )}
-          </div>
-        ) : viewMode === 'grid' ? (
-          /* Grid View */
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {filteredGenerations.map((generation) => {
-              const mediaType = getMediaType(generation.tool_type);
-              const contentUrl = getContentUrl(generation);
-              
-              return (
-                <div
-                  key={generation.id}
-                  className="bg-white/10 backdrop-blur-md rounded-2xl overflow-hidden hover:bg-white/20 transition-all duration-300 transform hover:-translate-y-1 cursor-pointer"
-                  onClick={() => handleMediaClick(generation)}
-                >
-                  {/* Media Preview */}
-                  <div className="relative aspect-video bg-gray-800">
-                    {mediaType === 'video' && contentUrl ? (
-                      <video
-                        src={toCdnUrl(contentUrl)}
-                        poster={getThumbnailUrl(generation) || toCdnUrl(contentUrl)}
-                        className="w-full h-full object-cover"
-                        muted
-                        preload="metadata"
-                        playsInline
-                      />
-                    ) : mediaType === 'audio' ? (
-                      <div className="w-full h-full bg-gradient-to-br from-pink-500/20 to-rose-500/20 flex items-center justify-center">
-                        <Volume2 className="w-12 h-12 text-pink-400" />
-                      </div>
-                    ) : contentUrl ? (
-                      <img
-                        src={getThumbnailUrl(generation) || toCdnUrl(contentUrl)}
-                        alt={generation.generation_name}
-                        className="w-full h-full object-cover"
-                        loading="lazy"
-                      />
-                    ) : (
-                      <div className="w-full h-full bg-gray-700 flex items-center justify-center">
-                        <Upload className="w-8 h-8 text-gray-400" />
-                      </div>
-                    )}
-
-                    {/* Status Badge */}
-                    <div className={`absolute top-2 right-2 px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(generation.status)}`}>
-                      {generation.status}
-                    </div>
-
-                    {/* Media Type Icon */}
-                    <div className="absolute top-2 left-2 w-8 h-8 bg-black/50 backdrop-blur-sm rounded-full flex items-center justify-center">
-                      {getToolIcon(generation.tool_type)}
-                    </div>
-
-                    {/* Play Overlay for Videos */}
-                    {mediaType === 'video' && (
-                      <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity duration-300">
-                        <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center">
-                          <Play className="w-6 h-6 text-white ml-1" />
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Content Info */}
-                  <div className="p-4">
-                    <h3 className="font-bold text-white mb-2 truncate">
-                      {generation.generation_name}
-                    </h3>
-                    
-                    <div className="flex items-center justify-between text-sm text-purple-200 mb-2">
-                      <span>{generation.tool_name}</span>
-                      <span>{generation.tokens_used} tokens</span>
-                    </div>
-
-                    <div className="flex items-center justify-between text-xs text-purple-300">
-                      <span>
-                        {new Date(generation.created_at).toLocaleDateString()}
-                      </span>
-                      <div className="flex space-x-1">
-                        {generation.output_file_url && generation.status === 'completed' && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDownload(generation);
-                            }}
-                            className="text-green-400 hover:text-green-300 transition-colors"
-                            title="Download"
-                          >
-                            <Download className="w-3 h-3" />
-                          </button>
-                        )}
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDelete(generation.id);
-                          }}
-                          className="text-red-400 hover:text-red-300 transition-colors"
-                          title="Delete"
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
+            <button
+              onClick={() => navigate('/dashboard')}
+              className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-300 transform hover:scale-105"
+            >
+              Start Creating
+            </button>
           </div>
         ) : (
-          /* List View */
-          <div className="bg-white/10 backdrop-blur-md rounded-2xl overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-white/5">
-                  <tr>
-                    <th className="text-left py-4 px-6 text-purple-200 font-semibold">Name</th>
-                    <th className="text-left py-4 px-6 text-purple-200 font-semibold">Tool</th>
-                    <th className="text-left py-4 px-6 text-purple-200 font-semibold">Status</th>
-                    <th className="text-left py-4 px-6 text-purple-200 font-semibold">Tokens</th>
-                    <th className="text-left py-4 px-6 text-purple-200 font-semibold">Created</th>
-                    <th className="text-left py-4 px-6 text-purple-200 font-semibold">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredGenerations.map((generation) => (
-                    <tr 
-                      key={generation.id} 
-                      className="border-b border-white/10 hover:bg-white/5 cursor-pointer"
-                      onClick={() => handleMediaClick(generation)}
-                    >
-                      <td className="py-4 px-6">
-                        <div className="flex items-center space-x-3">
-                          <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
-                            {getToolIcon(generation.tool_type)}
-                          </div>
-                          <div>
-                            <p className="text-white font-medium">{generation.generation_name}</p>
-                            {generation.input_data?.prompt && (
-                              <p className="text-purple-300 text-xs truncate max-w-xs">
-                                {generation.input_data.prompt}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      </td>
-                      <td className="py-4 px-6 text-purple-200">{generation.tool_name}</td>
-                      <td className="py-4 px-6">
-                        <div className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(generation.status)}`}>
-                          {generation.status}
-                        </div>
-                      </td>
-                      <td className="py-4 px-6 text-white">{generation.tokens_used}</td>
-                      <td className="py-4 px-6 text-purple-200">
-                        {new Date(generation.created_at).toLocaleDateString()}
-                      </td>
-                      <td className="py-4 px-6">
-                        <div className="flex space-x-2">
-                          {generation.output_file_url && generation.status === 'completed' && (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDownload(generation);
-                              }}
-                              className="text-green-400 hover:text-green-300 transition-colors"
-                              title="Download"
-                            >
-                              <Download className="w-4 h-4" />
-                            </button>
-                          )}
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDelete(generation.id);
-                            }}
-                            className="text-red-400 hover:text-red-300 transition-colors"
-                            title="Delete"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+          <>
+            <div className={`${
+              viewMode === 'grid' 
+                ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6' 
+                : 'space-y-4'
+            }`}>
+              {filteredGenerations.map((generation, index) => (
+                <GenerationCard 
+                  key={generation.id} 
+                  generation={generation} 
+                  index={index} 
+                />
+              ))}
             </div>
-          </div>
+            
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-8">
+                <button
+                  onClick={handlePrevPage}
+                  disabled={currentPage === 1}
+                  className="w-full sm:w-auto bg-white/10 hover:bg-white/20 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium py-2 px-4 rounded-lg transition-colors"
+                >
+                  Previous
+                </button>
+                
+                <div className="flex items-center space-x-1 sm:space-x-2 overflow-x-auto">
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    const pageNum = i + 1;
+                    return (
+                      <button
+                        key={pageNum}
+                        onClick={() => handlePageChange(pageNum)}
+                        className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg font-medium text-sm transition-colors flex-shrink-0 ${
+                          currentPage === pageNum
+                            ? 'bg-purple-500 text-white'
+                            : 'bg-white/10 hover:bg-white/20 text-purple-200'
+                        }`}
+                      >
+                        {pageNum}
+                      </button>
+                    );
+                  })}
+                  
+                  {totalPages > 5 && (
+                    <>
+                      <span className="text-purple-300 px-1">...</span>
+                      <button
+                        onClick={() => handlePageChange(totalPages)}
+                        className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg font-medium text-sm transition-colors flex-shrink-0 ${
+                          currentPage === totalPages
+                            ? 'bg-purple-500 text-white'
+                            : 'bg-white/10 hover:bg-white/20 text-purple-200'
+                        }`}
+                      >
+                        {totalPages}
+                      </button>
+                    </>
+                  )}
+                </div>
+                
+                <button
+                  onClick={handleNextPage}
+                  disabled={currentPage === totalPages}
+                  className="w-full sm:w-auto bg-white/10 hover:bg-white/20 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium py-2 px-4 rounded-lg transition-colors"
+                >
+                  Next
+                </button>
+              </div>
+            )}
+          </>
         )}
       </div>
 
-      {/* Media Viewer Modal */}
+      {/* Generation Viewer Modal */}
       {showViewer && selectedGeneration && (
-        <div className="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="relative max-w-6xl w-full max-h-[90vh] bg-white/10 backdrop-blur-md rounded-2xl overflow-hidden border border-white/20">
-            {/* Close Button */}
-            <button
-              onClick={closeViewer}
-              className="absolute top-4 right-4 z-10 w-10 h-10 bg-black/50 hover:bg-black/70 text-white rounded-full flex items-center justify-center transition-colors"
-            >
-              <X className="w-5 h-5" />
-            </button>
-
-            {/* Media Content */}
-            <div className="relative">
-              {getMediaType(selectedGeneration.tool_type) === 'video' ? (
-                <video
-                  src={toCdnUrl(getContentUrl(selectedGeneration))}
-                  poster={getThumbnailUrl(selectedGeneration) || toCdnUrl(getContentUrl(selectedGeneration))}
-                  controls
-                  autoPlay
-                  className="w-full max-h-[70vh] object-contain bg-black"
-                  playsInline
-                  preload="metadata"
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white/10 backdrop-blur-md rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto border border-white/20">
+            <div className="p-4 sm:p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-lg sm:text-xl font-bold text-white pr-4">{selectedGeneration.generation_name}</h3>
+                <button
+                  onClick={() => setShowViewer(false)}
+                  className="text-purple-400 hover:text-purple-300 transition-colors flex-shrink-0"
                 >
-                  Your browser does not support the video tag.
-                </video>
-              ) : getMediaType(selectedGeneration.tool_type) === 'audio' ? (
-                <div className="w-full h-96 bg-gradient-to-br from-pink-500/20 to-rose-500/20 flex items-center justify-center">
-                  <div className="text-center">
-                    <div className="w-32 h-32 bg-gradient-to-r from-pink-500 to-rose-500 rounded-full flex items-center justify-center mx-auto mb-6">
-                      <Volume2 className="w-16 h-16 text-white" />
-                    </div>
-                    <h3 className="text-2xl font-bold text-white mb-4">{selectedGeneration.generation_name}</h3>
-                    <audio
-                      src={toCdnUrl(getContentUrl(selectedGeneration))}
-                      controls
-                      autoPlay
-                      preload="metadata"
-                      className="w-full max-w-md"
-                    />
-                  </div>
-                </div>
-              ) : (
-                <img
-                  src={getThumbnailUrl(selectedGeneration) || toCdnUrl(getContentUrl(selectedGeneration))}
-                  alt={selectedGeneration.generation_name}
-                  className="w-full max-h-[70vh] object-contain bg-black"
-                  loading="lazy"
-                />
-              )}
-            </div>
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
 
-            {/* Media Info */}
-            <div className="p-6 bg-white/5 backdrop-blur-md">
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex-1">
-                  <h2 className="text-2xl font-bold text-white mb-2">{selectedGeneration.generation_name}</h2>
-                  <div className="flex items-center space-x-4 mb-3">
-                    <div className="flex items-center space-x-2">
-                      {getToolIcon(selectedGeneration.tool_type)}
-                      <span className="text-purple-200">{selectedGeneration.tool_name}</span>
+              {/* Media Display */}
+              {selectedGeneration.output_file_url && getImageUrls(selectedGeneration.output_file_url).length > 0 && (
+                <div className="mb-6">
+                  {getMediaType(selectedGeneration) === 'video' ? (
+                    selectedGeneration.thumbnail_url ? (
+                      // Show thumbnail first, then video for text-to-video tools
+                      <div className="space-y-4">
+                        <OptimizedImage
+                          src={toCdnUrl(primaryUrl)}
+                          poster={getVideoPoster(generation)}
+                          alt={`${selectedGeneration.generation_name} thumbnail`}
+                          className="w-full max-h-96 object-contain rounded-lg"
+                        />
+                        <OptimizedVideo
+                          src={getImageUrls(selectedGeneration.output_file_url)[0]}
+                          className="w-full max-h-96 rounded-lg"
+                          poster={selectedGeneration.thumbnail_url}
+                          controls={true}
+                          preload="metadata"
+                        />
+                      </div>
+                    ) : (
+                    <OptimizedVideo
+                      src={getImageUrls(selectedGeneration.output_file_url)[0]}
+                      className="w-full max-h-96 rounded-lg"
+                      poster={selectedGeneration.thumbnail_url || selectedGeneration.metadata?.thumbnail_url || selectedGeneration.input_data?.imageUrl}
+                      controls={true}
+                      preload="metadata"
+                    />
+                    )
+                  ) : getMediaType(selectedGeneration) === 'audio' ? (
+                    <div className="w-full h-64 bg-gradient-to-br from-pink-500/20 to-rose-500/20 rounded-lg flex items-center justify-center">
+                      <div className="text-center">
+                        <div className="w-24 h-24 bg-gradient-to-r from-pink-500 to-rose-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                          <Music className="w-12 h-12 text-white" />
+                        </div>
+                        <h4 className="text-white font-semibold text-lg mb-2">🎵 Audio Track</h4>
+                        <audio
+                          src={toCdnUrl(selectedGeneration.output_file_url)}
+                          controls
+                          className="w-full max-w-md mx-auto"
+                          preload="metadata"
+                        />
+                      </div>
                     </div>
-                    <div className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(selectedGeneration.status)}`}>
-                      {selectedGeneration.status}
-                    </div>
-                  </div>
-                  
-                  {selectedGeneration.input_data?.prompt && (
-                    <div className="mb-3">
-                      <p className="text-purple-200 text-sm mb-1">Prompt:</p>
-                      <p className="text-white bg-white/5 rounded-lg p-3 text-sm">
-                        {selectedGeneration.input_data.prompt}
-                      </p>
+                  ) : getImageUrls(selectedGeneration.output_file_url).length === 1 ? (
+                    <OptimizedImage
+                      src={getImageUrls(selectedGeneration.output_file_url)[0]}
+                      alt={selectedGeneration.generation_name}
+                      className="w-full max-h-96 object-contain rounded-lg"
+                    />
+                  ) : (
+                    <div>
+                      <h4 className="text-lg font-semibold text-white mb-3">
+                        Generated Images ({getImageUrls(selectedGeneration.output_file_url).length})
+                      </h4>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {getImageUrls(selectedGeneration.output_file_url).map((url, index) => (
+                          <div
+                            key={index}
+                            className="cursor-pointer hover:opacity-80 transition-opacity"
+                            onClick={() => {
+                              setExpandedImageIndex(index);
+                              setShowExpandedImage(true);
+                            }}
+                          >
+                            <OptimizedImage
+                              src={url}
+                              alt={`${selectedGeneration.generation_name} - Image ${index + 1}`}
+                              className="w-full h-48 object-cover rounded-lg"
+                            />
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   )}
                 </div>
+              )}
 
-                {/* Stats and Actions */}
-                <div className="flex flex-col items-end space-y-3 ml-6">
-                  <div className="text-right">
-                    <div className="text-purple-200 text-sm">Tokens Used</div>
-                    <div className="text-white font-semibold">{selectedGeneration.tokens_used}</div>
-                  </div>
-                  
-                  <div className="text-right">
-                    <div className="text-purple-200 text-sm">Created</div>
-                    <div className="text-white text-sm">
-                      {new Date(selectedGeneration.created_at).toLocaleString()}
+              {/* -------- Polished details + configuration layout (UI-only changes) -------- */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Details Card */}
+                <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                  <h4 className="text-lg font-semibold text-white mb-3">Generation Details</h4>
+                  <div className="space-y-3 text-sm">
+                    <div className="grid grid-cols-12 gap-3 items-center">
+                      <span className="col-span-5 text-purple-200">Status</span>
+                      <span className="col-span-7 justify-self-end">
+                        <span className={`px-2 py-1 rounded text-xs border ${getStatusColor(selectedGeneration.status)}`}>
+                          {selectedGeneration.status}
+                        </span>
+                      </span>
                     </div>
+                    <div className="grid grid-cols-12 gap-3 items-center">
+                      <span className="col-span-5 text-purple-200">Tool</span>
+                      <span className="col-span-7 text-white justify-self-end text-right break-words">
+                        {selectedGeneration.tool_name}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-12 gap-3 items-center">
+                      <span className="col-span-5 text-purple-200">Tokens Used</span>
+                      <span className="col-span-7 text-white justify-self-end text-right">
+                        {selectedGeneration.tokens_used}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-12 gap-3 items-start">
+                      <span className="col-span-5 text-purple-200">Created</span>
+                      <span className="col-span-7 text-white justify-self-end text-right break-words">
+                        {new Date(selectedGeneration.created_at).toLocaleString()}
+                      </span>
+                    </div>
+                    {selectedGeneration.completed_at && (
+                      <div className="grid grid-cols-12 gap-3 items-start">
+                        <span className="col-span-5 text-purple-200">Completed</span>
+                        <span className="col-span-7 text-white justify-self-end text-right break-words">
+                          {new Date(selectedGeneration.completed_at).toLocaleString()}
+                        </span>
+                      </div>
+                    )}
                   </div>
+                </div>
 
-                  <div className="flex space-x-2">
-                    {selectedGeneration.input_data?.prompt && (
-                      <button
-                        onClick={() => copyPrompt(selectedGeneration.input_data.prompt)}
-                        className="bg-blue-500 hover:bg-blue-600 text-white p-2 rounded-lg transition-colors"
-                        title="Copy prompt"
-                      >
-                        <Copy className="w-4 h-4" />
-                      </button>
-                    )}
-                    {selectedGeneration.output_file_url && selectedGeneration.status === 'completed' && (
-                      <button
-                        onClick={() => handleDownload(selectedGeneration)}
-                        className="bg-green-500 hover:bg-green-600 text-white p-2 rounded-lg transition-colors"
-                        title="Download"
-                      >
-                        <Download className="w-4 h-4" />
-                      </button>
-                    )}
-                    <button
-                      onClick={() => handleDelete(selectedGeneration.id)}
-                      className="bg-red-500 hover:bg-red-600 text-white p-2 rounded-lg transition-colors"
-                      title="Delete"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                {/* Configuration Card */}
+                <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                  <h4 className="text-lg font-semibold text-white mb-3">Configuration</h4>
+                  <div className="space-y-3 text-sm">
+                    {selectedGeneration.input_data && Object.entries(selectedGeneration.input_data).map(([key, value]) => {
+                      const label = key.replace(/([A-Z])/g, ' $1').trim();
+                      const displayValue = formatConfigValue(key, value);
+                      const isLongText = ['prompt', 'negativeprompt', 'description', 'caption'].includes(key.toLowerCase());
+                      return (
+                        <div key={key} className="grid grid-cols-12 gap-3 items-start">
+                          <span className="col-span-5 text-purple-200 capitalize">{label}:</span>
+                          <span
+                            className={`col-span-7 justify-self-end text-right break-words ${
+                              isLongText ? 'whitespace-pre-wrap bg-black/20 border border-white/10 rounded-md px-3 py-2 text-white' : 'text-white'
+                            }`}
+                            // keep the full URL in a tooltip when we collapse to a filename
+                            title={typeof value === 'string' ? value : undefined}
+                          >
+                            {displayValue}
+                          </span>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               </div>
+              {/* ----------------------------------------------------------------------- */}
 
-              {/* Generation Details */}
-              <div className="grid md:grid-cols-3 gap-4 text-sm">
-                <div>
-                  <span className="text-purple-200">Tool Type:</span>
-                  <p className="text-white">{selectedGeneration.tool_type}</p>
-                </div>
-                <div>
-                  <span className="text-purple-200">Media Type:</span>
-                  <p className="text-white capitalize">{getMediaType(selectedGeneration.tool_type)}</p>
-                </div>
-                {selectedGeneration.completed_at && (
-                  <div>
-                    <span className="text-purple-200">Completed:</span>
-                    <p className="text-white">
-                      {new Date(selectedGeneration.completed_at).toLocaleString()}
-                    </p>
-                  </div>
+              <div className="flex flex-col sm:flex-row justify-end gap-3 mt-6">
+                {selectedGeneration.output_file_url && (
+                  <button
+                    onClick={() => handleDownload(selectedGeneration)}
+                    className="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center space-x-2"
+                  >
+                    <Download className="w-4 h-4" />
+                    <span>Download</span>
+                  </button>
                 )}
+                <button
+                  onClick={() => setShowViewer(false)}
+                  className="bg-white/10 hover:bg-white/20 text-white font-semibold py-2 px-4 rounded-lg transition-colors"
+                >
+                  Close
+                </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Expanded Image Viewer */}
+      {showExpandedImage && selectedGeneration && expandedImageIndex !== null && (
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
+          <div className="relative max-w-7xl w-full max-h-[95vh] flex items-center justify-center">
+            {/* Close Button */}
+            <button
+              onClick={() => {
+                setShowExpandedImage(false);
+                setExpandedImageIndex(null);
+              }}
+              className="absolute top-4 right-4 z-10 w-12 h-12 bg-black/50 hover:bg-black/70 text-white rounded-full flex items-center justify-center transition-colors"
+            >
+              <X className="w-6 h-6" />
+            </button>
+
+            {/* Navigation Arrows */}
+            {getImageUrls(selectedGeneration.output_file_url).length > 1 && (
+              <>
+                <button
+                  onClick={() => {
+                    const imageUrls = getImageUrls(selectedGeneration.output_file_url);
+                    setExpandedImageIndex((expandedImageIndex - 1 + imageUrls.length) % imageUrls.length);
+                  }}
+                  className="absolute left-4 top-1/2 transform -translate-y-1/2 z-10 w-12 h-12 bg-black/50 hover:bg-black/70 text-white rounded-full flex items-center justify-center transition-colors"
+                >
+                  <ArrowLeft className="w-6 h-6" />
+                </button>
+                
+                <button
+                  onClick={() => {
+                    const imageUrls = getImageUrls(selectedGeneration.output_file_url);
+                    setExpandedImageIndex((expandedImageIndex + 1) % imageUrls.length);
+                  }}
+                  className="absolute right-4 top-1/2 transform -translate-y-1/2 z-10 w-12 h-12 bg-black/50 hover:bg-black/70 text-white rounded-full flex items-center justify-center transition-colors"
+                >
+                  <ArrowLeft className="w-6 h-6 rotate-180" />
+                </button>
+              </>
+            )}
+
+            {/* Expanded Image */}
+            <OptimizedImage
+              src={getImageUrls(selectedGeneration.output_file_url)[expandedImageIndex]}
+              alt={`${selectedGeneration.generation_name} - Image ${expandedImageIndex + 1}`}
+              className="max-w-full max-h-full object-contain rounded-lg"
+            />
+
+            {/* Image Counter */}
+            {getImageUrls(selectedGeneration.output_file_url).length > 1 && (
+              <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black/70 text-white px-4 py-2 rounded-full text-sm font-medium">
+                {expandedImageIndex + 1} of {getImageUrls(selectedGeneration.output_file_url).length}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Hidden Audio Element */}
+      {currentlyPlaying && (
+        <audio
+          ref={audioRef}
+          src={toCdnUrl(allGenerations.find(g => g.id === currentlyPlaying)?.output_file_url)}
+          onError={(e) => {
+            console.error('Audio playback error:', e);
+            setIsPlaying(false);
+            setCurrentlyPlaying(null);
+          }}
+        />
+      )}
+
+      {/* Mini Audio Player (when music is playing) */}
+      {currentlyPlaying && (
+        <div className="fixed bottom-4 right-4 bg-gradient-to-r from-pink-500/90 to-rose-500/90 backdrop-blur-md rounded-2xl p-4 border border-pink-500/30 shadow-2xl z-50">
+          <div className="flex items-center space-x-3 mb-2">
+            <button
+              onClick={() => handlePlay(allGenerations.find(g => g.id === currentlyPlaying))}
+              className="w-10 h-10 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center text-white transition-all"
+            >
+              {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 ml-0.5" />}
+            </button>
+            
+            <div className="flex-1 min-w-0">
+              <p className="text-white font-medium text-sm truncate">
+                {allGenerations.find(g => g.id === currentlyPlaying)?.generation_name || 'Music Track'}
+              </p>
+              <p className="text-pink-200 text-xs">
+                {formatTime(currentTime)} / {formatTime(duration)}
+              </p>
+            </div>
+
+            <button
+              onClick={toggleMute}
+              className="text-white hover:text-pink-200 transition-colors"
+            >
+              {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+            </button>
+          </div>
+          
+          {/* Progress Bar */}
+          <div 
+            className="w-full h-1 bg-white/20 rounded-full cursor-pointer"
+            onClick={handleSeek}
+          >
+            <div 
+              className="h-full bg-white rounded-full transition-all duration-100"
+              style={{ width: `${duration > 0 ? (currentTime / duration) * 100 : 0}%` }}
+            />
           </div>
         </div>
       )}
