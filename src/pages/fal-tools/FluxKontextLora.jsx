@@ -216,6 +216,30 @@ const FluxKontextLora = () => {
     } else if (newRecord?.status === 'completed' || newRecord?.status === 'failed') {
       setActiveGenerations(current => current.filter(g => g.id !== newRecord?.id));
     }
+    
+    // Show failure notification for failed generations
+    if (newRecord?.status === 'failed') {
+      console.log('Image generation failed:', newRecord.error_message);
+      
+      // Show user-friendly error notification
+      setTimeout(() => {
+        if (newRecord.error_message) {
+          // Check if it's a content policy violation (422 error)
+          if (newRecord.error_message.includes('422') || 
+              newRecord.error_message.includes('content_policy_violation') ||
+              newRecord.error_message.includes('flagged by a content checker')) {
+            
+            showAlert('error', 'Content Policy Violation', 'Your content was flagged by the AI safety system. Please try with different content that complies with the content policy. Note: Tokens are not refunded for policy violations.');
+          } else if (newRecord.error_message.includes('500')) {
+            showAlert('error', 'Server Error', 'There was a temporary issue with the AI service. Please try again in a few minutes. If this persists, contact support for token refund.');
+          } else {
+            showAlert('error', 'Generation Failed', `${newRecord.error_message}. Please try again or contact support if the issue persists.`);
+          }
+        } else {
+          showAlert('error', 'Generation Failed', 'Generation failed. Please try again or contact support if the issue persists.');
+        }
+      }, 1000); // Small delay to ensure UI has updated
+    }
   };
 
   // Show themed alert
