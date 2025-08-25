@@ -1044,8 +1044,7 @@ const Gallery = () => {
                       // Show thumbnail first, then video for text-to-video tools
                       <div className="space-y-4">
                         <OptimizedImage
-                          src={toCdnUrl(primaryUrl)}
-                          poster={getVideoPoster(generation)}
+                          src={toCdnUrl(selectedGeneration.thumbnail_url)}
                           alt={`${selectedGeneration.generation_name} thumbnail`}
                           className="w-full max-h-96 object-contain rounded-lg"
                         />
