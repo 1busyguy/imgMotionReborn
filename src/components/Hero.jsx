@@ -157,29 +157,68 @@ const Hero = () => {
             </div>
 
             {/* Mobile Menu Button */}
-            <div className="md:hidden mobile-menu-container">
+            <div className="md:hidden mobile-menu-container relative">
               <button
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                className="text-white p-2 rounded-lg hover:bg-white/10 transition-colors"
+                className="text-white p-3 rounded-lg hover:bg-white/10 transition-colors touch-manipulation active:bg-white/20 active:scale-95 min-w-[44px] min-h-[44px] flex items-center justify-center"
+                type="button"
+                aria-label="Toggle mobile menu"
+                aria-expanded={isMobileMenuOpen}
               >
                 {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
               </button>
 
               {/* Mobile Menu */}
               {isMobileMenuOpen && (
-                <div className="absolute top-full right-0 mt-2 w-64 bg-gray-900/95 backdrop-blur-md rounded-2xl border border-white/30 shadow-2xl">
+                <div className="absolute top-full right-0 mt-2 w-64 bg-gray-900/95 backdrop-blur-md rounded-2xl border border-white/30 shadow-2xl z-50">
                   <div className="p-4 space-y-4">
-                    <a href="#tools" className="block text-white hover:text-purple-200 transition-colors py-2 px-2 rounded-lg hover:bg-white/10">Tools</a>
-                    <a href="/imgmotionapp" className="block text-white hover:text-purple-200 transition-colors py-2 px-2 rounded-lg hover:bg-white/10">APP</a>
-                    <a href="/pricing" className="block text-white hover:text-purple-200 transition-colors py-2 px-2 rounded-lg hover:bg-white/10">Pricing</a>
-                    <a href="/showcase" className="block text-white hover:text-purple-200 transition-colors py-2 px-2 rounded-lg hover:bg-white/10">Showcase</a>
-                    <a href="/about" className="block text-white hover:text-purple-200 transition-colors py-2 px-2 rounded-lg hover:bg-white/10">About</a>
-                    <a href="/contact" className="block text-white hover:text-purple-200 transition-colors py-2 px-2 rounded-lg hover:bg-white/10">Contact</a>
+                    <a 
+                      href="#tools" 
+                      className="block text-white hover:text-purple-200 transition-colors py-3 px-3 rounded-lg hover:bg-white/10 active:bg-white/20 touch-manipulation min-h-[44px] flex items-center"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      Tools
+                    </a>
+                    <a 
+                      href="/imgmotionapp" 
+                      className="block text-white hover:text-purple-200 transition-colors py-3 px-3 rounded-lg hover:bg-white/10 active:bg-white/20 touch-manipulation min-h-[44px] flex items-center"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      APP
+                    </a>
+                    <a 
+                      href="/pricing" 
+                      className="block text-white hover:text-purple-200 transition-colors py-3 px-3 rounded-lg hover:bg-white/10 active:bg-white/20 touch-manipulation min-h-[44px] flex items-center"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      Pricing
+                    </a>
+                    <a 
+                      href="/showcase" 
+                      className="block text-white hover:text-purple-200 transition-colors py-3 px-3 rounded-lg hover:bg-white/10 active:bg-white/20 touch-manipulation min-h-[44px] flex items-center"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      Showcase
+                    </a>
+                    <a 
+                      href="/about" 
+                      className="block text-white hover:text-purple-200 transition-colors py-3 px-3 rounded-lg hover:bg-white/10 active:bg-white/20 touch-manipulation min-h-[44px] flex items-center"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      About
+                    </a>
+                    <a 
+                      href="/contact" 
+                      className="block text-white hover:text-purple-200 transition-colors py-3 px-3 rounded-lg hover:bg-white/10 active:bg-white/20 touch-manipulation min-h-[44px] flex items-center"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      Contact
+                    </a>
                     <hr className="border-white/30" />
                     {user && profile ? (
                       <>
                         {/* Mobile User Info */}
-                        <div className="flex items-center space-x-3 py-3 px-3 bg-white/10 rounded-lg">
+                        <div className="flex items-center space-x-3 py-3 px-3 bg-white/15 rounded-lg">
                           <div className="w-8 h-8 bg-gradient-to-r from-purple-400 to-pink-400 rounded-full flex items-center justify-center text-white font-semibold text-xs">
                             {profile?.avatar_url ? (
                               <img 
@@ -200,7 +239,7 @@ const Hero = () => {
                         </div>
                         <button
                           onClick={() => navigate('/dashboard')}
-                          className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-semibold py-3 px-4 rounded-lg transition-all duration-300"
+                          className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-semibold py-3 px-4 rounded-lg transition-all duration-300 touch-manipulation active:scale-95 min-h-[44px]"
                         >
                           Go to Dashboard
                         </button>
@@ -209,14 +248,14 @@ const Hero = () => {
                       <>
                         <button
                           onClick={() => navigate('/login')}
-                          className="w-full flex items-center space-x-2 text-white hover:text-purple-200 transition-colors py-2 px-2 rounded-lg hover:bg-white/10"
+                          className="w-full flex items-center justify-center space-x-2 text-white hover:text-purple-200 transition-colors py-3 px-3 rounded-lg hover:bg-white/10 active:bg-white/20 touch-manipulation min-h-[44px]"
                         >
                           <LogIn className="w-4 h-4" />
                           <span>Sign In</span>
                         </button>
                         <button
                           onClick={() => navigate('/signup')}
-                          className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-semibold py-3 px-4 rounded-lg transition-all duration-300"
+                          className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-semibold py-3 px-4 rounded-lg transition-all duration-300 touch-manipulation active:scale-95 min-h-[44px]"
                         >
                           Get Started
                         </button>
