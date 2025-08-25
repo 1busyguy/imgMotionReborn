@@ -118,6 +118,13 @@ const AdminRoute = ({ children }: { children: React.ReactNode }) => {
 
 function App() {
   useEffect(() => {
+  // Clean up OAuth hash IMMEDIATELY if present
+  if (window.location.hash && window.location.hash.includes('access_token')) {
+    console.log('OAuth callback detected, cleaning URL...');
+    // Replace the URL immediately without the hash
+    window.history.replaceState(null, '', window.location.pathname);
+  }
+
   // Handle OAuth redirects, post-login navigation, and sign-out navigation
   const handleAuthStateChange = async (event: string, session: any) => {
     console.log('Auth state change in App.tsx:', event, {
@@ -128,24 +135,16 @@ function App() {
 
     // Handle sign in
     if (event === 'SIGNED_IN' && session?.user) {
-      // Check if we're coming from an OAuth callback (has access_token in URL)
-      const isOAuthCallback = window.location.hash.includes('access_token');
-      
       // Check if we're on a public page that should redirect to dashboard after login
       const publicPaths = ['/', '/login', '/signup'];
-      const shouldRedirect = publicPaths.includes(window.location.pathname) || isOAuthCallback;
+      const currentPath = window.location.pathname;
       
-      if (shouldRedirect) {
+      // Always redirect to dashboard after sign in if we're on a public page
+      if (publicPaths.includes(currentPath)) {
         console.log('Redirecting to dashboard after successful sign-in');
         
-        // Clean the URL first if it's an OAuth callback
-        if (isOAuthCallback) {
-          window.history.replaceState(null, '', '/dashboard');
-        } else {
-          window.history.pushState(null, '', '/dashboard');
-        }
-        
-        // Trigger a popstate event to make React Router respond to the URL change
+        // Navigate to dashboard
+        window.history.pushState(null, '', '/dashboard');
         window.dispatchEvent(new PopStateEvent('popstate'));
       }
     }
