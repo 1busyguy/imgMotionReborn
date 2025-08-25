@@ -55,6 +55,13 @@ const Dashboard = () => {
     }
   }, []);
 
+  useEffect(() => {
+  // Clean up any OAuth hash if it's still in the URL
+  if (window.location.hash && window.location.hash.includes('access_token')) {
+    window.history.replaceState(null, '', window.location.pathname);
+  }
+}, []);
+
   // Separate effect for IP capture to avoid infinite loops
   useEffect(() => {
     if (!user) return;
