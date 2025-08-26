@@ -251,6 +251,12 @@ export const AI_TOOLS = {
     description: 'High-quality image-to-video generation with Google\'s VEO3 model',
     tokensRequired: 534, // Base cost, varies by audio and resolution
     category: 'video'
+  },
+  fal_gemini_flash_image_edit: {
+    name: 'Gemini 2.5 Flash Image Edit',
+    description: 'Advanced AI image editing with Google\'s Gemini 2.5 Flash model',
+    tokensRequired: 8, // Base cost per image generated
+    category: 'image'
   }
 };
 
