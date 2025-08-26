@@ -598,7 +598,7 @@ const Dashboard = () => {
                     className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white font-bold py-3 px-4 rounded-xl transition-all duration-300 transform hover:scale-105 flex items-center space-x-2 justify-center flex-1"
                   >
                     <Upload className="w-5 h-5" />
-                    <span>Enter Gallery</span>
+                    <span>Gallery</span>
                   </button>
                   
                   <button 
@@ -606,7 +606,7 @@ const Dashboard = () => {
                     className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-bold py-3 px-4 rounded-xl transition-all duration-300 transform hover:scale-105 flex items-center space-x-2 justify-center flex-1"
                   >
                     <Sparkles className="w-5 h-5" />
-                    <span>View Showcase</span>
+                    <span>Showcase</span>
                   </button>
                   
                   <button 
@@ -617,7 +617,7 @@ const Dashboard = () => {
                     className="bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white font-bold py-3 px-4 rounded-xl transition-all duration-300 transform hover:scale-105 flex items-center space-x-2 justify-center flex-1"
                   >
                     <Wand2 className="w-5 h-5" />
-                    <span>View All Tools</span>
+                    <span>All Tools</span>
                   </button>
                 </div>
               </div>
