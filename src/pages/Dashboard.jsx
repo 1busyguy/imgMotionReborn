@@ -484,19 +484,21 @@ const Dashboard = () => {
             ))}
           </div>
 
-          {/* Pagination Dots */}
+          {/* Number Pagination */}
           {totalPages > 1 && (
             <div className="flex justify-center mt-6 space-x-2">
               {Array.from({ length: totalPages }).map((_, index) => (
                 <button
                   key={index}
                   onClick={() => setCurrentToolPage(index)}
-                  className={`w-3 h-3 rounded-full transition-all duration-300 ${
+                  className={`w-10 h-10 rounded-lg font-semibold transition-all duration-300 ${
                     index === currentToolPage
-                      ? 'bg-green-400'
-                      : 'bg-white/30 hover:bg-white/50'
+                      ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg'
+                      : 'bg-white/10 text-purple-200 hover:bg-white/20 hover:text-white'
                   }`}
-                />
+                >
+                  {index + 1}
+                </button>
               ))}
             </div>
           )}
