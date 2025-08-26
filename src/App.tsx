@@ -26,7 +26,6 @@ import VEO3Fast from './pages/fal-tools/VEO3Fast';
 import AISceneGen from './pages/fal-tools/AISceneGen';
 import HiDreamI1 from './pages/fal-tools/HiDreamI1';
 import SeedancePro from './pages/fal-tools/SeedancePro';
-import Wan22 from './pages/fal-tools/Wan22';
 import CassetteAIMusic from './pages/fal-tools/CassetteAIMusic';
 import MMAudioV2 from './pages/fal-tools/MMAudioV2';
 import MMAudioVideo2 from './pages/fal-tools/MMAudioVideo2';
@@ -257,7 +256,7 @@ function App() {
               path="/wan22-pro" 
               element={
                 <ProtectedRoute>
-                  <Wan22 />
+                  <WanPro />
                 </ProtectedRoute>
               } 
             />
