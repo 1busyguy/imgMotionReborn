@@ -257,6 +257,18 @@ export const AI_TOOLS = {
     description: 'Advanced AI image editing with Google\'s Gemini 2.5 Flash model',
     tokensRequired: 8, // Base cost per image generated
     category: 'image'
+  },
+  fal_qwen_image: {
+    name: 'Qwen Image Generator',
+    description: 'Advanced text-to-image generation with Qwen\'s powerful AI model',
+    tokensRequired: 8, // Base cost per image generated
+    category: 'image'
+  },
+  fal_qwen_image_to_image: {
+    name: 'Qwen Image-to-Image',
+    description: 'Transform existing images with Qwen\'s AI model',
+    tokensRequired: 10, // Base cost per image generated
+    category: 'image'
   }
 };
 

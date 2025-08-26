@@ -243,4 +243,26 @@ export const falTools = [
         toolType: "fal_gemini_flash_image_edit",
         route: "/gemini-flash-image-edit"
     },
+    
+    // QWEN IMAGE TOOLS - NEW ADDITIONS
+    {
+        id: 36,
+        name: "Qwen Image Generator",
+        description: "Advanced text-to-image generation with Qwen's powerful AI model - high-quality realistic images",
+        image: toCdnUrl("https://images.pexels.com/photos/3861958/pexels-photo-3861958.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1"),
+        tokensRequired: "8+",
+        category: "image",
+        toolType: "fal_qwen_image",
+        route: "/qwen-image"
+    },
+    {
+        id: 37,
+        name: "Qwen Image-to-Image",
+        description: "Transform existing images with Qwen's AI - edit, enhance, and reimagine your photos",
+        image: toCdnUrl("https://images.pexels.com/photos/3785079/pexels-photo-3785079.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1"),
+        tokensRequired: "10+",
+        category: "image",
+        toolType: "fal_qwen_image_to_image",
+        route: "/qwen-image-to-image"
+    },
 ];

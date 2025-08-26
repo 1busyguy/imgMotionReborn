@@ -33,6 +33,8 @@ import WanV22Video2Video from './pages/fal-tools/WanV22Video2Video';
 import WanV22Text2VideoLora from './pages/fal-tools/WanV22Text2VideoLora';
 import VEO3Standard from './pages/fal-tools/VEO3Standard';
 import GeminiFlashImageEdit from './pages/fal-tools/GeminFlashImageEdit';
+import QwenImage from './pages/fal-tools/QwenImage';
+import QwenImageToImage from './pages/fal-tools/QwenImageToImage';
 import Admin from './pages/Admin';
 import Showcase from './pages/Showcase';
 import About from './pages/About';
@@ -383,6 +385,22 @@ function App() {
               element={
                 <ProtectedRoute>
                   <GeminiFlashImageEdit />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/qwen-image" 
+              element={
+                <ProtectedRoute>
+                  <QwenImage />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/qwen-image-to-image" 
+              element={
+                <ProtectedRoute>
+                  <QwenImageToImage />
                 </ProtectedRoute>
               } 
             />
