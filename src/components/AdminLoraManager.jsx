@@ -357,7 +357,7 @@ const AdminLoraManager = () => {
                   <div>
                     <label className="block text-sm text-purple-200 mb-1">Tool Types *</label>
                     <div className="space-y-2">
-                      {['i2v', 't2v', 'both'].map(type => (
+                      {['i2v', 't2v', 'both', 'Qi', 'Qi2i'].map(type => (
                         <label key={type} className="flex items-center space-x-2">
                           <input
                             type="checkbox"
@@ -380,6 +380,8 @@ const AdminLoraManager = () => {
                           <span className="text-white">
                             {type === 'i2v' ? 'Image to Video' : 
                              type === 't2v' ? 'Text to Video' : 
+                             type === 'Qi' ? 'Qwen Image' :
+                             type === 'Qi2i' ? 'Qwen Image-to-Image' :
                              'Both'}
                           </span>
                         </label>
@@ -426,6 +428,9 @@ const AdminLoraManager = () => {
                       className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-violet-500"
                     >
                       <option value="style" className="bg-gray-800">Style</option>
+                      <option value="anime" className="bg-gray-800">Anime</option>
+                      <option value="inscene" className="bg-gray-800">In Scene</option>
+                      <option value="realism" className="bg-gray-800">Realism</option>
                       <option value="lighting" className="bg-gray-800">Lighting</option>
                       <option value="motion" className="bg-gray-800">Motion</option>
                       <option value="character" className="bg-gray-800">Character</option>
