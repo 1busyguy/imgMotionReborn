@@ -17,7 +17,6 @@ import FluxRedux from './pages/fal-tools/FluxRedux';
 import FluxKontext from './pages/fal-tools/FluxKontext';
 import FluxKontextMaxMulti from './pages/fal-tools/FluxKontextMaxMulti';
 import MinimaxHailuo from './pages/fal-tools/MinimaxHailuo';
-import WanPro from './pages/fal-tools/WanPro';
 import KlingPro from './pages/fal-tools/KlingPro';
 import LTXVVideo from './pages/fal-tools/LTXVVideo';
 import FalVideoUpscaler from './pages/fal-tools/FalVideoUpscaler';
