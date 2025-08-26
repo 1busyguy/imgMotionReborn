@@ -123,32 +123,38 @@ const GeminiFlashImageEdit = () => {
     };
 
     const handleRealtimeUpdate = (payload) => {
-        const { eventType, new: newRecord, old: oldRecord } = payload;
-
-        setGenerations(current => {
-            switch (eventType) {
-                case 'INSERT':
-                    return [newRecord, ...current];
-                case 'UPDATE':
-                    return current.map(item =>
-                        item.id === newRecord.id ? newRecord : item
-                    );
-                case 'DELETE':
-                    return current.filter(item => item.id !== oldRecord.id);
-                default:
-                    return current;
-            }
-        });
     const { eventType, new: newRecord, old: oldRecord } = payload;
-        if (newRecord?.status === 'processing') {
-            setActiveGenerations(current => {
-                const exists = current.find(g => g.id === newRecord.id);
-                return exists ? current.map(g => g.id === newRecord.id ? newRecord : g) : [newRecord, ...current];
-            });
-        } else if (newRecord?.status === 'completed' || newRecord?.status === 'failed') {
-            setActiveGenerations(current => current.filter(g => g.id !== newRecord?.id));
+    
+    // Update main generations list
+    setGenerations(current => {
+        switch (eventType) {
+            case 'INSERT':
+                return [newRecord, ...current];
+            case 'UPDATE':
+                return current.map(item =>
+                    item.id === newRecord.id ? newRecord : item
+                );
+            case 'DELETE':
+                return current.filter(item => item.id !== oldRecord.id);
+            default:
+                return current;
         }
-    };
+    });
+    
+    // Update active generations based on status
+    if (newRecord?.status === 'processing') {
+        setActiveGenerations(current => {
+            const exists = current.find(g => g.id === newRecord.id);
+            return exists 
+                ? current.map(g => g.id === newRecord.id ? newRecord : g) 
+                : [newRecord, ...current];
+        });
+    } else if (newRecord?.status === 'completed' || newRecord?.status === 'failed') {
+        setActiveGenerations(current => 
+            current.filter(g => g.id !== newRecord?.id)
+        );
+    }
+};
 
     // Show themed alert
     const showAlert = (type, title, message, autoClose = true) => {
