@@ -727,8 +727,8 @@ const QwenImageToImage = () => {
                     <p className="text-purple-300 text-xs">
                       Press Enter to add • Max 5 LoRAs • Civitai URLs supported
                     </p>
-                  </div>
-                </div>   */}
+                  </div>   */}
+                </div>   
                 
                 {/* Prompt Suggestions */}
                 <div>
