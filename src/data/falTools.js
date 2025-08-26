@@ -131,7 +131,7 @@ export const falTools = [
     {
         id: 18,
         name: "Up to 30 seconds IMAGE2vid tool",
-        description: "Advanced IMG2VID tool, creates longer length videos",
+        description: "Advanced IMG2VID tool, creates longer length videos, best to test out your ideas with",
         image: toCdnUrl("https://images.pexels.com/photos/2695679/pexels-photo-2695679.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1"),
         tokensRequired: "25+",
         category: "video",
