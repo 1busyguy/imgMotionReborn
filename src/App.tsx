@@ -15,6 +15,7 @@ import Settings from './pages/Settings';
 import Gallery from './pages/Gallery';
 import FluxRedux from './pages/fal-tools/FluxRedux';
 import FluxKontext from './pages/fal-tools/FluxKontext';
+import FluxKontextMaxMulti from './pages/fal-tools/FluxKontextMaxMulti';
 import MinimaxHailuo from './pages/fal-tools/MinimaxHailuo';
 import WanPro from './pages/fal-tools/WanPro';
 import KlingPro from './pages/fal-tools/KlingPro';
@@ -239,9 +240,7 @@ function App() {
               path="/flux-kontext-max-multi"
               element={
                 <ProtectedRoute>
-                  <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center">
-                    <div className="text-white text-xl">FLUX Kontext Max Multi - Coming Soon</div>
-                  </div>
+                  <FluxKontextMaxMulti />
                 </ProtectedRoute>
               } 
             />
