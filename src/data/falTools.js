@@ -50,15 +50,15 @@ export const falTools = [
         route: "/flux-kontext-max-multi"
     },
   {
-        id: 9,
-        name: "FLUX Redux Pro",
-        description: "Create image variations with advanced IP-Adapter control for style preservation",
-        image: toCdnUrl("https://images.pexels.com/photos/1762851/pexels-photo-1762851.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1"),
-        tokensRequired: "20+",
-        category: "image",
-        toolType: "fal_flux_redux",
-        route: "/flux-redux"
-    },
+//        id: 9,
+//        name: "FLUX Redux Pro",
+//        description: "Create image variations with advanced IP-Adapter control for style preservation",
+//        image: toCdnUrl("https://images.pexels.com/photos/1762851/pexels-photo-1762851.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1"),
+//        tokensRequired: "20+",
+//        category: "image",
+//        toolType: "fal_flux_redux",
+//        route: "/flux-redux"
+//    },
     {
         id: 10,
         name: "FLUX Kontext",
