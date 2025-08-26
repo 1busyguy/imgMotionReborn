@@ -35,6 +35,7 @@ import WanV22Img2VideoLora from './pages/fal-tools/WanV22Img2VideoLora';
 import WanV22Video2Video from './pages/fal-tools/WanV22Video2Video';
 import WanV22Text2VideoLora from './pages/fal-tools/WanV22Text2VideoLora';
 import VEO3Standard from './pages/fal-tools/VEO3Standard';
+import GeminiFlashImageEdit from './pages/fal-tools/GeminFlashImageEdit';
 import Admin from './pages/Admin';
 import Showcase from './pages/Showcase';
 import About from './pages/About';
@@ -385,6 +386,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <VEO3Standard />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/gemini-flash-image-edit" 
+              element={
+                <ProtectedRoute>
+                  <GeminiFlashImageEdit />
                 </ProtectedRoute>
               } 
             />

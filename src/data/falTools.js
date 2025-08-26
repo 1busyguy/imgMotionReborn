@@ -231,4 +231,16 @@ export const falTools = [
         toolType: "fal_veo3",
         route: "/veo3-standard"
     },
+    
+    // GEMINI 2.5 FLASH IMAGE EDIT - NEW TOOL
+    {
+        id: 35,
+        name: "Gemini 2.5 Flash Image Edit",
+        description: "Advanced AI image editing with Google's Gemini 2.5 Flash model - edit and enhance images with natural language",
+        image: toCdnUrl("https://images.pexels.com/photos/3861958/pexels-photo-3861958.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1"),
+        tokensRequired: "8+",
+        category: "image",
+        toolType: "fal_gemini_flash_image_edit",
+        route: "/gemini-flash-image-edit"
+    },
 ];
