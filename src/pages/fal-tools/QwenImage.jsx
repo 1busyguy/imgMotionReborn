@@ -874,7 +874,42 @@ const QwenImageToImage = () => {
                                 className="w-full px-2 py-1 bg-white/10 border border-white/20 rounded text-white text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500"
                               />
                             </div>
+                            <div>
+                              <label className="block text-xs text-purple-300 mb-1">Transformer</label>
+                              <select
+                                value={lora.transformer || 'high'}
+                                onChange={(e) => updateLora(index, 'transformer', e.target.value)}
+                                className="w-full px-2 py-1 bg-white/10 border border-white/20 rounded text-white text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                              >
+                                <option value="high" className="bg-gray-800">High</option>
+                                <option value="low" className="bg-gray-800">Low</option>
+                                <option value="both" className="bg-gray-800">Both</option>
+                              </select>
+                            </div>
                           </div>
+                          
+                          {/* Trigger Words Display */}
+                          {lora.trigger_words && lora.trigger_words.length > 0 && (
+                            <div className="mt-2">
+                              <label className="block text-xs text-purple-300 mb-1">Trigger Words</label>
+                              <div className="flex flex-wrap gap-1">
+                                {lora.trigger_words.map((word, wordIndex) => (
+                                  <span 
+                                    key={wordIndex}
+                                    className="px-2 py-0.5 bg-emerald-500/20 text-emerald-300 text-xs rounded cursor-pointer hover:bg-emerald-500/30 transition-colors"
+                                    onClick={() => {
+                                      const currentPrompt = config.prompt;
+                                      const newPrompt = currentPrompt ? `${currentPrompt}, ${word}` : word;
+                                      setConfig(prev => ({ ...prev, prompt: newPrompt }));
+                                    }}
+                                    title="Click to add to prompt"
+                                  >
+                                    {word}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -901,7 +936,8 @@ const QwenImageToImage = () => {
                           addLora({
                             path: e.target.value.trim(),
                             weight_name: `custom_lora_${config.loras.length + 1}`,
-                            scale: 1.0
+                            scale: 1.0,
+                            transformer: 'high'
                           });
                           e.target.value = '';
                         }
