@@ -506,7 +506,7 @@ const WanV22Img2VideoLora = () => {
                 </div>
                 <div className="min-w-0">
                   <h1 className="text-xl font-bold text-white truncate">WAN v2.2 Img2Video LoRA</h1>
-                  <p className="text-purple-200 text-sm truncate">Advanced image-to-video generation with WAN v2.2-a14b model and LoRA fine-tuning</p>
+                  <p className="text-purple-200 text-sm truncate">img2vid generation with WAN v2.2-a14b model+ LoRA</p>
                 </div>
               </div>
             </div>
