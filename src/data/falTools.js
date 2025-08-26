@@ -49,7 +49,7 @@ export const falTools = [
         toolType: "fal_flux_kontext_max_multi",
         route: "/flux-kontext-max-multi"
     },
-  {
+//  {
 //        id: 9,
 //        name: "FLUX Redux Pro",
 //        description: "Create image variations with advanced IP-Adapter control for style preservation",
