@@ -245,12 +245,18 @@ const GeminFlashImageEdit = () => {
     if (!file) return;
 
     if (!file.type.startsWith('image/')) {
-      alert('Please select an image file');
+      showAlert('error', 'Invalid File Type', 'Please select a JPG or PNG image file only.');
       return;
     }
 
+    // Only allow JPG and PNG files
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+    if (!allowedTypes.includes(file.type.toLowerCase())) {
+      showAlert('error', 'Unsupported File Format', 'Please upload only JPG or PNG images. Other formats are not supported by Gemini Flash Image Edit.');
+      return;
+    }
     if (file.size > 10 * 1024 * 1024) {
-      alert('File size must be less than 10MB');
+      showAlert('error', 'File Too Large', 'Image file size must be less than 10MB. Please compress your image or select a smaller file.');
       return;
     }
 
