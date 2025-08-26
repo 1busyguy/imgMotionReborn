@@ -19,7 +19,8 @@ import {
   ChevronUp,
   ChevronDown,
   RefreshCw,
-  Music
+  Music,
+  Sparkles
 } from 'lucide-react';
 
 const Dashboard = () => {
@@ -589,15 +590,23 @@ const Dashboard = () => {
                 </div>
               </div>
 
-              {/* Enter Gallery Button */}
+              {/* Action Buttons */}
               <div className="w-full lg:w-1/2 lg:pl-6 flex justify-center lg:justify-end">
-                <div className="flex flex-col sm:flex-row gap-3 w-full max-w-md">
+                <div className="flex flex-col sm:flex-row gap-3 w-full max-w-lg">
                   <button 
                     onClick={() => navigate('/gallery')}
-                    className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white font-bold py-4 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 flex items-center space-x-2 justify-center flex-1"
+                    className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white font-bold py-3 px-4 rounded-xl transition-all duration-300 transform hover:scale-105 flex items-center space-x-2 justify-center flex-1"
                   >
                     <Upload className="w-5 h-5" />
                     <span>Enter Gallery</span>
+                  </button>
+                  
+                  <button 
+                    onClick={() => navigate('/showcase')}
+                    className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-bold py-3 px-4 rounded-xl transition-all duration-300 transform hover:scale-105 flex items-center space-x-2 justify-center flex-1"
+                  >
+                    <Sparkles className="w-5 h-5" />
+                    <span>View Showcase</span>
                   </button>
                   
                   <button 
@@ -605,7 +614,7 @@ const Dashboard = () => {
                       setShowAllTools(true);
                       setCurrentToolPage(0);
                     }}
-                    className="bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white font-bold py-4 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 flex items-center space-x-2 justify-center flex-1"
+                    className="bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white font-bold py-3 px-4 rounded-xl transition-all duration-300 transform hover:scale-105 flex items-center space-x-2 justify-center flex-1"
                   >
                     <Wand2 className="w-5 h-5" />
                     <span>View All Tools</span>
