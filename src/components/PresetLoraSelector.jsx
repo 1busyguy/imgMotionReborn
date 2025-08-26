@@ -42,7 +42,10 @@ const PresetLoraSelector = ({
 
       // Filter based on tool type and tier access
       const filtered = data.filter(lora => {
-        const toolMatch = lora.tool_types.includes(toolType) || lora.tool_types.includes('both');
+        const toolMatch = lora.tool_types.includes(toolType) || 
+                          lora.tool_types.includes('both') ||
+                          (toolType === 'Qi' && lora.tool_types.includes('Qi')) ||
+                          (toolType === 'Qi2i' && lora.tool_types.includes('Qi2i'));
         const tierMatch = lora.tier_access.includes(userTier) || 
                           (userTier === 'business' && lora.tier_access.includes('pro')) ||
                           (userTier === 'pro' && lora.tier_access.includes('free')) ||
