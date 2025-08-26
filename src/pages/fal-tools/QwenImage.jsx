@@ -638,6 +638,53 @@ const QwenImage = () => {
                   </div>
                 </div>
 
+                {/* Output Format */}
+                <div>
+                  <label className="block text-sm font-medium text-purple-200 mb-2">
+                    Output Format
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={() => setConfig(prev => ({ ...prev, output_format: 'png' }))}
+                      className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                        config.output_format === 'png'
+                          ? 'bg-emerald-500 text-white'
+                          : 'bg-white/10 text-purple-200 hover:bg-white/20'
+                      }`}
+                    >
+                      PNG
+                    </button>
+                    <button
+                      onClick={() => setConfig(prev => ({ ...prev, output_format: 'jpeg' }))}
+                      className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                        config.output_format === 'jpeg'
+                          ? 'bg-emerald-500 text-white'
+                          : 'bg-white/10 text-purple-200 hover:bg-white/20'
+                      }`}
+                    >
+                      JPEG
+                    </button>
+                  </div>
+                </div>
+
+                {/* Safety Checker */}
+                <div>
+                  <label className="flex items-center space-x-3">
+                    <input
+                      type="checkbox"
+                      checked={config.enable_safety_checker}
+                      onChange={(e) => setConfig(prev => ({ ...prev, enable_safety_checker: e.target.checked }))}
+                      className="w-4 h-4 text-emerald-600 bg-white/10 border-white/20 rounded focus:ring-emerald-500"
+                    />
+                    <div>
+                      <span className="text-white font-medium">Enable Safety Checker</span>
+                      <p className="text-purple-300 text-xs">
+                        Filter inappropriate content during generation
+                      </p>
+                    </div>
+                  </label>
+                </div>
+
                 {/* Seed */}
                 <div>
                   <label className="block text-sm font-medium text-purple-200 mb-2">
