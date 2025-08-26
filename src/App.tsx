@@ -19,7 +19,6 @@ import MinimaxHailuo from './pages/fal-tools/MinimaxHailuo';
 import WanPro from './pages/fal-tools/WanPro';
 import Wan22 from './pages/fal-tools/Wan22';
 import KlingPro from './pages/fal-tools/KlingPro';
-import FluxKontextLora from './pages/fal-tools/FluxKontextLora';
 import LTXVVideo from './pages/fal-tools/LTXVVideo';
 import FalVideoUpscaler from './pages/fal-tools/FalVideoUpscaler';
 import BriaBackgroundRemover from './pages/fal-tools/BriaBackgroundRemover';
@@ -259,14 +258,6 @@ function App() {
               element={
                 <ProtectedRoute>
                   <KlingPro />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/flux-kontext-lora" 
-              element={
-                <ProtectedRoute>
-                  <FluxKontextLora />
                 </ProtectedRoute>
               } 
             />

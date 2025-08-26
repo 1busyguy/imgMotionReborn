@@ -684,7 +684,7 @@ const Dashboard = () => {
               <h3 className="text-lg font-semibold text-white mb-4">Quick Actions</h3>
               <div className="space-y-3">
                 <button 
-                  onClick={() => navigate('/flux-kontext-lora')}
+                  onClick={() => navigate('/flux-kontext')}
                   className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-semibold py-2 px-4 rounded-lg transition-all duration-300 text-sm"
                 >
                   Create AI Image
