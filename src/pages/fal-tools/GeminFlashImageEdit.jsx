@@ -77,6 +77,8 @@ const GeminFlashImageEdit = () => {
       fetchProfile();
       fetchGenerations();
       
+      console.log('🔗 Setting up real-time subscription for user:', user.id);
+      
       // Set up real-time subscription for this specific tool type
       const subscription = supabase
         .channel('gemini_flash_edit_generations')
@@ -86,16 +88,35 @@ const GeminFlashImageEdit = () => {
             event: '*',
             schema: 'public',
             table: 'ai_generations',
-            filter: `user_id=eq.${user.id},tool_type=eq.fal_gemini_flash_image_edit`
+            filter: `user_id=eq.${user.id}`
           },
           (payload) => {
-            console.log('✨ Gemini Flash Real-time update received:', payload);
-            handleRealtimeUpdate(payload);
+            console.log('📡 Raw real-time payload received:', {
+              event: payload.eventType,
+              table: payload.table,
+              schema: payload.schema,
+              new: payload.new ? { 
+                id: payload.new.id, 
+                tool_type: payload.new.tool_type, 
+                status: payload.new.status,
+                error_message: payload.new.error_message?.substring(0, 50)
+              } : null,
+              old: payload.old ? { id: payload.old.id } : null
+            });
+            
+            // Only process updates for this tool type
+            const record = payload.new || payload.old;
+            if (record && record.tool_type === 'fal_gemini_flash_image_edit') {
+              console.log('✅ Processing update for Gemini Flash tool');
+              handleRealtimeUpdate(payload);
+            } else {
+              console.log('⏭️ Skipping update for different tool:', record?.tool_type);
+            }
           }
         )
         .subscribe();
 
-      console.log('Real-time subscription set up for Gemini Flash Image Edit');
+      console.log('✅ Real-time subscription set up for Gemini Flash Image Edit');
       return () => subscription.unsubscribe();
     }
   }, [user]);
@@ -140,8 +161,11 @@ const GeminFlashImageEdit = () => {
     
     console.log('✨ Processing Gemini Flash real-time update:', { 
       eventType, 
-      newRecord: newRecord ? { id: newRecord.id, status: newRecord.status } : null,
-      oldRecord: oldRecord ? { id: oldRecord.id } : null
+      generationId: newRecord?.id || oldRecord?.id,
+      newStatus: newRecord?.status,
+      oldStatus: oldRecord?.status,
+      hasErrorMessage: !!newRecord?.error_message,
+      errorMessage: newRecord?.error_message?.substring(0, 100)
     });
 
     setGenerations(current => {
@@ -150,7 +174,13 @@ const GeminFlashImageEdit = () => {
           console.log('➕ Adding new generation to list');
           return [newRecord, ...current];
         case 'UPDATE':
-          console.log('🔄 Updating existing generation, new status:', newRecord.status);
+          console.log('🔄 Updating existing generation:', {
+            id: newRecord.id,
+            oldStatus: current.find(g => g.id === newRecord.id)?.status,
+            newStatus: newRecord.status,
+            hasOutput: !!newRecord.output_file_url,
+            hasError: !!newRecord.error_message
+          });
           return current.map(item => 
             item.id === newRecord.id ? newRecord : item
           );
@@ -158,6 +188,7 @@ const GeminFlashImageEdit = () => {
           console.log('🗑️ Removing generation from list');
           return current.filter(item => item.id !== oldRecord.id);
         default:
+          console.log('❓ Unknown event type:', eventType);
           return current;
       }
     });
@@ -168,10 +199,18 @@ const GeminFlashImageEdit = () => {
         return exists ? current.map(g => g.id === newRecord.id ? newRecord : g) : [newRecord, ...current];
       });
     } else if (newRecord?.status === 'completed' || newRecord?.status === 'failed') {
+      console.log(`🎯 Generation ${newRecord.status}:`, {
+        id: newRecord.id,
+        status: newRecord.status,
+        hasOutput: !!newRecord.output_file_url,
+        errorMessage: newRecord.error_message
+      });
+      
       setActiveGenerations(current => current.filter(g => g.id !== newRecord?.id));
       
       // Show failure notification with 1-second delay
       if (newRecord?.status === 'failed') {
+        console.log('🚨 Showing failure notification for:', newRecord.id);
         setTimeout(() => {
           const errorMessage = newRecord.error_message || 'Generation failed';
           showAlert('error', 'Generation Failed', `Gemini Flash Image Edit failed: ${errorMessage}`);
