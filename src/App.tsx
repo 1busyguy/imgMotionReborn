@@ -13,7 +13,6 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Settings from './pages/Settings';
 import Gallery from './pages/Gallery';
-import FluxRedux from './pages/fal-tools/FluxRedux';
 import FluxKontext from './pages/fal-tools/FluxKontext';
 import FluxKontextMaxMulti from './pages/fal-tools/FluxKontextMaxMulti';
 import MinimaxHailuo from './pages/fal-tools/MinimaxHailuo';
@@ -216,14 +215,6 @@ function App() {
               element={
                 <ProtectedRoute>
                   <Gallery />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/flux-redux" 
-              element={
-                <ProtectedRoute>
-                  <FluxRedux />
                 </ProtectedRoute>
               } 
             />
