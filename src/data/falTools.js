@@ -108,7 +108,7 @@ export const falTools = [
 //    },
     {
         id: 11,
-        name: "A IMAGE 2 Video Tool - it's consistent",
+        name: "A consistent IMG2Vid Tool ",
         description: "IMAGE2video tools that produces video with undersatnding and consistency",
         image: toCdnUrl("https://images.pexels.com/photos/1117132/pexels-photo-1117132.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1"),
         tokensRequired: "50+",
@@ -120,7 +120,7 @@ export const falTools = [
     // FUNCTIONAL TOOLS - Page 2 (positions 5-8)
     {
         id: 15,
-        name: "Advanced IMAGE2video Tool, HD and clear results",
+        name: "Advanced HD IMAGE2video Tool",
         description: "Professional-grade image-to-video creation",
         image: toCdnUrl("https://images.pexels.com/photos/3379933/pexels-photo-3379933.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1"),
         tokensRequired: "90+",
