@@ -840,6 +840,79 @@ const QwenImageToImage = () => {
                   maxLoras={5}
                 />
 
+                {/* Active LoRAs */}
+                {config.loras.length > 0 && (
+                  <div>
+                    <label className="block text-sm font-medium text-purple-200 mb-2">
+                      <Sparkles className="w-4 h-4 inline mr-1" />
+                      Active LoRAs ({config.loras.length}/5)
+                    </label>
+                    <div className="space-y-3">
+                      {config.loras.map((lora, index) => (
+                        <div key={index} className="bg-white/5 rounded-lg p-3 border border-white/10">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-white font-medium text-sm">{lora.weight_name}</span>
+                            <button
+                              onClick={() => removeLora(index)}
+                              className="text-red-400 hover:text-red-300 transition-colors"
+                              title="Remove LoRA"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+                          
+                          <div className="grid grid-cols-2 gap-3">
+                            <div>
+                              <label className="block text-xs text-purple-300 mb-1">Scale</label>
+                              <input
+                                type="number"
+                                step="0.1"
+                                min="0"
+                                max="3"
+                                value={lora.scale}
+                                onChange={(e) => updateLora(index, 'scale', parseFloat(e.target.value))}
+                                className="w-full px-2 py-1 bg-white/10 border border-white/20 rounded text-white text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Manual LoRA Addition */}
+                <div>
+                  <label className="block text-sm font-medium text-purple-200 mb-2">
+                    <Plus className="w-4 h-4 inline mr-1" />
+                    Add Custom LoRA
+                  </label>
+                  <div className="space-y-2">
+                    <input
+                      type="url"
+                      placeholder="LoRA URL (e.g., https://civitai.com/api/download/models/...)"
+                      className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-purple-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm"
+                      onKeyPress={(e) => {
+                        if (e.key === 'Enter' && e.target.value.trim()) {
+                          if (config.loras.length >= 5) {
+                            alert('Maximum 5 LoRAs allowed');
+                            return;
+                          }
+                          addLora({
+                            path: e.target.value.trim(),
+                            weight_name: `custom_lora_${config.loras.length + 1}`,
+                            scale: 1.0
+                          });
+                          e.target.value = '';
+                        }
+                      }}
+                    />
+                    <p className="text-purple-300 text-xs">
+                      Press Enter to add • Max 5 LoRAs • Civitai URLs supported
+                    </p>
+                  </div>
+                </div>
+
                 {/* Generate Button */}
                 <button
                   onClick={handleGenerate}
