@@ -778,7 +778,7 @@ const WanV22Text2VideoLora = () => {
 
                   {config.loras.length === 0 && !showLoraForm && (
                     <div className="text-center py-4 text-purple-300 text-sm">
-                      No LoRAs added. Click "Add LoRA" to enhance your generation (max 2).
+                      No LoRAs added. Click "Add LoRA" to add (max 2). USE AT YOUR OWN RISK*.
                     </div>
                   )}
 
