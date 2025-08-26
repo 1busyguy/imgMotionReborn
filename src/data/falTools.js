@@ -6,8 +6,8 @@ export const falTools = [
     // WAN v2.2-a14b TEXT-TO-VIDEO LORA - NEW TOOL
     {
         id: 30,
-        name: "WAN v2.2 Text2Video LoRA",
-        description: "Advanced text-to-video generation with WAN v2.2-a14b model and LoRA fine-tuning support",
+        name: "Advanced TEXT to Video Tool",
+        description: "Make videos from TEXT that describe your ideas",
         image: toCdnUrl("https://images.pexels.com/photos/3861958/pexels-photo-3861958.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1"),
        tokensRequired: "25+",
         category: "video",
@@ -18,8 +18,8 @@ export const falTools = [
     // WAN v2.2-a14b IMAGE-TO-VIDEO LORA - NEW TOOL
     {
         id: 31,
-        name: "WAN v2.2 Img2Video LoRA",
-        description: "Advanced image-to-video generation with WAN v2.2-a14b model and LoRA fine-tuning support",
+        name: "Advanced IMAGE to Video Tool",
+        description: "Make videos from an IMAGE that describe your ideas",
         image: toCdnUrl("https://images.pexels.com/photos/3379933/pexels-photo-3379933.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1"),
         tokensRequired: "30+",
         category: "video",
@@ -29,8 +29,8 @@ export const falTools = [
   // WAN v2.2-a14b VIDEO-TO-VIDEO - NEW TOOL
     {
         id: 33,
-        name: "WAN v2.2 Video2Video",
-        description: "Transform existing videos with AI - change style, content, and motion while preserving structure",
+        name: "Using words to change video",
+        description: "Use AI to edit videos, switch style, change parts, and move things while keeping its structure",
         image: toCdnUrl("https://images.pexels.com/photos/3861958/pexels-photo-3861958.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1"),
         tokensRequired: "25+",
         category: "video",
@@ -41,8 +41,8 @@ export const falTools = [
     // FLUX KONTEXT MAX MULTI - NEW MULTI-IMAGE TOOL
     {
         id: 32,
-        name: "FLUX Kontext Max Multi",
-        description: "Advanced multi-image composition with FLUX Pro Kontext Max - combine multiple images intelligently",
+        name: "Compose an image, with iamges",
+        description: "Smartly mix many pictures together in one image",
         image: toCdnUrl("https://images.pexels.com/photos/3861958/pexels-photo-3861958.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1"),
         tokensRequired: "15+",
         category: "image",
@@ -61,8 +61,8 @@ export const falTools = [
 //    },
     {
         id: 10,
-        name: "FLUX Kontext",
-        description: "Generate images with context-aware composition and spatial understanding",
+        name: "The Image Manipulator",
+        description: "Change things within an image by simply typing what you need changed",
         image: toCdnUrl("https://images.pexels.com/photos/3785079/pexels-photo-3785079.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1"),
         tokensRequired: "10+",
         category: "image",
@@ -87,8 +87,8 @@ export const falTools = [
     // MMAUDIO VIDEO2AUDIO - NEW TOOL
     {
         id: 28,
-        name: "MMAudio Video2Audio",
-        description: "Generate synchronized audio for videos - perfect soundtracks that match your content",
+        name: "Give a Video Sound",
+        description: "Generate synchronized audio for videos to match the action",
         image: toCdnUrl("https://images.pexels.com/photos/3784424/pexels-photo-3784424.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1"),
         tokensRequired: "5+",
         category: "audio",
@@ -108,8 +108,8 @@ export const falTools = [
 //    },
     {
         id: 11,
-        name: "Minimax Hailuo Video",
-        description: "Transform images into cinematic videos with Hailuo's advanced AI",
+        name: "A IMAGE 2 Video Tool - it's consistent",
+        description: "IMAGE2video tools that produces video with undersatnding and consistency",
         image: toCdnUrl("https://images.pexels.com/photos/1117132/pexels-photo-1117132.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1"),
         tokensRequired: "50+",
         category: "video",
@@ -120,8 +120,8 @@ export const falTools = [
     // FUNCTIONAL TOOLS - Page 2 (positions 5-8)
     {
         id: 15,
-        name: "Kling Pro Video",
-        description: "Professional-grade image-to-video with Kling v2.1 Pro model",
+        name: "Advanced IMAGE2video Tool, HD and clear results",
+        description: "Professional-grade image-to-video creation",
         image: toCdnUrl("https://images.pexels.com/photos/3379933/pexels-photo-3379933.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1"),
         tokensRequired: "90+",
         category: "video",
@@ -130,8 +130,8 @@ export const falTools = [
     },
     {
         id: 18,
-        name: "LTXV Video Creator",
-        description: "Advanced image-to-video generation with extensive customization options",
+        name: "Up to 30 seconds IMAGE2vid tool",
+        description: "Advanced IMG2VID tool, creates longer length videos",
         image: toCdnUrl("https://images.pexels.com/photos/2695679/pexels-photo-2695679.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1"),
         tokensRequired: "25+",
         category: "video",
@@ -140,8 +140,8 @@ export const falTools = [
     },
     {
         id: 23,
-        name: "Seedance Pro Video",
-        description: "Professional image-to-video generation with Seedance Pro technology",
+        name: "A multi-scene IMAGE2vid tool",
+        description: "Advanced scene creation possiblilties with clip based text commands",
         image: toCdnUrl("https://images.pexels.com/photos/3379933/pexels-photo-3379933.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1"),
         tokensRequired: "120+",
         category: "video",
@@ -153,8 +153,8 @@ export const falTools = [
     // MMAUDIO V2 - NEW AUDIO TOOL
     {
         id: 27,
-        name: "MMAudio v2",
-        description: "Advanced text-to-audio generation with high-quality synthesis and precise control",
+        name: "Type what you want to hear",
+        description: "Advanced text-to-audio generation",
         image: toCdnUrl("https://images.pexels.com/photos/1190297/pexels-photo-1190297.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1"),
         tokensRequired: "5+",
         category: "audio",
@@ -165,7 +165,7 @@ export const falTools = [
    //    OMNIHUMAN - NEW TALKING AVATAR TOOL
     {
         id: 29,
-        name: "Omnihuman Talking Avatar",
+        name: "IMAGE + Audio = Talking IMAGE",
         description: "Create realistic talking avatars from images and audio - bring photos to life with speech",
         image: toCdnUrl("https://images.pexels.com/photos/3785079/pexels-photo-3785079.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1"),
         tokensRequired: "30/sec",
@@ -175,8 +175,8 @@ export const falTools = [
     },
     {
         id: 20,
-        name: "BRIA Background Remover",
-        description: "Professional AI-powered background removal with precision edge detection",
+        name: "IMAGE Background Remover",
+        description: "Remove the background of your images",
         image: toCdnUrl("https://images.pexels.com/photos/4065876/pexels-photo-4065876.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1"),
         tokensRequired: "5+",
         category: "image",
@@ -185,8 +185,8 @@ export const falTools = [
     },
     {
         id: 19,
-        name: "FAL Video Upscaler",
-        description: "Enhance video quality with AI-powered upscaling (2x, 4x, 8x)",
+        name: "Increase the clarity of your videos",
+        description: "Enhance video quality with this tool",
         image: toCdnUrl("https://images.pexels.com/photos/3945313/pexels-photo-3945313.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1"),
         tokensRequired: "50+",
         category: "enhancement",
@@ -195,8 +195,8 @@ export const falTools = [
     },
     {
         id: 22,
-        name: "VEO3 Fast",
-        description: "Fast image-to-video generation with Google's VEO3 model - quick turnaround with excellent quality",
+        name: "Advanced IMG2VID tool $$ ",
+        description: "Fast image-to-video generation quick turnaround with excellent quality",
         image: toCdnUrl("https://images.pexels.com/photos/3861958/pexels-photo-3861958.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1"),
         tokensRequired: "288+",
         category: "video",
@@ -205,8 +205,8 @@ export const falTools = [
     },
     {
         id: 34,
-        name: "VEO3 Standard",
-        description: "High-quality image-to-video generation with Google's VEO3 model - premium quality with longer processing",
+        name: "Superior IMG2VID tool $$$$",
+        description: "High-quality image-to-video generation, premium quality with longer processing",
         image: toCdnUrl("https://images.pexels.com/photos/3861958/pexels-photo-3861958.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1"),
         tokensRequired: "534+",
         category: "video",
@@ -217,8 +217,8 @@ export const falTools = [
     // GEMINI 2.5 FLASH IMAGE EDIT - NEW TOOL
     {
         id: 35,
-        name: "Gemini 2.5 Flash Image Edit",
-        description: "Advanced AI image editing with Google's Gemini 2.5 Flash model - edit and enhance images with natural language",
+        name: "Google Nano Banana txt2img altering tool",
+        description: "Advanced AI image editing with edit and enhance images with your own words",
         image: toCdnUrl("https://images.pexels.com/photos/3861958/pexels-photo-3861958.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1"),
         tokensRequired: "8+",
         category: "image",
@@ -229,8 +229,8 @@ export const falTools = [
     // QWEN IMAGE TOOLS - NEW ADDITIONS
     {
         id: 36,
-        name: "Qwen Image Generator",
-        description: "Advanced text-to-image generation with Qwen's powerful AI model - high-quality realistic images",
+        name: "Advanced Image Generator",
+        description: "Advanced text-to-image generation high-quality realistic images",
         image: toCdnUrl("https://images.pexels.com/photos/3861958/pexels-photo-3861958.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1"),
         tokensRequired: "8+",
         category: "image",
@@ -239,8 +239,8 @@ export const falTools = [
     },
     {
         id: 37,
-        name: "Qwen Image-to-Image",
-        description: "Transform existing images with Qwen's AI - edit, enhance, and reimagine your photos",
+        name: "Advanced Editing Image2Image tool",
+        description: "Transform existing images - edit, enhance, and reimagine your photos",
         image: toCdnUrl("https://images.pexels.com/photos/3785079/pexels-photo-3785079.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1"),
         tokensRequired: "10+",
         category: "image",
