@@ -35,6 +35,33 @@ import {
   X
 } from 'lucide-react';
 
+// Helper function to extract filename from URL
+const extractFilename = (url) => {
+  if (!url) return 'unknown';
+  
+  try {
+    // Extract filename from URL path
+    const urlParts = url.split('/');
+    let filename = urlParts[urlParts.length - 1];
+    
+    // Remove query parameters if present
+    filename = filename.split('?')[0];
+    
+    // If filename is too long, shorten it
+    if (filename.length > 30) {
+      const extension = filename.split('.').pop();
+      const nameWithoutExt = filename.substring(0, filename.lastIndexOf('.'));
+      const start = nameWithoutExt.substring(0, 12);
+      const end = nameWithoutExt.substring(nameWithoutExt.length - 8);
+      filename = `${start}...${end}.${extension}`;
+    }
+    
+    return filename;
+  } catch (error) {
+    return 'unknown';
+  }
+};
+
 const Gallery = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
