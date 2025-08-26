@@ -36,6 +36,7 @@ const Dashboard = () => {
   const [currentToolPage, setCurrentToolPage] = useState(0);
   const [selectedTool, setSelectedTool] = useState(null);
   const [showToolModal, setShowToolModal] = useState(false);
+  const [showAllTools, setShowAllTools] = useState(false);
   const navigate = useNavigate();
 
   // Use real-time activity hook
@@ -238,6 +239,9 @@ const Dashboard = () => {
   };
 
   const getCurrentTools = () => {
+    if (showAllTools) {
+      return allTools; // Return all tools when "ALL" is selected
+    }
     const startIndex = currentToolPage * toolsPerPage;
     return allTools.slice(startIndex, startIndex + toolsPerPage);
   };
@@ -433,7 +437,7 @@ const Dashboard = () => {
 
         {/* AI Generation Tools - 4 in a row */}
         <div className="mb-8">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <div className={`grid gap-6 ${showAllTools ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4' : 'grid-cols-1 md:grid-cols-4'}`}>
             {getCurrentTools().map((tool) => (
               <div
                 key={tool.id}
@@ -487,6 +491,24 @@ const Dashboard = () => {
           {/* Number Pagination */}
           {totalPages > 1 && (
             <div className="flex justify-center mt-6 space-x-2">
+              {/* ALL Button */}
+              <button
+                onClick={() => {
+                  setShowAllTools(!showAllTools);
+                  setCurrentToolPage(0); // Reset to first page when toggling
+                }}
+                className={`px-4 h-10 rounded-lg font-semibold transition-all duration-300 ${
+                  showAllTools
+                    ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-lg'
+                    : 'bg-white/10 text-purple-200 hover:bg-white/20 hover:text-white'
+                }`}
+              >
+                ALL
+              </button>
+              
+              {/* Page Numbers - Only show when not in ALL mode */}
+              {!showAllTools && (
+                <>
               {Array.from({ length: totalPages }).map((_, index) => (
                 <button
                   key={index}
@@ -500,6 +522,8 @@ const Dashboard = () => {
                   {index + 1}
                 </button>
               ))}
+                </>
+              )}
             </div>
           )}
         </div>
