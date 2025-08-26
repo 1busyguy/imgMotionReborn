@@ -17,7 +17,6 @@ import FluxRedux from './pages/fal-tools/FluxRedux';
 import FluxKontext from './pages/fal-tools/FluxKontext';
 import MinimaxHailuo from './pages/fal-tools/MinimaxHailuo';
 import WanPro from './pages/fal-tools/WanPro';
-import Wan22 from './pages/fal-tools/Wan22';
 import KlingPro from './pages/fal-tools/KlingPro';
 import LTXVVideo from './pages/fal-tools/LTXVVideo';
 import FalVideoUpscaler from './pages/fal-tools/FalVideoUpscaler';
@@ -306,14 +305,6 @@ function App() {
               element={
                 <ProtectedRoute>
                   <SeedancePro />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/wan-v22-a14b" 
-              element={
-                <ProtectedRoute>
-                  <WanV22A14b />
                 </ProtectedRoute>
               } 
             />

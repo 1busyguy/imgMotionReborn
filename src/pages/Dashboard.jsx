@@ -702,13 +702,6 @@ const Dashboard = () => {
                   Advanced Video Creator
                 </button>
                 <button 
-                  onClick={() => navigate('/wan-v22-a14b')}
-                  className="w-full bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white font-semibold py-2 px-4 rounded-lg transition-all duration-300 text-sm flex items-center justify-center space-x-2"
-                >
-                  <span>WAN 2.2 - NEW MODEL</span>
-                  <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">NEW</span>
-                </button>
-                <button 
                   onClick={() => navigate('/cassetteai-music')}
                   className="w-full bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white font-semibold py-2 px-4 rounded-lg transition-all duration-300 text-sm"
                 >

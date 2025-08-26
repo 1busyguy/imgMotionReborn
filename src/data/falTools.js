@@ -3,18 +3,6 @@ import { toCdnUrl } from '../utils/cdnHelpers';
 
 export const falTools = [
 
-   // WAN 2.2 PROFESSIONAL - NEW TOOL!!
-    {
-        id: 24,
-        name: "WAN v2.2-a14b Video",
-        description: "Advanced image-to-video generation with WAN v2.2-a14b model and frame interpolation",
-        image: toCdnUrl("https://images.pexels.com/photos/5086477/pexels-photo-5086477.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1"),
-        tokensRequired: "20+",
-        category: "video",
-        toolType: "fal_wan_v22_a14b",
-        route: "/wan-v22-a14b"
-    },
-        
     // WAN v2.2-a14b TEXT-TO-VIDEO LORA - NEW TOOL
     {
         id: 30,
