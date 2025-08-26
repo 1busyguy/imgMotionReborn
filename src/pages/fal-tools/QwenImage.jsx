@@ -698,8 +698,8 @@ const QwenImageToImage = () => {
                 )}
 
                 {/* Manual LoRA Addition */}
-                <div>
-         {/*          <label className="block text-sm font-medium text-purple-200 mb-2">
+         {/*       <div>
+                   <label className="block text-sm font-medium text-purple-200 mb-2">
                     <Plus className="w-4 h-4 inline mr-1" />
                     Add Custom LoRA
                   </label>
@@ -727,8 +727,8 @@ const QwenImageToImage = () => {
                     <p className="text-purple-300 text-xs">
                       Press Enter to add • Max 5 LoRAs • Civitai URLs supported
                     </p>
-                  </div>   */}
-                </div>   
+                  </div>   
+                </div>   */}
                 
                 {/* Prompt Suggestions */}
                 <div>
