@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabaseClient';
 import { useAuth } from '../../hooks/useAuth';
@@ -276,7 +276,7 @@ const GeminiFlashImageEdit = () => {
 
             // Create generation record
             const generation = await createAIGeneration(
-                'fal_gemini_flash_image_edit',
+                'fal_flux_redux',
                 config.prompt.substring(0, 50) + '...',
                 config,
                 tokenCost
