@@ -8,7 +8,7 @@ export const falTools = [
         id: 30,
         name: "Advanced TEXT to Video Tool",
         description: "Make videos from TEXT that describe your ideas, newest version out right now",
-        image: toCdnUrl("https://images.pexels.com/photos/3861958/pexels-photo-3861958.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1"),
+        image: toCdnUrl("https://xisxqackivlrakfszfop.supabase.co/storage/v1/object/public/user-files/txt2vid_v2a.jpg?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1"),
        tokensRequired: "25+",
         category: "video",
         toolType: "fal_wan_v22_text2video_lora",
