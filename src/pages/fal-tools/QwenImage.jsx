@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabaseClient';
 import { useAuth } from '../../hooks/useAuth';
-import { createAIGeneration, updateTokenCount, uploadFile } from '../../utils/storageHelpers';
+import { createAIGeneration, updateTokenCount } from '../../utils/storageHelpers';
 import { isNSFWError, parseNSFWError } from '../../utils/errorHandlers';
 import { toCdnUrl } from '../../utils/cdnHelpers';
 import { performSafetyAnalysis, shouldShowWarning, getSafetyWarningMessage, logSafetyAnalysis } from '../../utils/safescan';
@@ -14,15 +14,12 @@ import {
   ArrowLeft, 
   Zap, 
   Image as ImageIcon, 
-  Upload,
   Download, 
   Trash2, 
   RefreshCw,
   Settings,
   Copy,
   X,
-  Plus,
-  Minus,
   Wand2,
   Sparkles,
   Dice6,
@@ -33,25 +30,23 @@ import {
   Hash
 } from 'lucide-react';
 
-const QwenImageToImage = () => {
+const QwenImage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   
-  // Configuration state - based on Qwen Image-to-Image API
+  // Configuration state - based on Qwen Image API (text-to-image only)
   const [config, setConfig] = useState({
     prompt: '',
     negative_prompt: '',
-    image_url: '',
-    strength: 0.8,
-    image_size: 'portrait_9_16',
-    num_inference_steps: 77,
-    guidance_scale: 3.5,
-    num_images: 1,
+    image_size: 'square_hd',
+    num_inference_steps: 102,
+    guidance_scale: 5.5,
+    num_images: 2,
     enable_safety_checker: true,
-    output_format: 'png',
-    acceleration: 'high',
+    output_format: 'jpeg',
+    acceleration: 'regular',
     seed: -1,
     loras: []
   });
@@ -61,7 +56,6 @@ const QwenImageToImage = () => {
   const [activeGenerations, setActiveGenerations] = useState([]);
   const [selectedGeneration, setSelectedGeneration] = useState(null);
   const [generating, setGenerating] = useState(false);
-  const [uploadingImage, setUploadingImage] = useState(false);
   const [showNSFWAlert, setShowNSFWAlert] = useState(false);
   const [nsfwError, setNsfwError] = useState(null);
   const [showSafetyWarning, setShowSafetyWarning] = useState(false);
@@ -79,7 +73,7 @@ const QwenImageToImage = () => {
     { label: 'Square HD', value: 'square_hd', icon: <Square className="w-4 h-4" /> },
     { label: 'Square', value: 'square', icon: <Square className="w-4 h-4" /> },
     { label: 'Portrait 4:3', value: 'portrait_4_3', icon: <Smartphone className="w-4 h-4" /> },
-    { label: 'Portrait 9:16', value: 'portrait_9_16', icon: <Smartphone className="w-4 h-4" /> },
+    { label: 'Portrait 16:9', value: 'portrait_16_9', icon: <Smartphone className="w-4 h-4" /> },
     { label: 'Landscape 4:3', value: 'landscape_4_3', icon: <Monitor className="w-4 h-4" /> },
     { label: 'Landscape 16:9', value: 'landscape_16_9', icon: <Monitor className="w-4 h-4" /> }
   ];
@@ -93,14 +87,14 @@ const QwenImageToImage = () => {
 
   // Creative prompts for inspiration
   const promptSuggestions = [
-    "Transform into a watercolor painting style",
-    "Convert to cyberpunk aesthetic with neon colors",
-    "Make it look like a vintage 1950s photograph",
-    "Add dramatic lighting and cinematic atmosphere",
-    "Transform into anime/manga art style",
-    "Convert to oil painting with visible brush strokes",
-    "Add magical fantasy elements and ethereal glow",
-    "Make it photorealistic with enhanced details"
+    "Mount Fuji with cherry blossoms in the foreground, clear sky, peaceful spring day",
+    "Cyberpunk cityscape at night with neon lights and flying cars",
+    "Majestic dragon soaring through cloudy mountains at sunset",
+    "Cozy coffee shop interior with warm lighting and vintage furniture",
+    "Underwater coral reef scene with colorful fish and marine life",
+    "Medieval castle on a hilltop surrounded by misty forests",
+    "Space station orbiting Earth with stars in the background",
+    "Enchanted forest with glowing mushrooms and fairy lights"
   ];
 
   useEffect(() => {
@@ -110,23 +104,23 @@ const QwenImageToImage = () => {
       
       // Set up real-time subscription
       const subscription = supabase
-        .channel('qwen_image_to_image_generations')
+        .channel('qwen_image_generations')
         .on(
           'postgres_changes',
           {
             event: '*',
             schema: 'public',
             table: 'ai_generations',
-            filter: `user_id=eq.${user.id},tool_type=eq.fal_qwen_image_to_image`
+            filter: `user_id=eq.${user.id},tool_type=eq.fal_qwen_image`
           },
           (payload) => {
-            console.log('🎨 Qwen Image-to-Image Real-time update received:', payload);
+            console.log('🎨 Qwen Image Real-time update received:', payload);
             handleRealtimeUpdate(payload);
           }
         )
         .subscribe();
 
-      console.log('Real-time subscription set up for Qwen Image-to-Image');
+      console.log('Real-time subscription set up for Qwen Image');
       return () => subscription.unsubscribe();
     }
   }, [user]);
@@ -154,7 +148,7 @@ const QwenImageToImage = () => {
         .from('ai_generations')
         .select('*')
         .eq('user_id', user.id)
-        .eq('tool_type', 'fal_qwen_image_to_image')
+        .eq('tool_type', 'fal_qwen_image')
         .order('created_at', { ascending: false })
         .limit(20);
 
@@ -195,7 +189,7 @@ const QwenImageToImage = () => {
       if (newRecord?.status === 'failed') {
         setTimeout(() => {
           const errorMessage = newRecord.error_message || 'Generation failed';
-          showAlert('error', 'Generation Failed', `Qwen Image-to-Image generation failed: ${errorMessage}`);
+          showAlert('error', 'Generation Failed', `Qwen Image generation failed: ${errorMessage}`);
         }, 1000);
       }
     }
@@ -220,39 +214,6 @@ const QwenImageToImage = () => {
   // Close alert
   const closeAlert = () => {
     setAlertConfig(prev => ({ ...prev, show: false }));
-  };
-
-  const handleImageUpload = async (event) => {
-    const file = event.target.files[0];
-    if (!file) return;
-
-    if (!file.type.startsWith('image/')) {
-      showAlert('error', 'Invalid File Type', 'Please select a JPG or PNG image file only.');
-      return;
-    }
-
-    // Only allow JPG and PNG files
-    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png'];
-    if (!allowedTypes.includes(file.type.toLowerCase())) {
-      showAlert('error', 'Unsupported File Format', 'Please upload only JPG or PNG images. Other formats are not supported by Qwen Image-to-Image.');
-      return;
-    }
-
-    if (file.size > 10 * 1024 * 1024) {
-      showAlert('error', 'File Too Large', 'Image file size must be less than 10MB. Please compress your image or select a smaller file.');
-      return;
-    }
-
-    setUploadingImage(true);
-    try {
-      const { url } = await uploadFile(file, 'qwen-image-to-image-input');
-      setConfig(prev => ({ ...prev, image_url: url }));
-    } catch (error) {
-      console.error('Error uploading image:', error);
-      showAlert('error', 'Upload Failed', `Error uploading image: ${error.message}. Please try again.`);
-    } finally {
-      setUploadingImage(false);
-    }
   };
 
   const addLora = (lora) => {
@@ -283,12 +244,12 @@ const QwenImageToImage = () => {
   };
 
   const calculateTokenCost = () => {
-    // Base cost: 10 tokens per image for image-to-image
-    return config.num_images * 10;
+    // Base cost: 8 tokens per image for text-to-image
+    return config.num_images * 8;
   };
 
   const handleGenerate = async () => {
-    if (!config.image_url) {
+    if (!config.prompt.trim()) {
       alert('Please enter a text prompt');
       return;
     }
@@ -297,8 +258,9 @@ const QwenImageToImage = () => {
     if (!bypassSafetyCheck) {
       try {
         const analysisResult = await performSafetyAnalysis(
+          null, // No image for text-to-image
           config.prompt,
-          'fal_qwen_image_to_image'
+          'fal_qwen_image'
         );
 
         logSafetyAnalysis(analysisResult, 'pre_generation_check');
@@ -326,10 +288,10 @@ const QwenImageToImage = () => {
     let generation = null;
     
     try {
-      console.log('🎨 Starting Qwen Image-to-Image generation...');
+      console.log('🎨 Starting Qwen Image generation...');
       
       generation = await createAIGeneration(
-        'fal_qwen_image_to_image',
+        'fal_qwen_image',
         config.prompt.substring(0, 50) + '...',
         config,
         tokenCost
@@ -343,7 +305,7 @@ const QwenImageToImage = () => {
 
       console.log('💰 Tokens deducted, calling Edge Function...');
 
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/fal-qwen-image-to-image`, {
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/fal-qwen-image`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session.access_token}`,
@@ -361,7 +323,7 @@ const QwenImageToImage = () => {
       }
 
       setConfig(prev => ({ ...prev, prompt: '' }));
-      console.log('✅ Qwen Image-to-Image generation request submitted successfully');
+      console.log('✅ Qwen Image generation request submitted successfully');
 
     } catch (error) {
       console.error('❌ Error generating:', error);
@@ -376,7 +338,7 @@ const QwenImageToImage = () => {
         setNsfwError(nsfwDetails);
         setShowNSFWAlert(true);
       } else {
-        showAlert('error', 'Generation Failed', `Qwen Image-to-Image generation failed: ${error.message}`);
+        showAlert('error', 'Generation Failed', `Qwen Image generation failed: ${error.message}`);
       }
     } finally {
       setGenerating(false);
@@ -390,7 +352,7 @@ const QwenImageToImage = () => {
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `qwen-image-to-image-${Date.now()}.png`;
+      link.download = `qwen-image-${Date.now()}.${config.output_format}`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -399,7 +361,7 @@ const QwenImageToImage = () => {
       console.error('Download failed:', error);
       const link = document.createElement('a');
       link.href = toCdnUrl(imageUrl);
-      link.download = `qwen-image-to-image-${Date.now()}.png`;
+      link.download = `qwen-image-${Date.now()}.${config.output_format}`;
       link.target = '_blank';
       document.body.appendChild(link);
       link.click();
@@ -468,12 +430,12 @@ const QwenImageToImage = () => {
               </button>
               <div className="h-6 w-px bg-white/20"></div>
               <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-xl flex items-center justify-center">
+                <div className="w-10 h-10 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-xl flex items-center justify-center">
                   <ImageIcon className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <h1 className="text-xl font-bold text-white">Qwen Image-to-Image</h1>
-                  <p className="text-purple-200 text-sm">Transform existing images with Qwen's AI model</p>
+                  <h1 className="text-xl font-bold text-white">Qwen Image Generator</h1>
+                  <p className="text-purple-200 text-sm">Advanced text-to-image generation with Qwen's powerful AI model</p>
                 </div>
               </div>
             </div>
@@ -510,85 +472,25 @@ const QwenImageToImage = () => {
             <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 sticky top-8">
               <div className="flex items-center space-x-2 mb-6">
                 <Settings className="w-5 h-5 text-purple-400" />
-                <h2 className="text-lg font-semibold text-white">Image Transformation</h2>
+                <h2 className="text-lg font-semibold text-white">Image Generation</h2>
               </div>
 
               <div className="space-y-6">
-                {/* Source Image Upload */}
-                <div>
-                  <label className="block text-sm font-medium text-purple-200 mb-2">
-                    <ImageIcon className="w-4 h-4 inline mr-1" />
-                    Source Image *
-                  </label>
-                  <div 
-                    className="border-2 border-dashed border-white/30 rounded-lg p-4 text-center transition-colors hover:border-white/50"
-                    onDragOver={(e) => {
-                      e.preventDefault();
-                      e.currentTarget.classList.add('border-cyan-400', 'bg-cyan-500/10');
-                    }}
-                    onDragLeave={(e) => {
-                      e.preventDefault();
-                      e.currentTarget.classList.remove('border-cyan-400', 'bg-cyan-500/10');
-                    }}
-                    onDrop={(e) => {
-                      e.preventDefault();
-                      e.currentTarget.classList.remove('border-cyan-400', 'bg-cyan-500/10');
-                      const files = e.dataTransfer.files;
-                      if (files.length > 0) {
-                        const event = { target: { files } };
-                        handleImageUpload(event);
-                      }
-                    }}
-                  >
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleImageUpload}
-                      className="hidden"
-                      id="image-upload"
-                      disabled={uploadingImage}
-                    />
-                    <label htmlFor="image-upload" className="cursor-pointer">
-                      {config.image_url ? (
-                        <div className="space-y-2">
-                          <img 
-                            src={config.image_url} 
-                            alt="Source" 
-                            className="w-full h-32 object-contain rounded-lg bg-black/20"
-                            loading="lazy"
-                          />
-                          <p className="text-purple-200 text-sm">Click to change</p>
-                        </div>
-                      ) : (
-                        <div>
-                          <Upload className="w-8 h-8 text-purple-300 mx-auto mb-2" />
-                          <p className="text-purple-200">
-                            {uploadingImage ? 'Uploading...' : 'Upload or drag & drop image'}
-                          </p>
-                          <p className="text-purple-300 text-xs mt-1">
-                            JPG and PNG only • Max 10MB • Drag & drop supported
-                          </p>
-                        </div>
-                      )}
-                    </label>
-                  </div>
-                </div>
-
                 {/* Prompt */}
                 <div>
                   <label className="block text-sm font-medium text-purple-200 mb-2">
                     <Wand2 className="w-4 h-4 inline mr-1" />
-                    Transformation Prompt *
+                    Image Prompt *
                   </label>
                   <textarea
                     value={config.prompt}
                     onChange={(e) => setConfig(prev => ({ ...prev, prompt: e.target.value }))}
-                    placeholder="Describe how you want to transform the image..."
+                    placeholder="Describe the image you want to create..."
                     className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-purple-300 focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
                     rows={4}
                   />
                   <p className="text-purple-300 text-xs mt-1">
-                    Describe the style, changes, or transformations you want
+                    Be detailed about style, composition, lighting, and mood
                   </p>
                 </div>
 
@@ -606,7 +508,26 @@ const QwenImageToImage = () => {
                   />
                 </div>
 
-{/* Preset LoRA Library */}
+                {/* Prompt Suggestions */}
+                <div>
+                  <label className="block text-sm font-medium text-purple-200 mb-2">
+                    <Sparkles className="w-4 h-4 inline mr-1" />
+                    Prompt Inspiration
+                  </label>
+                  <div className="grid grid-cols-1 gap-2 max-h-32 overflow-y-auto">
+                    {promptSuggestions.slice(0, 4).map((suggestion, index) => (
+                      <button
+                        key={index}
+                        onClick={() => setConfig(prev => ({ ...prev, prompt: suggestion }))}
+                        className="text-left px-3 py-2 bg-white/5 hover:bg-white/10 text-purple-200 rounded-lg text-xs transition-colors"
+                      >
+                        {suggestion}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Preset LoRA Library */}
                 <PresetLoraSelector
                   toolType="Qi"
                   userTier={profile?.subscription_status || 'free'}
@@ -691,20 +612,6 @@ const QwenImageToImage = () => {
                   </div>
                 )}
 
-                {/* Manual LoRA Addition */}
-         {/*       <div>
-                   <label className="block text-sm font-medium text-purple-200 mb-2">
-                    <Plus className="w-4 h-4 inline mr-1" />
-                    Add Custom LoRA
-                  </label>
-                  <div className="space-y-2">
-                    <input
-                      type="url"
-                      placeholder="LoRA URL (e.g., https://civitai.com/api/download/models/...)"
-                      className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-purple-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm"
-                      onKeyPress={(e) => {
-                        if (e.key === 'Enter' && e.target.value.trim()) {
-
                 {/* Image Size */}
                 <div>
                   <label className="block text-sm font-medium text-purple-200 mb-2">
@@ -718,7 +625,7 @@ const QwenImageToImage = () => {
                         onClick={() => setConfig(prev => ({ ...prev, image_size: option.value }))}
                         className={`px-3 py-2 rounded-lg text-sm font-medium transition-all flex items-center space-x-2 ${
                           config.image_size === option.value
-                            ? 'bg-cyan-500 text-white'
+                            ? 'bg-emerald-500 text-white'
                             : 'bg-white/10 text-purple-200 hover:bg-white/20'
                         }`}
                       >
@@ -781,7 +688,7 @@ const QwenImageToImage = () => {
                   <input
                     type="range"
                     min="20"
-                    max="100"
+                    max="150"
                     value={config.num_inference_steps}
                     onChange={(e) => setConfig(prev => ({ ...prev, num_inference_steps: parseInt(e.target.value) }))}
                     className="w-full h-2 bg-white/20 rounded-lg appearance-none cursor-pointer slider"
@@ -804,7 +711,7 @@ const QwenImageToImage = () => {
                         onClick={() => setConfig(prev => ({ ...prev, acceleration: option.value }))}
                         className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
                           config.acceleration === option.value
-                            ? 'bg-cyan-500 text-white'
+                            ? 'bg-emerald-500 text-white'
                             : 'bg-white/10 text-purple-200 hover:bg-white/20'
                         }`}
                       >
@@ -824,7 +731,7 @@ const QwenImageToImage = () => {
                       onClick={() => setConfig(prev => ({ ...prev, output_format: 'png' }))}
                       className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
                         config.output_format === 'png'
-                          ? 'bg-cyan-500 text-white'
+                          ? 'bg-emerald-500 text-white'
                           : 'bg-white/10 text-purple-200 hover:bg-white/20'
                       }`}
                     >
@@ -834,7 +741,7 @@ const QwenImageToImage = () => {
                       onClick={() => setConfig(prev => ({ ...prev, output_format: 'jpeg' }))}
                       className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
                         config.output_format === 'jpeg'
-                          ? 'bg-cyan-500 text-white'
+                          ? 'bg-emerald-500 text-white'
                           : 'bg-white/10 text-purple-200 hover:bg-white/20'
                       }`}
                     >
@@ -850,7 +757,7 @@ const QwenImageToImage = () => {
                       type="checkbox"
                       checked={config.enable_safety_checker}
                       onChange={(e) => setConfig(prev => ({ ...prev, enable_safety_checker: e.target.checked }))}
-                      className="w-4 h-4 text-cyan-600 bg-white/10 border-white/20 rounded focus:ring-cyan-500"
+                      className="w-4 h-4 text-emerald-600 bg-white/10 border-white/20 rounded focus:ring-emerald-500"
                     />
                     <div>
                       <span className="text-white font-medium">Enable Safety Checker</span>
@@ -883,31 +790,44 @@ const QwenImageToImage = () => {
                     </button>
                   </div>
                 </div>
+
+                {/* Cost Display */}
+                <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-lg p-4">
+                  <h3 className="text-emerald-200 font-medium mb-2 flex items-center">
+                    <Zap className="w-4 h-4 mr-2" />
+                    Cost Calculation
+                  </h3>
+                  <div className="text-emerald-300 text-sm space-y-1">
+                    <p>Images: {config.num_images}</p>
+                    <p>Rate: 8 tokens per image</p>
+                    <p className="font-medium text-emerald-200">Total: {calculateTokenCost()} tokens</p>
+                  </div>
+                </div>
                 
                 {/* Generate Button */}
                 <button
                   onClick={handleGenerate}
                   disabled={generating || !config.prompt.trim()}
-                  className="w-full bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white font-semibold py-4 px-6 rounded-lg transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center space-x-2"
+                  className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-semibold py-4 px-6 rounded-lg transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center space-x-2"
                 >
                   {generating ? (
                     <>
                       <RefreshCw className="w-4 h-4 animate-spin" />
-                      <span>Transforming Image...</span>
+                      <span>Generating Images...</span>
                     </>
                   ) : (
                     <>
                       <ImageIcon className="w-4 h-4" />
-                      <span>Transform Image ({calculateTokenCost()} tokens)</span>
+                      <span>Generate Images ({calculateTokenCost()} tokens)</span>
                     </>
                   )}
                 </button>
 
                 {/* Processing Note */}
-                <div className="bg-cyan-500/10 border border-cyan-500/30 rounded-lg p-3">
-                  <p className="text-cyan-200 text-xs">
+                <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-lg p-3">
+                  <p className="text-emerald-200 text-xs">
                     <Sparkles className="w-3 h-3 inline mr-1" />
-                    Qwen image-to-image generation typically takes 30-60 seconds. Cost: 10 tokens per image.
+                    Qwen image generation typically takes 30-60 seconds. Cost: 8 tokens per image.
                   </p>
                 </div>
               </div>
@@ -935,7 +855,7 @@ const QwenImageToImage = () => {
                               Started: {new Date(generation.created_at).toLocaleTimeString()}
                             </p>
                             <p className="text-purple-300 text-xs mt-1">
-                              Image transformation typically takes 30-60 seconds
+                              Image generation typically takes 30-60 seconds
                             </p>
                           </div>
                           <div className="flex items-center space-x-3">
@@ -956,7 +876,7 @@ const QwenImageToImage = () => {
               {/* Completed Generations */}
               <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6">
                 <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-lg font-semibold text-white">Transformed Images</h3>
+                  <h3 className="text-lg font-semibold text-white">Generated Images</h3>
                   <button
                     onClick={fetchGenerations}
                     className="text-purple-400 hover:text-purple-300 transition-colors"
@@ -968,15 +888,12 @@ const QwenImageToImage = () => {
                 {generations.length === 0 ? (
                   <div className="text-center py-12">
                     <ImageIcon className="w-16 h-16 text-purple-300 mx-auto mb-4 opacity-50" />
-                    <p className="text-purple-200 text-lg">No images transformed yet</p>
-                    <p className="text-purple-300 text-sm">Upload an image and describe how to transform it</p>
+                    <p className="text-purple-200 text-lg">No images generated yet</p>
+                    <p className="text-purple-300 text-sm">Enter a prompt to create your first AI-generated image</p>
                   </div>
                 ) : (
                   <div className="space-y-6">
-                    {generations
-                      .filter(generation => generation != null)
-                      .slice(0, window.innerWidth >= 1024 ? 2 : generations.length)
-                      .map((generation) => (
+                    {generations.map((generation) => (
                       <div
                         key={generation.id}
                         className="bg-white/5 rounded-lg overflow-hidden hover:bg-white/10 transition-all duration-200"
@@ -1017,7 +934,7 @@ const QwenImageToImage = () => {
                                       <div key={imgIndex} className="relative group">
                                         <img
                                           src={toCdnUrl(imageUrl)}
-                                          alt={`Transformed ${imgIndex + 1}`}
+                                          alt={`Generated ${imgIndex + 1}`}
                                           className="w-full rounded-lg"
                                           loading="lazy"
                                         />
@@ -1037,17 +954,17 @@ const QwenImageToImage = () => {
                           )}
 
                           {generation.status === 'processing' && (
-                            <div className="mb-4 bg-gradient-to-br from-cyan-500/20 to-blue-500/20 rounded-lg p-8 text-center">
-                              <RefreshCw className="w-12 h-12 text-cyan-300 animate-spin mx-auto mb-2" />
-                              <p className="text-cyan-200">Transforming image with Qwen AI...</p>
-                              <p className="text-cyan-300 text-sm">This may take 30-60 seconds</p>
+                            <div className="mb-4 bg-gradient-to-br from-emerald-500/20 to-teal-500/20 rounded-lg p-8 text-center">
+                              <RefreshCw className="w-12 h-12 text-emerald-300 animate-spin mx-auto mb-2" />
+                              <p className="text-emerald-200">Generating images with Qwen AI...</p>
+                              <p className="text-emerald-300 text-sm">This may take 30-60 seconds</p>
                             </div>
                           )}
 
                           {generation.status === 'failed' && (
                             <div className="mb-4 bg-red-500/20 rounded-lg p-4 text-center">
                               <X className="w-8 h-8 text-red-400 mx-auto mb-2" />
-                              <p className="text-red-400 text-sm">Image transformation failed</p>
+                              <p className="text-red-400 text-sm">Image generation failed</p>
                               {generation.error_message && (
                                 <p className="text-red-300 text-xs mt-2">{generation.error_message}</p>
                               )}
@@ -1066,7 +983,7 @@ const QwenImageToImage = () => {
                                 <strong>Images:</strong> {generation.input_data?.num_images}
                               </span>
                               <span>
-                                <strong>Strength:</strong> {generation.input_data?.strength}
+                                <strong>Steps:</strong> {generation.input_data?.num_inference_steps}
                               </span>
                               <span>
                                 <strong>Tokens:</strong> {generation.tokens_used}
@@ -1123,7 +1040,7 @@ const QwenImageToImage = () => {
           setShowNSFWAlert(false);
           setNsfwError(null);
         }}
-        toolName="Qwen Image-to-Image"
+        toolName="Qwen Image Generator"
         details={nsfwError?.technical}
       />
 
@@ -1145,7 +1062,7 @@ const QwenImageToImage = () => {
           setSafetyWarningData(null);
         }}
         warningData={safetyWarningData}
-        toolName="Qwen Image-to-Image"
+        toolName="Qwen Image Generator"
       />
 
       {/* Custom Styles */}
@@ -1161,7 +1078,7 @@ const QwenImageToImage = () => {
           height: 20px;
           width: 20px;
           border-radius: 50%;
-          background: linear-gradient(to right, #06B6D4, #3B82F6);
+          background: linear-gradient(to right, #10B981, #14B8A6);
           cursor: pointer;
           border: 2px solid white;
         }
@@ -1169,7 +1086,7 @@ const QwenImageToImage = () => {
           height: 20px;
           width: 20px;
           border-radius: 50%;
-          background: linear-gradient(to right, #06B6D4, #3B82F6);
+          background: linear-gradient(to right, #10B981, #14B8A6);
           cursor: pointer;
           border: 2px solid white;
         }
@@ -1178,4 +1095,4 @@ const QwenImageToImage = () => {
   );
 };
 
-export default QwenImageToImage;
+export default QwenImage;
