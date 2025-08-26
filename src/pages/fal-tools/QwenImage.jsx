@@ -510,6 +510,65 @@ const QwenImage = () => {
                   />
                 </div>
 
+                {/* LoRA Selector */}
+                <PresetLoraSelector
+                  toolType="t2i"
+                  userTier={profile?.subscription_tier || profile?.subscription_status || 'free'}
+                  currentLoras={config.loras}
+                  onAddLora={addLora}
+                  maxLoras={5}
+                />
+
+                {/* Current LoRAs */}
+                {config.loras.length > 0 && (
+                  <div>
+                    <label className="block text-sm font-medium text-purple-200 mb-2">
+                      Active LoRAs ({config.loras.length}/5)
+                    </label>
+                    <div className="space-y-2">
+                      {config.loras.map((lora, index) => (
+                        <div key={index} className="bg-white/5 rounded-lg p-3 border border-white/10">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-white text-sm font-medium">
+                              LoRA {index + 1}
+                            </span>
+                            <button
+                              onClick={() => removeLora(index)}
+                              className="text-red-400 hover:text-red-300 transition-colors"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <label className="block text-xs text-purple-300 mb-1">Scale</label>
+                              <input
+                                type="number"
+                                step="0.1"
+                                min="0"
+                                max="2"
+                                value={lora.scale}
+                                onChange={(e) => updateLora(index, 'scale', parseFloat(e.target.value))}
+                                className="w-full px-2 py-1 bg-white/10 border border-white/20 rounded text-white text-xs"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs text-purple-300 mb-1">Path</label>
+                              <input
+                                type="text"
+                                value={lora.path}
+                                onChange={(e) => updateLora(index, 'path', e.target.value)}
+                                className="w-full px-2 py-1 bg-white/10 border border-white/20 rounded text-white text-xs"
+                                placeholder="LoRA URL"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {/* Prompt Suggestions */}
                 <div>
                   <label className="block text-sm font-medium text-purple-200 mb-2">
@@ -707,65 +766,6 @@ const QwenImage = () => {
                     </button>
                   </div>
                 </div>
-
-                {/* LoRA Selector */}
-                <PresetLoraSelector
-                  toolType="t2i"
-                  userTier={profile?.subscription_tier || profile?.subscription_status || 'free'}
-                  currentLoras={config.loras}
-                  onAddLora={addLora}
-                  maxLoras={5}
-                />
-
-                {/* Current LoRAs */}
-                {config.loras.length > 0 && (
-                  <div>
-                    <label className="block text-sm font-medium text-purple-200 mb-2">
-                      Active LoRAs ({config.loras.length}/5)
-                    </label>
-                    <div className="space-y-2">
-                      {config.loras.map((lora, index) => (
-                        <div key={index} className="bg-white/5 rounded-lg p-3 border border-white/10">
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="text-white text-sm font-medium">
-                              LoRA {index + 1}
-                            </span>
-                            <button
-                              onClick={() => removeLora(index)}
-                              className="text-red-400 hover:text-red-300 transition-colors"
-                            >
-                              <X className="w-4 h-4" />
-                            </button>
-                          </div>
-                          <div className="grid grid-cols-2 gap-2">
-                            <div>
-                              <label className="block text-xs text-purple-300 mb-1">Scale</label>
-                              <input
-                                type="number"
-                                step="0.1"
-                                min="0"
-                                max="2"
-                                value={lora.scale}
-                                onChange={(e) => updateLora(index, 'scale', parseFloat(e.target.value))}
-                                className="w-full px-2 py-1 bg-white/10 border border-white/20 rounded text-white text-xs"
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-xs text-purple-300 mb-1">Path</label>
-                              <input
-                                type="text"
-                                value={lora.path}
-                                onChange={(e) => updateLora(index, 'path', e.target.value)}
-                                className="w-full px-2 py-1 bg-white/10 border border-white/20 rounded text-white text-xs"
-                                placeholder="LoRA URL"
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
 
                 {/* Generate Button */}
                 <button
