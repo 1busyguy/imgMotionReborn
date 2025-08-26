@@ -831,6 +831,15 @@ const QwenImageToImage = () => {
                   </div>
                 </div>
 
+                {/* Preset LoRA Library */}
+                <PresetLoraSelector
+                  toolType="Qi"
+                  userTier={profile?.subscription_status || 'free'}
+                  currentLoras={config.loras}
+                  onAddLora={addLora}
+                  maxLoras={5}
+                />
+
                 {/* Generate Button */}
                 <button
                   onClick={handleGenerate}
