@@ -1,4 +1,4 @@
-﻿import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 // Enhanced logging function for FAL.ai requests
@@ -174,6 +174,7 @@ serve(async (req) => {
                     status: 'failed',
                     completed_at: new Date().toISOString(),
                     error_message: `FAL.ai API error (${falResponse.status}): ${responseBody}`,
+                    updated_at: new Date().toISOString(), // Ensure updated_at is set to trigger real-time
                     metadata: {
                         fal_error_details: {
                             status_code: falResponse.status,

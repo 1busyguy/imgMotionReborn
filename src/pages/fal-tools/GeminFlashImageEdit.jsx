@@ -404,6 +404,13 @@ const GeminiFlashImageEdit = () => {
     };
 
     if (loading) {
+    console.log('🔄 Real-time update received:', { 
+      eventType, 
+      generationId: newRecord?.id, 
+      status: newRecord?.status,
+      hasError: !!newRecord?.error_message 
+    });
+
         return (
             <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center">
                 <div className="text-white text-xl">Loading...</div>
@@ -414,6 +421,21 @@ const GeminiFlashImageEdit = () => {
       if (newRecord?.status === 'failed') {
         setTimeout(() => {
           const errorMessage = newRecord.error_message || 'Generation failed';
+          showAlert('error', 'Generation Failed', `Gemini Flash Image Edit failed: ${errorMessage}`);
+        }, 1000);
+      // Remove from local state if there was an error during submission
+      if (generation) {
+        setGenerations(current => current.filter(g => g.id !== generation.id));
+        setActiveGenerations(current => current.filter(g => g.id !== generation.id));
+      }
+      
+      }
+      
+      // Show error notification for failed generations with 1-second delay
+      if (newRecord?.status === 'failed') {
+        setTimeout(() => {
+          const errorMessage = newRecord.error_message || 'Generation failed';
+          console.log('❌ Generation failed:', errorMessage);
           showAlert('error', 'Generation Failed', `Gemini Flash Image Edit failed: ${errorMessage}`);
         }, 1000);
       }
