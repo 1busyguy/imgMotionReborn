@@ -194,24 +194,6 @@ export const falTools = [
         route: "/fal-video-upscaler"
     },
     {
-        id: 16,
-        name: "AI Auto Video Caption",
-        description: "Automatically generate and embed captions in videos with multi-language support",
-        image: toCdnUrl("https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1"),
-        tokensRequired: "10+",
-        category: "video",
-        comingSoon: true
-    },
-    {
-        id: 3,
-        name: "AI Video Extender",
-        description: "Extend video duration using AI frame interpolation and smart content generation",
-        image: toCdnUrl("https://images.pexels.com/photos/3379934/pexels-photo-3379934.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1"),
-        tokensRequired: "20+",
-        category: "video",
-        comingSoon: true
-    },
-      {
         id: 22,
         name: "VEO3 Fast",
         description: "Fast image-to-video generation with Google's VEO3 model - quick turnaround with excellent quality",
