@@ -7,7 +7,7 @@ export const falTools = [
     {
         id: 30,
         name: "Advanced TEXT to Video Tool",
-        description: "Make videos from TEXT that describe your ideas, newest version",
+        description: "Make videos from TEXT that describe your ideas, newest version out right now",
         image: toCdnUrl("https://images.pexels.com/photos/3861958/pexels-photo-3861958.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1"),
        tokensRequired: "25+",
         category: "video",
@@ -19,7 +19,7 @@ export const falTools = [
     {
         id: 31,
         name: "Advanced IMAGE to Video Tool",
-        description: "Make videos from an IMAGE that describe your ideas",
+        description: "Make videos from an IMAGE that describe your ideas, newest version out right now",
         image: toCdnUrl("https://images.pexels.com/photos/3379933/pexels-photo-3379933.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1"),
         tokensRequired: "30+",
         category: "video",
@@ -42,7 +42,7 @@ export const falTools = [
     {
         id: 32,
         name: "Compose an image, with iamges",
-        description: "Smartly mix many pictures together in one image",
+        description: "Smartly mix many pictures together into one image, composed by your words",
         image: toCdnUrl("https://images.pexels.com/photos/3861958/pexels-photo-3861958.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1"),
         tokensRequired: "15+",
         category: "image",
