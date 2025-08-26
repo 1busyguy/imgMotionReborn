@@ -139,7 +139,7 @@ const GeminiFlashImageEdit = () => {
                     return current;
             }
         });
-
+    const { eventType, new: newRecord, old: oldRecord } = payload;
         if (newRecord?.status === 'processing') {
             setActiveGenerations(current => {
                 const exists = current.find(g => g.id === newRecord.id);
