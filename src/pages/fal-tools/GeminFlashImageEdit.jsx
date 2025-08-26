@@ -636,7 +636,7 @@ const GeminFlashImageEdit = () => {
                               <div>
                                 <Upload className="w-6 h-6 text-purple-300 mx-auto mb-1" />
                                 <p className="text-purple-200 text-xs">
-                                  {uploadingImages[index] ? 'Uploading...' : `Upload JPG/PNG Image ${index + 1}`}
+                                  {uploadingImages[index] ? 'Uploading...' : `Upload Image ${index + 1}`}
                                 </p>
                               </div>
                             )}
@@ -666,6 +666,9 @@ const GeminFlashImageEdit = () => {
                       </button>
                     )}
                   </div>
+                  <p className="text-purple-300 text-xs mt-1">
+                    JPG and PNG only • Max 10MB • Drag & drop supported
+                  </p>
                 </div>
 
                 {/* Number of Images to Generate */}
