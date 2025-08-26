@@ -409,6 +409,14 @@ const GeminiFlashImageEdit = () => {
                 <div className="text-white text-xl">Loading...</div>
             </div>
         );
+      
+      // Show failure notification with 1-second delay
+      if (newRecord?.status === 'failed') {
+        setTimeout(() => {
+          const errorMessage = newRecord.error_message || 'Generation failed';
+          showAlert('error', 'Generation Failed', `Gemini Flash Image Edit failed: ${errorMessage}`);
+        }, 1000);
+      }
     }
 
     return (
