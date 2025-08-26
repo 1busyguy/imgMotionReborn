@@ -34,7 +34,6 @@ import WanV22Img2VideoLora from './pages/fal-tools/WanV22Img2VideoLora';
 import WanV22Video2Video from './pages/fal-tools/WanV22Video2Video';
 import WanV22Text2VideoLora from './pages/fal-tools/WanV22Text2VideoLora';
 import VEO3Standard from './pages/fal-tools/VEO3Standard';
-import FluxKontextMaxMulti from './pages/fal-tools/FluxKontextMaxMulti';
 import Admin from './pages/Admin';
 import Showcase from './pages/Showcase';
 import About from './pages/About';
@@ -240,7 +239,9 @@ function App() {
               path="/flux-kontext-max-multi"
               element={
                 <ProtectedRoute>
-                  <FluxKontextMaxMulti />
+                  <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center">
+                    <div className="text-white text-xl">FLUX Kontext Max Multi - Coming Soon</div>
+                  </div>
                 </ProtectedRoute>
               } 
             />

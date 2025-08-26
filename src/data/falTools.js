@@ -47,7 +47,7 @@ export const falTools = [
         tokensRequired: "15+",
         category: "image",
         toolType: "fal_flux_kontext_max_multi",
-        route: "/flux-kontext-max-multi"
+        comingSoon: true
     },
   {
         id: 9,
