@@ -710,8 +710,8 @@ const QwenImageToImage = () => {
                       className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-purple-300 focus:outline-none focus:ring-2 focus:ring-cyan-500 text-sm"
                       onKeyPress={(e) => {
                         if (e.key === 'Enter' && e.target.value.trim()) {
-                          if (config.loras.length >= 5) {
-                            alert('Maximum 5 LoRAs allowed');
+                          if (config.loras.length >= 3) {
+                            alert('Maximum 3 LoRAs allowed');
                             return;
                           }
                           addLora({
