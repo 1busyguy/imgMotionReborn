@@ -276,7 +276,7 @@ const GeminiFlashImageEdit = () => {
 
             // Create generation record
             const generation = await createAIGeneration(
-                'fal_flux_redux',
+                'fal_gemini_flash_image_edit',
                 config.prompt.substring(0, 50) + '...',
                 config,
                 tokenCost
