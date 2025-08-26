@@ -611,7 +611,124 @@ const QwenImageToImage = () => {
                     rows={2}
                   />
                 </div>
+                
+         {/* Preset LoRA Library */}
+                <PresetLoraSelector
+                  toolType="Qi2i"
+                  userTier={profile?.subscription_status || 'free'}
+                  currentLoras={config.loras}
+                  onAddLora={addLora}
+                  maxLoras={5}
+                />
 
+                {/* Active LoRAs */}
+                {config.loras.length > 0 && (
+                  <div>
+                    <label className="block text-sm font-medium text-purple-200 mb-2">
+                      <Sparkles className="w-4 h-4 inline mr-1" />
+                      Active LoRAs ({config.loras.length}/5)
+                    </label>
+                    <div className="space-y-3">
+                      {config.loras.map((lora, index) => (
+                        <div key={index} className="bg-white/5 rounded-lg p-3 border border-white/10">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-white font-medium text-sm">{lora.weight_name}</span>
+                            <button
+                              onClick={() => removeLora(index)}
+                              className="text-red-400 hover:text-red-300 transition-colors"
+                              title="Remove LoRA"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+                          
+                          <div className="grid grid-cols-2 gap-3">
+                            <div>
+                              <label className="block text-xs text-purple-300 mb-1">Scale</label>
+                              <input
+                                type="number"
+                                step="0.1"
+                                min="0"
+                                max="3"
+                                value={lora.scale}
+                                onChange={(e) => updateLora(index, 'scale', parseFloat(e.target.value))}
+                                className="w-full px-2 py-1 bg-white/10 border border-white/20 rounded text-white text-sm focus:outline-none focus:ring-1 focus:ring-cyan-500"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs text-purple-300 mb-1">Transformer</label>
+                              <select
+                                value={lora.transformer || 'high'}
+                                onChange={(e) => updateLora(index, 'transformer', e.target.value)}
+                                className="w-full px-2 py-1 bg-white/10 border border-white/20 rounded text-white text-sm focus:outline-none focus:ring-1 focus:ring-cyan-500"
+                              >
+                                <option value="high" className="bg-gray-800">High</option>
+                                <option value="low" className="bg-gray-800">Low</option>
+                                <option value="both" className="bg-gray-800">Both</option>
+                              </select>
+                            </div>
+                          </div>
+                          
+                          {/* Trigger Words Display */}
+                          {lora.trigger_words && lora.trigger_words.length > 0 && (
+                            <div className="mt-2">
+                              <label className="block text-xs text-purple-300 mb-1">Trigger Words</label>
+                              <div className="flex flex-wrap gap-1">
+                                {lora.trigger_words.map((word, wordIndex) => (
+                                  <span 
+                                    key={wordIndex}
+                                    className="px-2 py-0.5 bg-cyan-500/20 text-cyan-300 text-xs rounded cursor-pointer hover:bg-cyan-500/30 transition-colors"
+                                    onClick={() => {
+                                      const currentPrompt = config.prompt;
+                                      const newPrompt = currentPrompt ? `${currentPrompt}, ${word}` : word;
+                                      setConfig(prev => ({ ...prev, prompt: newPrompt }));
+                                    }}
+                                    title="Click to add to prompt"
+                                  >
+                                    {word}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Manual LoRA Addition */}
+                <div>
+                  <label className="block text-sm font-medium text-purple-200 mb-2">
+                    <Plus className="w-4 h-4 inline mr-1" />
+                    Add Custom LoRA
+                  </label>
+                  <div className="space-y-2">
+                    <input
+                      type="url"
+                      placeholder="LoRA URL (e.g., https://civitai.com/api/download/models/...)"
+                      className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-purple-300 focus:outline-none focus:ring-2 focus:ring-cyan-500 text-sm"
+                      onKeyPress={(e) => {
+                        if (e.key === 'Enter' && e.target.value.trim()) {
+                          if (config.loras.length >= 5) {
+                            alert('Maximum 5 LoRAs allowed');
+                            return;
+                          }
+                          addLora({
+                            path: e.target.value.trim(),
+                            weight_name: `custom_lora_${config.loras.length + 1}`,
+                            scale: 1.0,
+                            transformer: 'high'
+                          });
+                          e.target.value = '';
+                        }
+                      }}
+                    />
+                    <p className="text-purple-300 text-xs">
+                      Press Enter to add • Max 5 LoRAs • Civitai URLs supported
+                    </p>
+                  </div>
+                </div>
                 {/* Prompt Suggestions */}
                 <div>
                   <label className="block text-sm font-medium text-purple-200 mb-2">
@@ -831,125 +948,7 @@ const QwenImageToImage = () => {
                   </div>
                 </div>
 
-                {/* Preset LoRA Library */}
-                <PresetLoraSelector
-                  toolType="Qi2i"
-                  userTier={profile?.subscription_status || 'free'}
-                  currentLoras={config.loras}
-                  onAddLora={addLora}
-                  maxLoras={5}
-                />
-
-                {/* Active LoRAs */}
-                {config.loras.length > 0 && (
-                  <div>
-                    <label className="block text-sm font-medium text-purple-200 mb-2">
-                      <Sparkles className="w-4 h-4 inline mr-1" />
-                      Active LoRAs ({config.loras.length}/5)
-                    </label>
-                    <div className="space-y-3">
-                      {config.loras.map((lora, index) => (
-                        <div key={index} className="bg-white/5 rounded-lg p-3 border border-white/10">
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="text-white font-medium text-sm">{lora.weight_name}</span>
-                            <button
-                              onClick={() => removeLora(index)}
-                              className="text-red-400 hover:text-red-300 transition-colors"
-                              title="Remove LoRA"
-                            >
-                              <X className="w-4 h-4" />
-                            </button>
-                          </div>
-                          
-                          <div className="grid grid-cols-2 gap-3">
-                            <div>
-                              <label className="block text-xs text-purple-300 mb-1">Scale</label>
-                              <input
-                                type="number"
-                                step="0.1"
-                                min="0"
-                                max="3"
-                                value={lora.scale}
-                                onChange={(e) => updateLora(index, 'scale', parseFloat(e.target.value))}
-                                className="w-full px-2 py-1 bg-white/10 border border-white/20 rounded text-white text-sm focus:outline-none focus:ring-1 focus:ring-cyan-500"
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-xs text-purple-300 mb-1">Transformer</label>
-                              <select
-                                value={lora.transformer || 'high'}
-                                onChange={(e) => updateLora(index, 'transformer', e.target.value)}
-                                className="w-full px-2 py-1 bg-white/10 border border-white/20 rounded text-white text-sm focus:outline-none focus:ring-1 focus:ring-cyan-500"
-                              >
-                                <option value="high" className="bg-gray-800">High</option>
-                                <option value="low" className="bg-gray-800">Low</option>
-                                <option value="both" className="bg-gray-800">Both</option>
-                              </select>
-                            </div>
-                          </div>
-                          
-                          {/* Trigger Words Display */}
-                          {lora.trigger_words && lora.trigger_words.length > 0 && (
-                            <div className="mt-2">
-                              <label className="block text-xs text-purple-300 mb-1">Trigger Words</label>
-                              <div className="flex flex-wrap gap-1">
-                                {lora.trigger_words.map((word, wordIndex) => (
-                                  <span 
-                                    key={wordIndex}
-                                    className="px-2 py-0.5 bg-cyan-500/20 text-cyan-300 text-xs rounded cursor-pointer hover:bg-cyan-500/30 transition-colors"
-                                    onClick={() => {
-                                      const currentPrompt = config.prompt;
-                                      const newPrompt = currentPrompt ? `${currentPrompt}, ${word}` : word;
-                                      setConfig(prev => ({ ...prev, prompt: newPrompt }));
-                                    }}
-                                    title="Click to add to prompt"
-                                  >
-                                    {word}
-                                  </span>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Manual LoRA Addition */}
-                <div>
-                  <label className="block text-sm font-medium text-purple-200 mb-2">
-                    <Plus className="w-4 h-4 inline mr-1" />
-                    Add Custom LoRA
-                  </label>
-                  <div className="space-y-2">
-                    <input
-                      type="url"
-                      placeholder="LoRA URL (e.g., https://civitai.com/api/download/models/...)"
-                      className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-purple-300 focus:outline-none focus:ring-2 focus:ring-cyan-500 text-sm"
-                      onKeyPress={(e) => {
-                        if (e.key === 'Enter' && e.target.value.trim()) {
-                          if (config.loras.length >= 5) {
-                            alert('Maximum 5 LoRAs allowed');
-                            return;
-                          }
-                          addLora({
-                            path: e.target.value.trim(),
-                            weight_name: `custom_lora_${config.loras.length + 1}`,
-                            scale: 1.0,
-                            transformer: 'high'
-                          });
-                          e.target.value = '';
-                        }
-                      }}
-                    />
-                    <p className="text-purple-300 text-xs">
-                      Press Enter to add • Max 5 LoRAs • Civitai URLs supported
-                    </p>
-                  </div>
-                </div>
-
-                {/* Generate Button */}
+              {/* Generate Button */}
                 <button
                   onClick={handleGenerate}
                   disabled={generating || !config.prompt.trim() || !config.image_url}
