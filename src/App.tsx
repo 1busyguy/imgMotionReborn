@@ -255,7 +255,7 @@ function App() {
               path="/wan22-pro" 
               element={
                 <ProtectedRoute>
-                  <WanPro />
+                  <Navigate to="/dashboard" replace />
                 </ProtectedRoute>
               } 
             />
