@@ -591,13 +591,26 @@ const Dashboard = () => {
 
               {/* Enter Gallery Button */}
               <div className="w-full lg:w-1/2 lg:pl-6 flex justify-center lg:justify-end">
-                <button 
-                  onClick={() => navigate('/gallery')}
-                  className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white font-bold py-4 px-8 rounded-xl transition-all duration-300 transform hover:scale-105 flex items-center space-x-3 w-full max-w-xs justify-center text-lg"
-                >
-                  <Upload className="w-5 h-5" />
-                  <span>Enter Gallery</span>
-                </button>
+                <div className="flex flex-col sm:flex-row gap-3 w-full max-w-md">
+                  <button 
+                    onClick={() => navigate('/gallery')}
+                    className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white font-bold py-4 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 flex items-center space-x-2 justify-center flex-1"
+                  >
+                    <Upload className="w-5 h-5" />
+                    <span>Enter Gallery</span>
+                  </button>
+                  
+                  <button 
+                    onClick={() => {
+                      setShowAllTools(true);
+                      setCurrentToolPage(0);
+                    }}
+                    className="bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white font-bold py-4 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 flex items-center space-x-2 justify-center flex-1"
+                  >
+                    <Wand2 className="w-5 h-5" />
+                    <span>View All Tools</span>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
