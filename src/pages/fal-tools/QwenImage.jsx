@@ -288,13 +288,8 @@ const QwenImageToImage = () => {
   };
 
   const handleGenerate = async () => {
-    if (!config.prompt.trim()) {
-      alert('Please enter a prompt');
-      return;
-    }
-
     if (!config.image_url) {
-      alert('Please upload a source image');
+      alert('Please enter a text prompt');
       return;
     }
 
@@ -302,7 +297,6 @@ const QwenImageToImage = () => {
     if (!bypassSafetyCheck) {
       try {
         const analysisResult = await performSafetyAnalysis(
-          config.image_url,
           config.prompt,
           'fal_qwen_image_to_image'
         );
@@ -710,65 +704,6 @@ const QwenImageToImage = () => {
                       className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-purple-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm"
                       onKeyPress={(e) => {
                         if (e.key === 'Enter' && e.target.value.trim()) {
-                          if (config.loras.length >= 3) {
-                            alert('Maximum 3 LoRAs allowed');
-                            return;
-                          }
-                          addLora({
-                            path: e.target.value.trim(),
-                            weight_name: `custom_lora_${config.loras.length + 1}`,
-                            scale: 1.0,
-                            transformer: 'high'
-                          });
-                          e.target.value = '';
-                        }
-                      }}
-                    />
-                    <p className="text-purple-300 text-xs">
-                      Press Enter to add • Max 5 LoRAs • Civitai URLs supported
-                    </p>
-                  </div>   
-                </div>   */}
-                
-                {/* Prompt Suggestions */}
-                <div>
-                  <label className="block text-sm font-medium text-purple-200 mb-2">
-                    <Sparkles className="w-4 h-4 inline mr-1" />
-                    Transformation Ideas
-                  </label>
-                  <div className="grid grid-cols-1 gap-2 max-h-32 overflow-y-auto">
-                    {promptSuggestions.slice(0, 4).map((suggestion, index) => (
-                      <button
-                        key={index}
-                        onClick={() => setConfig(prev => ({ ...prev, prompt: suggestion }))}
-                        className="text-left px-3 py-2 bg-white/5 hover:bg-white/10 text-purple-200 rounded-lg text-xs transition-colors"
-                      >
-                        {suggestion}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Strength */}
-                <div>
-                  <label className="block text-sm font-medium text-purple-200 mb-2">
-                    Transformation Strength: {config.strength}
-                  </label>
-                  <input
-                    type="range"
-                    min="0.1"
-                    max="1.0"
-                    step="0.1"
-                    value={config.strength}
-                    onChange={(e) => setConfig(prev => ({ ...prev, strength: parseFloat(e.target.value) }))}
-                    className="w-full h-2 bg-white/20 rounded-lg appearance-none cursor-pointer slider"
-                  />
-                  <div className="flex justify-between text-xs text-purple-300 mt-1">
-                    <span>Subtle</span>
-                    <span>Balanced</span>
-                    <span>Strong</span>
-                  </div>
-                </div>
 
                 {/* Image Size */}
                 <div>
@@ -952,7 +887,7 @@ const QwenImageToImage = () => {
                 {/* Generate Button */}
                 <button
                   onClick={handleGenerate}
-                  disabled={generating || !config.prompt.trim() || !config.image_url}
+                  disabled={generating || !config.prompt.trim()}
                   className="w-full bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white font-semibold py-4 px-6 rounded-lg transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center space-x-2"
                 >
                   {generating ? (
