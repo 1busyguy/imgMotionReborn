@@ -217,7 +217,7 @@ export const falTools = [
     // GEMINI 2.5 FLASH IMAGE EDIT - NEW TOOL
     {
         id: 35,
-        name: "Google Nano Banana txt2img altering tool",
+        name: "Google Nano Banana TEXT2img",
         description: "Advanced AI image editing with edit and enhance images with your own words",
         image: toCdnUrl("https://images.pexels.com/photos/3861958/pexels-photo-3861958.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1"),
         tokensRequired: "8+",
@@ -239,7 +239,7 @@ export const falTools = [
     },
     {
         id: 37,
-        name: "Advanced Editing Image2Image tool",
+        name: "Advanced Editing Img2Img tool",
         description: "Transform existing images - edit, enhance, and reimagine your photos",
         image: toCdnUrl("https://images.pexels.com/photos/3785079/pexels-photo-3785079.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1"),
         tokensRequired: "10+",
