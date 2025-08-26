@@ -111,29 +111,87 @@ const Gallery = () => {
     return [url];
   };
   
-  // Turn a URL string into just its file name (keeps extension, strips query/hash)
-  const filenameFromUrl = (value) => {
+  // Collapse any URL-like string to just its filename (no query/hash)
+const filenameFromUrl = (str) => {
+  if (typeof str !== 'string') return str;
+  try {
+    // Try parsing as a full URL
+    const u = new URL(str);
+    const last = u.pathname.split('/').filter(Boolean).pop() || '';
+    return decodeURIComponent(last);
+  } catch {
+    // Fallback for bare paths or not-a-URL
+    const path = String(str).split('?')[0].split('#')[0];
+    const last = path.split('/').filter(Boolean).pop() || path;
     try {
-      const u = new URL(value);
-      const last = (u.pathname || '').split('/').pop() || '';
-      return decodeURIComponent(last.split('?')[0].split('#')[0]) || value;
+      return decodeURIComponent(last);
     } catch {
-      // Not a full URL; still try to grab last path segment for things like "folder/name.mp4"
-      if (typeof value === 'string' && value.includes('/')) {
-        const last = value.split('/').pop();
-        return decodeURIComponent(last.split('?')[0].split('#')[0]);
-      }
-      return value;
+      return last;
     }
-  };
+  }
+};
+
+// Replace all URLs inside a string with their filenames
+const collapseUrlString = (s) => {
+  if (typeof s !== 'string') return s;
+  const URL_REGEX = /https?:\/\/[^\s)'"<>]+/gi;
+  return s.replace(URL_REGEX, (m) => filenameFromUrl(m));
+};
   
   const formatConfigValue = (key, value) => {
-    // Collapse URLs (or keys that look like URLs) to just the filename
-    if (typeof value === 'string' && (/^https?:\/\//i.test(value) || /url/i.test(key))) {
+  if (value == null) return '';
+
+  // Friendly display for LoRA arrays like:
+  // [{ path: ".../model.safetensors?... ", weight_name: "boobs", ...}, ...]
+  if (Array.isArray(value) && key?.toLowerCase?.() === 'loras') {
+    const names = value
+      .map((it) => {
+        if (!it) return '';
+        if (typeof it === 'string') return filenameFromUrl(it);
+        if (typeof it === 'object') {
+          return it.weight_name || filenameFromUrl(it.path || '');
+        }
+        return String(it);
+      })
+      .filter(Boolean);
+    return names.join(', ');
+  }
+
+  // Arrays: collapse URLs item-by-item
+  if (Array.isArray(value)) {
+    return value
+      .map((v) =>
+        typeof v === 'string'
+          ? collapseUrlString(v)
+          : typeof v === 'object' && v !== null
+            ? JSON.stringify(v, (k, vv) =>
+                typeof vv === 'string' ? collapseUrlString(vv) : vv
+              )
+            : String(v)
+      )
+      .join(', ');
+  }
+
+  // Objects: stringify but collapse any URL-looking strings deeply
+  if (typeof value === 'object') {
+    return JSON.stringify(
+      value,
+      (k, v) => (typeof v === 'string' ? collapseUrlString(v) : v),
+      2
+    );
+  }
+
+  // Strings: if it's a URL or the key suggests a URL, show filename
+  if (typeof value === 'string') {
+    if (/^https?:\/\//i.test(value) || /url/i.test(key)) {
       return filenameFromUrl(value);
     }
-    return typeof value === 'object' ? JSON.stringify(value) : String(value);
-  };
+    // Also collapse embedded URLs inside free text
+    return collapseUrlString(value);
+  }
+
+  return String(value);
+};
     
     // Helper function to get primary image URL
     const getPrimaryImageUrl = (url) => {
