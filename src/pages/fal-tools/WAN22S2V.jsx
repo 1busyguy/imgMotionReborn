@@ -337,17 +337,24 @@ const WAN22S2V = () => {
   };
 
   const calculateTokenCost = () => {
-    // Base cost calculation based on frames and resolution
-    let baseCost = Math.ceil(config.num_frames * 0.4); // ~0.4 tokens per frame
+    // Calculate video duration in seconds
+    const durationInSeconds = config.num_frames / config.frames_per_second;
     
-    // Resolution multiplier
+    // Cost per second based on resolution
+    let costPerSecond;
     if (config.resolution === '720p') {
-      baseCost = Math.ceil(baseCost * 1.5);
+      costPerSecond = 0.20; // $0.20 per second for 720p
     } else if (config.resolution === '580p') {
-      baseCost = Math.ceil(baseCost * 1.2);
+      costPerSecond = 0.15; // $0.15 per second for 580p
+    } else { // 480p
+      costPerSecond = 0.10; // $0.10 per second for 480p
     }
     
-    return Math.max(35, baseCost); // Minimum 35 tokens
+    // Calculate total cost in USD, then convert to tokens (assuming $0.01 per token)
+    const totalCostUSD = durationInSeconds * costPerSecond;
+    const totalTokens = Math.ceil(totalCostUSD / 0.01);
+    
+    return Math.max(35, totalTokens); // Minimum 35 tokens
   };
 
   const handleGenerate = async () => {
@@ -927,9 +934,12 @@ const WAN22S2V = () => {
                     Cost Calculation
                   </h3>
                   <div className="text-orange-300 text-sm space-y-1">
-                    <p>Frames: {config.num_frames}</p>
-                    <p>Resolution: {config.resolution}</p>
-                    <p>Rate: ~0.4 tokens per frame</p>
+                    <p>Frames: {config.num_frames} @ {config.frames_per_second} FPS</p>
+                    <p>Duration: {(config.num_frames / config.frames_per_second).toFixed(1)}s</p>
+                    <p>Resolution: {config.resolution} (${
+                      config.resolution === '720p' ? '0.20' :
+                      config.resolution === '580p' ? '0.15' : '0.10'
+                    }/sec)</p>
                     <p className="font-medium text-orange-200">Total: {calculateTokenCost()} tokens</p>
                   </div>
                 </div>
