@@ -218,14 +218,17 @@ const collapseUrlString = (s) => {
   // Helper function to get thumbnail for text-based video tools
   const getThumbnailForTextVideoTool = (generation) => {
     const textVideoTools = [
-      'fal_wan_v22_text2video_lora',
-      'fal_wan_v22_img2video_lora',
       'fal_wan_v22_video2video',
+      'fal_kling_pro',
+      'fal_minimax_hailuo',
       'fal_veo3_fast',
-      '/veo3-standard',
-      'fal_video_upscaler',
-      'fal_mmaudio_video2',
-      'fal_wan22_s2v'
+      'veo3-standard',
+      'fal_ltxv',
+      'fal_seedance_pro',
+      'fal_wan_v22_img2video_lora',
+      'fal_wan_v22_text2video_lora',
+      'fal_wan22_s2v',
+      'fal_omnihuman'
     ];
     
     if (textVideoTools.includes(generation.tool_type)) {
