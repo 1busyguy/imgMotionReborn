@@ -8,7 +8,7 @@ export const falTools = [
         id: 38,
         name: "Speech to Video Creator",
         description: "Transform speech audio into dynamic videos - create talking avatars and animated scenes from voice recordings",
-        image: toCdnUrl("https://xisxqackivlrakfszfop.supabase.co/storage/v1/object/public/user-files/txt2vid_v3.jpg?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1"),
+        image: toCdnUrl("https://xisxqackivlrakfszfop.supabase.co/storage/v1/object/public/user-files/sound_img-vid.png?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1"),
         tokensRequired: "35+",
         category: "video",
         toolType: "fal_wan22_s2v",
