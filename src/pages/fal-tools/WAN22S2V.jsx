@@ -927,6 +927,30 @@ const WAN22S2V = () => {
                   </div>
                 </div>
 
+                {/* Shift */}
+                <div>
+                  <label className="block text-sm font-medium text-purple-200 mb-2">
+                    <Sliders className="w-4 h-4 inline mr-1" />
+                    Shift: {config.shift}
+                  </label>
+                  <input
+                    type="range"
+                    min="1"
+                    max="10"
+                    step="0.01"
+                    value={config.shift}
+                    onChange={(e) => setConfig(prev => ({ ...prev, shift: parseFloat(e.target.value) }))}
+                    className="w-full h-2 bg-white/20 rounded-lg appearance-none cursor-pointer slider"
+                  />
+                  <div className="flex justify-between text-xs text-purple-300 mt-1">
+                    <span>1.0</span>
+                    <span>5.5</span>
+                    <span>10.0</span>
+                  </div>
+                  <p className="text-purple-300 text-xs mt-1">
+                    Controls temporal consistency and motion smoothness
+                  </p>
+                </div>
                 {/* Cost Display */}
                 <div className="bg-orange-500/10 border border-orange-500/30 rounded-lg p-4">
                   <h3 className="text-orange-200 font-medium mb-2 flex items-center">
@@ -1102,6 +1126,12 @@ const WAN22S2V = () => {
                               </span>
                               <span>
                                 <strong>Tokens:</strong> {generation.tokens_used}
+                              </span>
+                              <span>
+                                <strong>Shift:</strong> {generation.input_data?.shift}
+                              </span>
+                              <span>
+                                <strong>Steps:</strong> {generation.input_data?.num_inference_steps}
                               </span>
                             </div>
                           </div>
