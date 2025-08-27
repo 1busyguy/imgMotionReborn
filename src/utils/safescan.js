@@ -11,7 +11,7 @@ export const safeScanConfig = {
   enabled: true,
 
   // We keep sensitivity low; no AI prompt scan (regex only) to avoid overblocking.
-  imageSensitivity: 3,
+  imageSensitivity: 4,
   promptSensitivity: 3,
 
   toolsToScan: {
