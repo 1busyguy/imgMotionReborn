@@ -802,14 +802,14 @@ const WAN22S2V = () => {
                   </label>
                   <input
                     type="range"
-                    min="60"
+                    min="40"
                     max="120"
                     value={config.num_frames}
                     onChange={(e) => setConfig(prev => ({ ...prev, num_frames: parseInt(e.target.value) }))}
                     className="w-full h-2 bg-white/20 rounded-lg appearance-none cursor-pointer slider"
                   />
                   <div className="flex justify-between text-xs text-purple-300 mt-1">
-                    <span>60</span>
+                    <span>40</span>
                     <span>90</span>
                     <span>120</span>
                   </div>
@@ -823,16 +823,17 @@ const WAN22S2V = () => {
                   </label>
                   <input
                     type="range"
-                    min="16"
-                    max="30"
+                    min="4"
+                    max="60"
                     value={config.frames_per_second}
                     onChange={(e) => setConfig(prev => ({ ...prev, frames_per_second: parseInt(e.target.value) }))}
                     className="w-full h-2 bg-white/20 rounded-lg appearance-none cursor-pointer slider"
                   />
                   <div className="flex justify-between text-xs text-purple-300 mt-1">
+                    <span>4</span>
                     <span>16</span>
-                    <span>22</span>
                     <span>30</span>
+                    <span>60</span>
                   </div>
                 </div>
 
@@ -866,8 +867,8 @@ const WAN22S2V = () => {
                   </label>
                   <input
                     type="range"
-                    min="20"
-                    max="50"
+                    min="2"
+                    max="40"
                     value={config.num_inference_steps}
                     onChange={(e) => setConfig(prev => ({ ...prev, num_inference_steps: parseInt(e.target.value) }))}
                     className="w-full h-2 bg-white/20 rounded-lg appearance-none cursor-pointer slider"
