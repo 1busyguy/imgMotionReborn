@@ -380,12 +380,12 @@ const Dashboard = () => {
     const buttonTextMap = {
       // Text-to-Video Tools
       'fal_wan_v22_text2video_lora': 'WAN v2.2-a14b T2V',
-      'fal_minimax_hailuo': 'Animate Image',
-      'fal_kling_pro': 'Make HD Video',
-      'fal_ltxv': 'Generate Video',
-      'fal_seedance_pro': 'Create Scene',
-      'fal_veo3_fast': 'Quick Video',
-      'fal_veo3': 'Premium Video',
+      'fal_minimax_hailuo': 'Hailuo 2.1 Pro',
+      'fal_kling_pro': 'Kling 2.1 I2V',
+      'fal_ltxv': 'LTXV I2V',
+      'fal_seedance_pro': 'SeeDance I2V',
+      'fal_veo3_fast': 'VEO3 Fast',
+      'fal_veo3': 'VEO3 Pro',
       'ai_scene_gen': 'Build Scene',
       
       // Image-to-Video Tools  
@@ -393,24 +393,24 @@ const Dashboard = () => {
       'fal_wan_v22_video2video': 'WAN v2.2-a14b V2V',
       
       // Image Generation Tools
-      'fal_flux_kontext': 'Edit Image',
-      'fal_flux_kontext_max_multi': 'Compose Images',
-      'fal_qwen_image': 'Generate Image',
-      'fal_qwen_image_to_image': 'Transform Image',
-      'fal_gemini_flash_image_edit': 'Edit with AI',
-      'fal_hidream_i1': 'Create Art',
+      'fal_flux_kontext': 'Flux Kontext',
+      'fal_flux_kontext_max_multi': 'Flux Kontext Multi',
+      'fal_qwen_image': 'QWEN T2I',
+      'fal_qwen_image_to_image': 'QWEN I2I',
+      'fal_gemini_flash_image_edit': 'Gemini Flash Img Edit',
+      'fal_hidream_i1': 'HiDream T2I',
       
       // Audio Tools
-      'fal_mmaudio_v2': 'Generate Audio',
-      'fal_mmaudio_video2': 'Add Sound',
-      'fal_cassetteai_music': 'Make Music',
+      'fal_mmaudio_v2': 'MMAudio T2Audio',
+      'fal_mmaudio_video2': 'MMAudio V2Audio',
+      'fal_cassetteai_music': 'Make RETRO Music',
       
       // Enhancement Tools
-      'fal_video_upscaler': 'Upscale Video',
-      'fal_bria_bg_remove': 'Remove Background',
+      'fal_video_upscaler': 'Video Upscaler',
+      'fal_bria_bg_remove': 'Background Remover',
       
       // Avatar Tools
-      'fal_omnihuman': 'Create Avatar'
+      'fal_omnihuman': 'OmniHUMAN I2Audio'
     };
     
     return buttonTextMap[tool.toolType] || 'Try Now';
