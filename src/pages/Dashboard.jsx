@@ -391,6 +391,7 @@ const Dashboard = () => {
       // Image-to-Video Tools  
       'fal_wan_v22_img2video_lora': 'WAN v2.2-a14b I2V',
       'fal_wan_v22_video2video': 'WAN v2.2-a14b V2V',
+      'fal_wan22_s2v': 'WAN S2V',
       
       // Image Generation Tools
       'fal_flux_kontext': 'Flux Kontext',
@@ -399,7 +400,7 @@ const Dashboard = () => {
       'fal_qwen_image_to_image': 'QWEN I2I',
       'fal_gemini_flash_image_edit': 'Gemini Flash Img Edit',
       'fal_hidream_i1': 'HiDream T2I',
-      'fal_wan22_s2v': 'WAN S2V',
+      
       
       // Audio Tools
       'fal_mmaudio_v2': 'MMAudio T2Audio',
