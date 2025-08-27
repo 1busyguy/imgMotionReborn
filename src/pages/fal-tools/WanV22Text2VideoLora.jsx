@@ -898,7 +898,7 @@ const WanV22Text2VideoLora = () => {
                     <input
                       type="range"
                       min="1"
-                      max="20"
+                      max="10"
                       step="0.5"
                       value={config.guidanceScale}
                       onChange={(e) => setConfig(prev => ({ ...prev, guidanceScale: parseFloat(e.target.value) }))}
@@ -912,7 +912,7 @@ const WanV22Text2VideoLora = () => {
                     <input
                       type="range"
                       min="1"
-                      max="20"
+                      max="10"
                       step="0.5"
                       value={config.guidanceScale2}
                       onChange={(e) => setConfig(prev => ({ ...prev, guidanceScale2: parseFloat(e.target.value) }))}
