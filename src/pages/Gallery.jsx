@@ -222,9 +222,10 @@ const collapseUrlString = (s) => {
       'fal_wan_v22_img2video_lora',
       'fal_wan_v22_video2video',
       'fal_veo3_fast',
-      'fal_veo3',
+      '/veo3-standard',
       'fal_video_upscaler',
-      'fal_mmaudio_video2'
+      'fal_mmaudio_video2',
+      'fal_wan22_s2v'
     ];
     
     if (textVideoTools.includes(generation.tool_type)) {
