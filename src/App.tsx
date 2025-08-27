@@ -35,6 +35,7 @@ import VEO3Standard from './pages/fal-tools/VEO3Standard';
 import GeminiFlashImageEdit from './pages/fal-tools/GeminFlashImageEdit';
 import QwenImage from './pages/fal-tools/QwenImage';
 import QwenImageToImage from './pages/fal-tools/QwenImageToImage';
+import WAN22S2V from './pages/fal-tools/WAN22S2V';
 import Admin from './pages/Admin';
 import Showcase from './pages/Showcase';
 import About from './pages/About';
@@ -401,6 +402,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <QwenImageToImage />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/wan-22-s2v" 
+              element={
+                <ProtectedRoute>
+                  <WAN22S2V />
                 </ProtectedRoute>
               } 
             />

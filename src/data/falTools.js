@@ -247,4 +247,15 @@ export const falTools = [
         toolType: "fal_qwen_image_to_image",
         route: "/qwen-image-to-image"
     },
+    // WAN 22 S2V - NEW SPEECH-TO-VIDEO TOOL
+    {
+        id: 38,
+        name: "Speech to Video Creator",
+        description: "Transform speech audio into dynamic videos - create talking avatars and animated scenes from voice recordings",
+        image: toCdnUrl("https://xisxqackivlrakfszfop.supabase.co/storage/v1/object/public/user-files/txt2vid_v3.jpg?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1"),
+        tokensRequired: "35+",
+        category: "video",
+        toolType: "fal_wan22_s2v",
+        route: "/wan-22-s2v"
+    },
 ];
