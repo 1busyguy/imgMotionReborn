@@ -43,7 +43,7 @@ export const falTools = [
         id: 32,
         name: "Compose an image, with iamges",
         description: "Smartly mix many pictures together into one image, composed by your words",
-        image: toCdnUrl("https://images.pexels.com/photos/3861958/pexels-photo-3861958.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1"),
+        image: toCdnUrl("https://xisxqackivlrakfszfop.supabase.co/storage/v1/object/public/user-files/img2img_v3.jpg?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1"),
         tokensRequired: "15+",
         category: "image",
         toolType: "fal_flux_kontext_max_multi",
