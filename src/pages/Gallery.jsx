@@ -228,7 +228,8 @@ const collapseUrlString = (s) => {
       'fal_wan_v22_img2video_lora',
       'fal_wan_v22_text2video_lora',
       'fal_wan22_s2v',
-      'fal_omnihuman'
+      'fal_omnihuman',
+      'fal_mmaudio_video2'
     ];
     
     if (textVideoTools.includes(generation.tool_type)) {
