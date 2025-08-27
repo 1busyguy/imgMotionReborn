@@ -13,7 +13,7 @@ export const falTools = [
         category: "video",
         toolType: "fal_wan22_s2v",
         route: "/wan-22-s2v"
-/   },
+    },
     {
         id: 30,
         name: "Advanced TEXT to Video Tool",
