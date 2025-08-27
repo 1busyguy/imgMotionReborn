@@ -31,6 +31,7 @@ export const safeScanConfig = {
     'fal_gemini_flash_image_edit': true,
     'fal_hidream_i1': true,
     'fal_flux_kontext_max_multi': true,
+    'fal_wan22_s2v': true,
     'fal_omnihuman': true
   },
 
