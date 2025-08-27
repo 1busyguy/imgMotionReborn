@@ -18,7 +18,10 @@ export const safeScanConfig = {
     'fal_wan_v22_video2video': true,
     'fal_kling_pro': true,
     'fal_minimax_hailuo': true,
-    'fal_veo2': true,
+    'fal_qwen_image_to_image': true,
+    'fal_fal_qwen_image': true,
+    'fal_veo3_fast': true,
+    'veo3-standard': true,
     'fal_ltxv': true,
     'fal_seedance_pro': true,
     'fal_wan_v22_a14b': true,
@@ -26,9 +29,9 @@ export const safeScanConfig = {
     'fal_wan_v22_text2video_lora': true,
     'fal_flux_kontext': true,
     'fal_flux_kontext_lora': true,
-    'fal_flux_redux': true,
+    'fal_gemini_flash_image_edit': true,
     'fal_hidream_i1': true,
-    'ai_scene_gen': true,
+    'fal_flux_kontext_max_multi': true,
     'fal_omnihuman': true
   },
 
