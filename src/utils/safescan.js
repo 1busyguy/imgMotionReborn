@@ -24,7 +24,6 @@ export const safeScanConfig = {
     'veo3-standard': true,
     'fal_ltxv': true,
     'fal_seedance_pro': true,
-    'fal_wan_v22_a14b': true,
     'fal_wan_v22_img2video_lora': true,
     'fal_wan_v22_text2video_lora': true,
     'fal_flux_kontext': true,
