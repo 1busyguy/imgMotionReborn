@@ -379,7 +379,7 @@ const Dashboard = () => {
   const getUniqueButtonText = (tool) => {
     const buttonTextMap = {
       // Text-to-Video Tools
-      'fal_wan_v22_text2video_lora': 'Create Video',
+      'fal_wan_v22_text2video_lora': 'WAN v2.2-a14b T2V',
       'fal_minimax_hailuo': 'Animate Image',
       'fal_kling_pro': 'Make HD Video',
       'fal_ltxv': 'Generate Video',
@@ -389,8 +389,8 @@ const Dashboard = () => {
       'ai_scene_gen': 'Build Scene',
       
       // Image-to-Video Tools  
-      'fal_wan_v22_img2video_lora': 'Animate Image',
-      'fal_wan_v22_video2video': 'Transform Video',
+      'fal_wan_v22_img2video_lora': 'WAN v2.2-a14b I2V',
+      'fal_wan_v22_video2video': 'WAN v2.2-a14b V2V',
       
       // Image Generation Tools
       'fal_flux_kontext': 'Edit Image',
