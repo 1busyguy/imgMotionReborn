@@ -31,7 +31,7 @@ export const falTools = [
         id: 33,
         name: "Using words to change video",
         description: "Use AI to edit videos, switch style, change parts, and move things while keeping its structure",
-        image: toCdnUrl("https://images.pexels.com/photos/3861958/pexels-photo-3861958.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1"),
+        image: toCdnUrl("https://xisxqackivlrakfszfop.supabase.co/storage/v1/object/public/user-files/vid2vid.jpg?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1"),
         tokensRequired: "25+",
         category: "video",
         toolType: "fal_wan_v22_video2video",
