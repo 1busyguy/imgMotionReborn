@@ -269,6 +269,12 @@ export const AI_TOOLS = {
     description: 'Transform existing images with Qwen\'s AI model',
     tokensRequired: 10, // Base cost per image generated
     category: 'image'
+  },
+  fal_wan22_s2v: {
+    name: 'WAN 22 S2V',
+    description: 'Speech-to-Video: Transform speech audio into dynamic videos',
+    tokensRequired: 35, // Base cost, varies by resolution and duration
+    category: 'video'
   }
 };
 
