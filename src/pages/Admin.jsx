@@ -121,256 +121,45 @@ const Admin = () => {
         return urls.length > 0 ? urls[0] : null;
     };
 
-    // Helper function to get video poster/thumbnail
-    const getVideoPoster = (generation) => {
-        // Check if there's an input image that can be used as poster
-        if (generation.input_data?.imageUrl) {
-            return toCdnUrl(generation.input_data.imageUrl);
-        }
-        if (generation.input_data?.image_url) {
-            return toCdnUrl(generation.input_data.image_url);
-        }
-        if (generation.input_data?.input_image_url) {
-            return toCdnUrl(generation.input_data.input_image_url);
-        }
-        if (generation.input_data?.init_image) {
-            return toCdnUrl(generation.input_data.init_image);
-        }
-        if (generation.input_data?.image) {
-            return toCdnUrl(generation.input_data.image);
-        }
-        // Return null if no poster available
-        return null;
+    // Updated helper function to get video poster/thumbnail (matching Gallery.jsx)
+    const getVideoPoster = (g) => {
+        const c = g?.input_data || {};
+        const candidates = [
+            g?.thumbnail_url,
+            g?.metadata?.thumbnail_url,
+            c.thumbnail_url,
+            c.imageUrl,
+            c.image_url,
+            c.input_image_url,
+            c.init_image,
+            c.image,
+        ].filter(Boolean);
+        return candidates.length ? toCdnUrl(candidates[0]) : null;
     };
 
-    // Component for video thumbnail with iOS fallback
-    const VideoThumbnail = ({ generation, className }) => {
-        const [showFallback, setShowFallback] = useState(false);
-        const [videoFrame, setVideoFrame] = useState(null);
-        const videoRef = React.useRef(null);
-        const poster = getVideoPoster(generation);
-        
-        // Detect iOS devices
-        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-        
-        // Try to capture a frame from the video for text-to-video tools
-        React.useEffect(() => {
-            if (!poster && !isIOS && generation.output_file_url && !showFallback && !videoFrame) {
-                const video = document.createElement('video');
-                video.src = toCdnUrl(generation.output_file_url);
-                video.crossOrigin = 'anonymous';
-                video.muted = true;
-                video.playsInline = true;
-                
-                const captureFrame = () => {
-                    try {
-                        const canvas = document.createElement('canvas');
-                        canvas.width = video.videoWidth;
-                        canvas.height = video.videoHeight;
-                        const ctx = canvas.getContext('2d');
-                        ctx.drawImage(video, 0, 0);
-                        const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
-                        setVideoFrame(dataUrl);
-                        video.remove();
-                    } catch (error) {
-                        console.warn('Could not capture video frame:', error);
-                        setShowFallback(true);
-                        video.remove();
-                    }
-                };
-                
-                video.addEventListener('loadeddata', () => {
-                    video.currentTime = 0.1; // Seek to 0.1 seconds to get a better frame
-                });
-                
-                video.addEventListener('seeked', captureFrame);
-                
-                video.addEventListener('error', () => {
-                    setShowFallback(true);
-                    video.remove();
-                });
-                
-                // Set timeout to prevent hanging
-                const timeout = setTimeout(() => {
-                    setShowFallback(true);
-                    video.remove();
-                }, 5000);
-                
-                video.load();
-                
-                return () => {
-                    clearTimeout(timeout);
-                    video.remove();
-                };
-            }
-        }, [poster, isIOS, generation.output_file_url, showFallback, videoFrame]);
-        
-        // For iOS or when fallback is needed
-        if (showFallback || (isIOS && !poster && !videoFrame)) {
-            return (
-                <div className={`${className} bg-gradient-to-br from-blue-500/20 to-purple-500/20 flex items-center justify-center relative overflow-hidden`}>
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent"></div>
-                    <div className="absolute inset-0 flex items-center justify-center">
-                        <div className="w-12 h-12 bg-black/50 rounded-full flex items-center justify-center">
-                            <svg className="w-6 h-6 text-white ml-1" fill="currentColor" viewBox="0 0 24 24">
-                                <path d="M8 5v14l11-7z" />
-                            </svg>
-                        </div>
-                    </div>
-                </div>
-            );
-        }
-        
-        // Use poster, video frame, or actual video element
-        if (poster || videoFrame) {
-            return (
-                <div className="relative">
-                    <img
-                        src={poster || videoFrame}
-                        alt={generation.generation_name}
-                        className={className}
-                        onError={() => setShowFallback(true)}
-                        loading="lazy"
-                    />
-                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                        <div className="w-12 h-12 bg-black/50 rounded-full flex items-center justify-center">
-                            <svg className="w-6 h-6 text-white ml-1" fill="currentColor" viewBox="0 0 24 24">
-                                <path d="M8 5v14l11-7z" />
-                            </svg>
-                        </div>
-                    </div>
-                </div>
-            );
-        }
-        
-        // Default video element for non-iOS devices when no poster/frame available
-        return (
-            <div className="relative">
-                <video
-                    ref={videoRef}
-                    src={toCdnUrl(generation.output_file_url)}
-                    className={className}
-                    muted
-                    playsInline
-                    webkit-playsinline="true"
-                    preload="metadata"
-                    crossOrigin="anonymous"
-                    onLoadedMetadata={(e) => {
-                        // Try to seek to get a thumbnail
-                        if (e.target.duration > 0) {
-                            e.target.currentTime = Math.min(0.1, e.target.duration * 0.1);
-                        }
-                    }}
-                    onError={() => setShowFallback(true)}
-                />
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                    <div className="w-12 h-12 bg-black/50 rounded-full flex items-center justify-center">
-                        <svg className="w-6 h-6 text-white ml-1" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M8 5v14l11-7z" />
-                        </svg>
-                    </div>
-                </div>
-            </div>
-        );
-    };
-
-    // Helper function to detect video tools
-    const isVideoTool = (toolType) => {
-        const videoTools = [
-            'fal_wan_pro', 
-            'wan22_pro',
-            'fal_minimax_hailuo',
-            'fal_seedance_pro',
-            'ai_scene_gen',
-            'fal_omnihuman',
-            'fal_mmaudio_video2',
-            'fal_wan_v22_a14b',
+    // Helper function to get thumbnail for text-based video tools (from Gallery.jsx)
+    const getThumbnailForTextVideoTool = (generation) => {
+        const textVideoTools = [
+            'fal_wan_v22_video2video',
             'fal_kling_pro',
-            'fal_veo2',
-            'fal_ltxv',
-            'fal_video_upscaler',
+            'fal_minimax_hailuo',
             'fal_veo3_fast',
-            'fal_wan_v22_text2video_lora',
+            'veo3-standard',
+            'fal_ltxv',
+            'fal_seedance_pro',
             'fal_wan_v22_img2video_lora',
-            'fal_wan_v22_video2video'
+            'fal_wan_v22_text2video_lora',
+            'fal_wan22_s2v',
+            'fal_omnihuman',
+            'fal_mmaudio_video2'
         ];
         
-        return videoTools.includes(toolType) || 
-               toolType?.includes('video') || 
-               toolType?.includes('wan') || 
-               toolType?.includes('kling') || 
-               toolType?.includes('minimax') || 
-               toolType?.includes('veo') || 
-               toolType?.includes('ltxv') || 
-               toolType?.includes('fal_wan_v22_a14b') || 
-               toolType?.includes('fal_seedance_pro') ||
-               toolType?.includes('fal_wan_v22_text2video_lora') || 
-               toolType?.includes('fal_wan_v22_img2video_lora') || 
-               toolType?.includes('fal_wan_v22_video2video') || 
-               toolType?.includes('ai_scene_gen') || 
-               toolType?.includes('fal_omnihuman') || 
-               toolType?.includes('fal_mmaudio_video2');
-    };
-
-    // Helper function to detect music tools
-    const isMusicTool = (toolType) => {
-        const musicTools = [
-            'fal_cassetteai_music',
-            'fal_mmaudio_v2'
-        ];
+        if (textVideoTools.includes(generation.tool_type)) {
+            // Return the thumbnail_url from the database if it exists
+            return generation.thumbnail_url || null;
+        }
         
-        return musicTools.includes(toolType) || 
-               toolType?.includes('music') || 
-               toolType?.includes('fal_cassetteai_music') ||
-               toolType?.includes('fal_mmaudio_v2');
-    };
-
-    const isAudioType = (toolType) => {
-        return toolType?.includes('music') || 
-               toolType?.includes('fal_cassetteai_music') || 
-               toolType?.includes('fal_mmaudio_v2');
-    };
-
-    // Helper function to determine media type
-    const getMediaType = (generation) => {
-        const toolType = generation.tool_type;
-        
-        if (toolType?.includes('video') || toolType?.includes('kling') || toolType?.includes('wan') || 
-            toolType?.includes('minimax') || toolType?.includes('veo') || toolType?.includes('ltxv') || 
-            toolType?.includes('seedance') || toolType?.includes('fal_wan_v22_a14b') || 
-            toolType?.includes('ai_scene_gen') || toolType?.includes('fal_omnihuman')) {
-          return 'video';
-        } else if (toolType?.includes('music') || toolType?.includes('cassetteai')) {
-          return 'audio';
-        } else {
-          return 'image';
-        }
-    };
-
-    const getStatusColor = (status) => {
-        switch (status) {
-          case 'completed':
-            return 'bg-green-500/20 text-green-400 border-green-500/30';
-          case 'processing':
-            return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30';
-          case 'failed':
-            return 'bg-red-500/20 text-red-400 border-red-500/30';
-          default:
-            return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
-        }
-    };
-
-    const getToolIcon = (toolType) => {
-        if (toolType?.includes('video') || toolType?.includes('kling') || toolType?.includes('wan') || 
-            toolType?.includes('minimax') || toolType?.includes('veo') || toolType?.includes('ltxv') || 
-            toolType?.includes('seedance') || toolType?.includes('fal_wan_v22_a14b') || 
-            toolType?.includes('ai_scene_gen') || toolType?.includes('fal_omnihuman')) {
-          return <Video className="w-4 h-4" />;
-        } else if (toolType?.includes('music') || toolType?.includes('cassetteai')) {
-          return <Music className="w-4 h-4" />;
-        } else {
-          return <ImageIcon className="w-4 h-4" />;
-        }
+        return null;
     };
 
 // Turn a URL string into just its file name (keeps extension, strips query/hash)
@@ -458,7 +247,7 @@ const formatConfigValue = (key, value) => {
     ];
 
     // Debug logging for admin check
-    console.log('🔍 Admin check debug:', {
+    console.log('🔎 Admin check debug:', {
         hasUser: !!user,
         userId: user?.id,
         userEmail: user?.email,
@@ -511,7 +300,7 @@ const formatConfigValue = (key, value) => {
     }, [routeUserId, users, isAdmin]);
 
     useEffect(() => {
-        console.log('🔍 Admin useEffect - checking auth...');
+        console.log('🔎 Admin useEffect - checking auth...');
         console.log('User:', user ? { id: user.id, email: user.email } : 'null');
         console.log('Is Admin:', isAdmin);
 
@@ -560,7 +349,7 @@ const formatConfigValue = (key, value) => {
     const fetchUsers = async () => {
         setLoading(true);
         try {
-            console.log('🔍 Fetching users from admin endpoint...');
+            console.log('🔎 Fetching users from admin endpoint...');
 
             const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-get-users`, {
                 method: 'GET',
@@ -798,6 +587,105 @@ const formatConfigValue = (key, value) => {
         const minutes = Math.floor(time / 60);
         const seconds = Math.floor(time % 60);
         return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    };
+
+    // Helper function to detect video tools
+    const isVideoTool = (toolType) => {
+        const videoTools = [
+            'fal_wan_pro', 
+            'wan22_pro',
+            'fal_minimax_hailuo',
+            'fal_seedance_pro',
+            'ai_scene_gen',
+            'fal_omnihuman',
+            'fal_mmaudio_video2',
+            'fal_wan_v22_a14b',
+            'fal_kling_pro',
+            'fal_veo2',
+            'fal_ltxv',
+            'fal_video_upscaler',
+            'fal_veo3_fast',
+            'fal_wan_v22_text2video_lora',
+            'fal_wan_v22_img2video_lora',
+            'fal_wan_v22_video2video'
+        ];
+        
+        return videoTools.includes(toolType) || 
+               toolType?.includes('video') || 
+               toolType?.includes('wan') || 
+               toolType?.includes('kling') || 
+               toolType?.includes('minimax') || 
+               toolType?.includes('veo') || 
+               toolType?.includes('ltxv') || 
+               toolType?.includes('fal_wan_v22_a14b') || 
+               toolType?.includes('fal_seedance_pro') ||
+               toolType?.includes('fal_wan_v22_text2video_lora') || 
+               toolType?.includes('fal_wan_v22_img2video_lora') || 
+               toolType?.includes('fal_wan_v22_video2video') || 
+               toolType?.includes('ai_scene_gen') || 
+               toolType?.includes('fal_omnihuman') || 
+               toolType?.includes('fal_mmaudio_video2');
+    };
+
+    // Helper function to detect music tools
+    const isMusicTool = (toolType) => {
+        const musicTools = [
+            'fal_cassetteai_music',
+            'fal_mmaudio_v2'
+        ];
+        
+        return musicTools.includes(toolType) || 
+               toolType?.includes('music') || 
+               toolType?.includes('fal_cassetteai_music') ||
+               toolType?.includes('fal_mmaudio_v2');
+    };
+
+    const isAudioType = (toolType) => {
+        return toolType?.includes('music') || 
+               toolType?.includes('fal_cassetteai_music') || 
+               toolType?.includes('fal_mmaudio_v2');
+    };
+
+    // Helper function to determine media type
+    const getMediaType = (generation) => {
+        const toolType = generation.tool_type;
+        
+        if (toolType?.includes('video') || toolType?.includes('kling') || toolType?.includes('wan') || 
+            toolType?.includes('minimax') || toolType?.includes('veo') || toolType?.includes('ltxv') || 
+            toolType?.includes('seedance') || toolType?.includes('fal_wan_v22_a14b') || 
+            toolType?.includes('ai_scene_gen') || toolType?.includes('fal_omnihuman')) {
+          return 'video';
+        } else if (toolType?.includes('music') || toolType?.includes('cassetteai')) {
+          return 'audio';
+        } else {
+          return 'image';
+        }
+    };
+
+    const getStatusColor = (status) => {
+        switch (status) {
+          case 'completed':
+            return 'bg-green-500/20 text-green-400 border-green-500/30';
+          case 'processing':
+            return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30';
+          case 'failed':
+            return 'bg-red-500/20 text-red-400 border-red-500/30';
+          default:
+            return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
+        }
+    };
+
+    const getToolIcon = (toolType) => {
+        if (toolType?.includes('video') || toolType?.includes('kling') || toolType?.includes('wan') || 
+            toolType?.includes('minimax') || toolType?.includes('veo') || toolType?.includes('ltxv') || 
+            toolType?.includes('seedance') || toolType?.includes('fal_wan_v22_a14b') || 
+            toolType?.includes('ai_scene_gen') || toolType?.includes('fal_omnihuman')) {
+          return <Video className="w-4 h-4" />;
+        } else if (toolType?.includes('music') || toolType?.includes('cassetteai')) {
+          return <Music className="w-4 h-4" />;
+        } else {
+          return <ImageIcon className="w-4 h-4" />;
+        }
     };
 
     const handleFlagGeneration = async (generation) => {
@@ -1462,184 +1350,213 @@ const formatConfigValue = (key, value) => {
                       ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6' 
                       : 'space-y-4'
                   }`}>
-                    {paginatedGenerations.map((generation) => (
-                      <div
-                        key={generation.id}
-                        className={`bg-white/5 rounded-lg overflow-hidden hover:bg-white/10 transition-all duration-200 cursor-pointer ${
-                          generationViewMode === 'list' ? 'flex items-center space-x-4 p-4' : ''
-                        }`}
-                        onClick={() => {
-                          setSelectedGeneration(generation);
-                          setShowViewer(true);
-                        }}
-                      >
-                        {/* Media Thumbnail */}
-                        <div className={`relative ${generationViewMode === 'list' ? 'w-24 h-24 flex-shrink-0' : 'w-full h-48'}`}>
-                          {generation.output_file_url ? (
-                            getMediaType(generation) === 'video' ? (
-                              <OptimizedVideo
-                                src={getAllImageUrls(generation.output_file_url)[0]}
-                                poster={generation.metadata?.thumbnail_url || generation.input_data?.imageUrl}
-                                className="w-full h-full object-cover rounded-lg"
-                                controls={false}
-                                preload="metadata"
-                                muted={true}
-                                playsInline={true}
-                              />
-                            ) : getMediaType(generation) === 'audio' ? (
-                              <div className="w-full h-full bg-gradient-to-br from-pink-500/20 to-rose-500/20 rounded-lg flex items-center justify-center">
-                                <div className="text-center">
-                                  <Music className="w-8 h-8 text-pink-400 mx-auto mb-2" />
-                                  <p className="text-pink-300 text-xs">Audio Track</p>
+                    {paginatedGenerations.map((generation) => {
+                        const mediaType = getMediaType(generation);
+                        const imageUrls = getAllImageUrls(generation.output_file_url);
+                        const primaryUrl = imageUrls[0];
+                        const thumbnailUrl = getThumbnailForTextVideoTool(generation);
+
+                        return (
+                          <div
+                            key={generation.id}
+                            className={`bg-white/5 rounded-lg overflow-hidden hover:bg-white/10 transition-all duration-200 cursor-pointer ${
+                              generationViewMode === 'list' ? 'flex items-center space-x-4 p-4' : ''
+                            }`}
+                            onClick={() => {
+                              setSelectedGeneration(generation);
+                              setShowViewer(true);
+                            }}
+                          >
+                            {/* Media Thumbnail */}
+                            <div className={`relative ${generationViewMode === 'list' ? 'w-24 h-24 flex-shrink-0' : 'w-full h-48'}`}>
+                              {primaryUrl ? (
+                                mediaType === 'video' ? (
+                                  thumbnailUrl && generation.thumbnail_url ? (
+                                    // Use the actual thumbnail image for text-to-video tools
+                                    <OptimizedImage
+                                      src={thumbnailUrl}
+                                      alt={generation.generation_name}
+                                      className="w-full h-full object-cover rounded-lg"
+                                    />
+                                  ) : (
+                                    <OptimizedVideo
+                                      src={toCdnUrl(primaryUrl)}
+                                      poster={getVideoPoster(generation)}
+                                      className="w-full h-full object-cover rounded-lg"
+                                      controls={false}
+                                      preload="metadata"
+                                      muted={true}
+                                      playsInline={true}
+                                    />
+                                  )
+                                ) : mediaType === 'audio' ? (
+                                  <div className="w-full h-full bg-gradient-to-br from-pink-500/20 to-rose-500/20 rounded-lg flex items-center justify-center">
+                                    <div className="text-center">
+                                      <Music className="w-8 h-8 text-pink-400 mx-auto mb-2" />
+                                      <p className="text-pink-300 text-xs">Audio Track</p>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <OptimizedImage
+                                    src={primaryUrl}
+                                    alt={generation.generation_name}
+                                    className="w-full h-full object-cover rounded-lg"
+                                  />
+                                )
+                              ) : (
+                                <div className="w-full h-full bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-lg flex items-center justify-center">
+                                  {thumbnailUrl ? (
+                                    <div className="w-full h-full bg-gray-200 animate-pulse rounded-lg flex items-center justify-center">
+                                      <span className="text-gray-500 text-xs">Loading thumbnail...</span>
+                                    </div>
+                                  ) : (
+                                    getToolIcon(generation.tool_type)
+                                  )}
                                 </div>
+                              )}
+                              
+                              {/* Multiple images indicator */}
+                              {imageUrls.length > 1 && (
+                                <div className="absolute top-2 left-2 bg-black/70 text-white px-2 py-1 rounded-lg text-xs font-medium">
+                                  +{imageUrls.length - 1} more
+                                </div>
+                              )}
+                              
+                              {/* Status badge */}
+                              <div className={`absolute top-2 right-2 px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(generation.status)}`}>
+                                {generation.status}
                               </div>
-                            ) : (
-                              <OptimizedImage
-                                src={getAllImageUrls(generation.output_file_url)[0]}
-                                alt={generation.generation_name}
-                                className="w-full h-full object-cover rounded-lg"
-                              />
-                            )
-                          ) : (
-                            <div className="w-full h-full bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-lg flex items-center justify-center">
-                              {getToolIcon(generation.tool_type)}
-                            </div>
-                          )}
-                          
-                          {/* Status badge */}
-                          <div className={`absolute top-2 right-2 px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(generation.status)}`}>
-                            {generation.status}
-                          </div>
-                          
-                          {/* Play button for videos */}
-                          {getMediaType(generation) === 'video' && (
-                            <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity duration-200">
-                              <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center">
-                                <Play className="w-6 h-6 text-white ml-1" />
-                              </div>
-                            </div>
-                          )}
-                          
-                          {/* Play button for audio */}
-                          {getMediaType(generation) === 'audio' && (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handlePlay(generation);
-                              }}
-                              className={`absolute bottom-2 right-2 w-8 h-8 rounded-full flex items-center justify-center transition-all ${
-                                currentlyPlaying === generation.id && isPlaying
-                                  ? 'bg-pink-500 text-white'
-                                  : 'bg-black/50 text-white hover:bg-pink-500'
-                              }`}
-                            >
-                              {currentlyPlaying === generation.id && isPlaying ? 
-                                <Pause className="w-4 h-4" /> : 
-                                <Play className="w-4 h-4 ml-0.5" />
-                              }
-                            </button>
-                          )}
-                        </div>
-                        
-                        {/* Content */}
-                        <div className={`${generationViewMode === 'list' ? 'flex-1' : 'p-4'}`}>
-                          <div className="flex items-center justify-between mb-2">
-                            <h3 className={`font-medium text-white truncate ${generationViewMode === 'list' ? 'text-base' : 'text-sm'}`}>
-                              {generation.generation_name}
-                            </h3>
-                            {generationViewMode === 'grid' && (
-                              <div className="flex space-x-1">
+                              
+                              {/* Play button for videos */}
+                              {mediaType === 'video' && (
+                                <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity duration-200">
+                                  <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center">
+                                    <Play className="w-6 h-6 text-white ml-1" />
+                                  </div>
+                                </div>
+                              )}
+                              
+                              {/* Play button for audio */}
+                              {mediaType === 'audio' && (
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    handleToggleShowcase(generation.id, generation.showcased);
+                                    handlePlay(generation);
                                   }}
-                                  className={`p-1.5 rounded-lg transition-colors ${
-                                    generation.showcased 
-                                      ? 'bg-yellow-500 hover:bg-yellow-600 text-white' 
-                                      : 'bg-gray-500 hover:bg-gray-600 text-white'
+                                  className={`absolute bottom-2 right-2 w-8 h-8 rounded-full flex items-center justify-center transition-all ${
+                                    currentlyPlaying === generation.id && isPlaying
+                                      ? 'bg-pink-500 text-white'
+                                      : 'bg-black/50 text-white hover:bg-pink-500'
                                   }`}
-                                  title={generation.showcased ? 'Remove from showcase' : 'Add to showcase'}
                                 >
-                                  <Flag className="w-3 h-3" />
+                                  {currentlyPlaying === generation.id && isPlaying ? 
+                                    <Pause className="w-4 h-4" /> : 
+                                    <Play className="w-4 h-4 ml-0.5" />
+                                  }
                                 </button>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleDownload(generation);
-                                  }}
-                                  className="bg-green-500 hover:bg-green-600 text-white p-1.5 rounded-lg transition-colors"
-                                  title="Download"
-                                >
-                                  <Download className="w-3 h-3" />
-                                </button>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handlePermanentDelete(generation.id);
-                                  }}
-                                  className="bg-red-500 hover:bg-red-600 text-white p-1.5 rounded-lg transition-colors"
-                                  title="Permanent Delete"
-                                >
-                                  <Trash2 className="w-3 h-3" />
-                                </button>
+                              )}
+                            </div>
+                            
+                            {/* Content */}
+                            <div className={`${generationViewMode === 'list' ? 'flex-1' : 'p-4'}`}>
+                              <div className="flex items-center justify-between mb-2">
+                                <h3 className={`font-medium text-white truncate ${generationViewMode === 'list' ? 'text-base' : 'text-sm'}`}>
+                                  {generation.generation_name}
+                                </h3>
+                                {generationViewMode === 'grid' && (
+                                  <div className="flex space-x-1">
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleToggleShowcase(generation.id, generation.showcased);
+                                      }}
+                                      className={`p-1.5 rounded-lg transition-colors ${
+                                        generation.showcased 
+                                          ? 'bg-yellow-500 hover:bg-yellow-600 text-white' 
+                                          : 'bg-gray-500 hover:bg-gray-600 text-white'
+                                      }`}
+                                      title={generation.showcased ? 'Remove from showcase' : 'Add to showcase'}
+                                    >
+                                      <Flag className="w-3 h-3" />
+                                    </button>
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleDownload(generation);
+                                      }}
+                                      className="bg-green-500 hover:bg-green-600 text-white p-1.5 rounded-lg transition-colors"
+                                      title="Download"
+                                    >
+                                      <Download className="w-3 h-3" />
+                                    </button>
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handlePermanentDelete(generation.id);
+                                      }}
+                                      className="bg-red-500 hover:bg-red-600 text-white p-1.5 rounded-lg transition-colors"
+                                      title="Permanent Delete"
+                                    >
+                                      <Trash2 className="w-3 h-3" />
+                                    </button>
+                                  </div>
+                                )}
                               </div>
-                            )}
-                          </div>
-                          
-                          <div className={`flex items-center space-x-2 mb-2 ${generationViewMode === 'list' ? 'text-sm' : 'text-xs'}`}>
-                            <div className="w-4 h-4 bg-gradient-to-r from-purple-500 to-pink-500 rounded flex items-center justify-center text-white">
-                              {getToolIcon(generation.tool_type)}
+                              
+                              <div className={`flex items-center space-x-2 mb-2 ${generationViewMode === 'list' ? 'text-sm' : 'text-xs'}`}>
+                                <div className="w-4 h-4 bg-gradient-to-r from-purple-500 to-pink-500 rounded flex items-center justify-center text-white">
+                                  {getToolIcon(generation.tool_type)}
+                                </div>
+                                <span className="text-purple-200 truncate">{generation.tool_name}</span>
+                              </div>
+                              
+                              <div className={`flex items-center justify-between text-purple-300 ${generationViewMode === 'list' ? 'text-sm' : 'text-xs'}`}>
+                                <span>{generation.tokens_used} tokens</span>
+                                <span>{new Date(generation.created_at).toLocaleDateString()}</span>
+                              </div>
+                              
+                              {generationViewMode === 'list' && (
+                                <div className="flex space-x-2 mt-3">
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleToggleShowcase(generation.id, generation.showcased);
+                                    }}
+                                    className={`p-2 rounded-lg transition-colors ${
+                                      generation.showcased 
+                                        ? 'bg-yellow-500 hover:bg-yellow-600 text-white' 
+                                        : 'bg-gray-500 hover:bg-gray-600 text-white'
+                                    }`}
+                                    title={generation.showcased ? 'Remove from showcase' : 'Add to showcase'}
+                                  >
+                                    <Flag className="w-4 h-4" />
+                                  </button>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleDownload(generation);
+                                    }}
+                                    className="bg-green-500 hover:bg-green-600 text-white p-2 rounded-lg transition-colors"
+                                    title="Download"
+                                  >
+                                    <Download className="w-4 h-4" />
+                                  </button>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handlePermanentDelete(generation.id);
+                                    }}
+                                    className="bg-red-500 hover:bg-red-600 text-white p-2 rounded-lg transition-colors"
+                                    title="Permanent Delete"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
+                                </div>
+                              )}
                             </div>
-                            <span className="text-purple-200 truncate">{generation.tool_name}</span>
                           </div>
-                          
-                          <div className={`flex items-center justify-between text-purple-300 ${generationViewMode === 'list' ? 'text-sm' : 'text-xs'}`}>
-                            <span>{generation.tokens_used} tokens</span>
-                            <span>{new Date(generation.created_at).toLocaleDateString()}</span>
-                          </div>
-                          
-                          {generationViewMode === 'list' && (
-                            <div className="flex space-x-2 mt-3">
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleToggleShowcase(generation.id, generation.showcased);
-                                }}
-                                className={`p-2 rounded-lg transition-colors ${
-                                  generation.showcased 
-                                    ? 'bg-yellow-500 hover:bg-yellow-600 text-white' 
-                                    : 'bg-gray-500 hover:bg-gray-600 text-white'
-                                }`}
-                                title={generation.showcased ? 'Remove from showcase' : 'Add to showcase'}
-                              >
-                                <Flag className="w-4 h-4" />
-                              </button>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleDownload(generation);
-                                }}
-                                className="bg-green-500 hover:bg-green-600 text-white p-2 rounded-lg transition-colors"
-                                title="Download"
-                              >
-                                <Download className="w-4 h-4" />
-                              </button>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handlePermanentDelete(generation.id);
-                                }}
-                                className="bg-red-500 hover:bg-red-600 text-white p-2 rounded-lg transition-colors"
-                                title="Permanent Delete"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    ))}
+                        );
+                    })}
                   </div>
                   
                   {/* Pagination Controls */}
@@ -1704,13 +1621,31 @@ const formatConfigValue = (key, value) => {
                     {selectedGeneration.output_file_url && getAllImageUrls(selectedGeneration.output_file_url).length > 0 && (
                       <div className="mb-6">
                         {getMediaType(selectedGeneration) === 'video' ? (
-                          <OptimizedVideo
-                            src={getAllImageUrls(selectedGeneration.output_file_url)[0]}
-                            className="w-full max-h-96 rounded-lg"
-                            poster={selectedGeneration.metadata?.thumbnail_url || selectedGeneration.input_data?.imageUrl}
-                            controls={true}
-                            preload="metadata"
-                          />
+                          selectedGeneration.thumbnail_url ? (
+                            // Show thumbnail first, then video for text-to-video tools
+                            <div className="space-y-4">
+                              <OptimizedImage
+                                src={toCdnUrl(selectedGeneration.thumbnail_url)}
+                                alt={`${selectedGeneration.generation_name} thumbnail`}
+                                className="w-full max-h-96 object-contain rounded-lg"
+                              />
+                              <OptimizedVideo
+                                src={getAllImageUrls(selectedGeneration.output_file_url)[0]}
+                                className="w-full max-h-96 rounded-lg"
+                                poster={selectedGeneration.thumbnail_url}
+                                controls={true}
+                                preload="metadata"
+                              />
+                            </div>
+                          ) : (
+                            <OptimizedVideo
+                              src={getAllImageUrls(selectedGeneration.output_file_url)[0]}
+                              className="w-full max-h-96 rounded-lg"
+                              poster={getVideoPoster(selectedGeneration)}
+                              controls={true}
+                              preload="metadata"
+                            />
+                          )
                         ) : getMediaType(selectedGeneration) === 'audio' ? (
                           <div className="w-full h-64 bg-gradient-to-br from-pink-500/20 to-rose-500/20 rounded-lg flex items-center justify-center">
                             <div className="text-center">
@@ -2178,310 +2113,6 @@ const formatConfigValue = (key, value) => {
                 </div>
             </div>
 
-            {/* User Detail Modal */}
-            {selectedUser && (
-                <div className="absolute inset-0 bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 z-50 overflow-y-auto">
-                    {/* Header */}
-                    <header className="bg-white/10 backdrop-blur-md border-b border-white/20">
-                        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center space-x-4">
-                                    <button
-                                        onClick={() => setSelectedUser(null)}
-                                        className="flex items-center space-x-2 text-purple-200 hover:text-white transition-colors"
-                                    >
-                                        <ArrowLeft className="w-5 h-5" />
-                                        <span>Back to Admin</span>
-                                    </button>
-                                    <div className="h-6 w-px bg-white/20"></div>
-                                    <div className="flex items-center space-x-3">
-                                        <div className="w-10 h-10 bg-gradient-to-r from-purple-400 to-pink-400 rounded-full flex items-center justify-center overflow-hidden">
-                                            {selectedUser.avatar_url ? (
-                                                <img src={toCdnUrl(selectedUser.avatar_url)} alt="" className="w-full h-full object-cover" loading="lazy" />
-                                            ) : (
-                                                <User className="w-5 h-5 text-white" />
-                                            )}
-                                        </div>
-                                        <div>
-                                            <h1 className="text-xl font-bold text-white">{selectedUser.email}</h1>
-                                            <p className="text-purple-200 text-sm">
-                                                {selectedUser.generation_count || 0} generations • {(selectedUser.tokens || 0) + (selectedUser.purchased_tokens || 0)} tokens
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="flex items-center space-x-4">
-                                    <span className="text-purple-200 text-sm">
-                                        {userGenerations.length} of {selectedUser.generation_count || 0} generations
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                    </header>
-
-                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                        {/* User Info Card */}
-                        <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 mb-8">
-                            <div className="grid md:grid-cols-4 gap-6">
-                                <div>
-                                    <h3 className="text-lg font-semibold text-white mb-2">Account Info</h3>
-                                    <div className="space-y-1 text-sm">
-                                        <p className="text-purple-200">Username: <span className="text-white">{selectedUser.username || 'Not set'}</span></p>
-                                        <p className="text-purple-200">Joined: <span className="text-white">{formatDate(selectedUser.created_at)}</span></p>
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <h3 className="text-lg font-semibold text-white mb-2">Tokens</h3>
-                                    <div className="space-y-1 text-sm">
-                                        <p className="text-purple-200">Subscription: <span className="text-white">{selectedUser.tokens || 0}</span></p>
-                                        <p className="text-purple-200">Purchased: <span className="text-white">{selectedUser.purchased_tokens || 0}</span></p>
-                                        <p className="text-green-400 font-semibold">Total: {(selectedUser.tokens || 0) + (selectedUser.purchased_tokens || 0)}</p>
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <h3 className="text-lg font-semibold text-white mb-2">Subscription</h3>
-                                    <div className="space-y-2 text-sm">
-                                        {selectedUser.subscriptions?.map((sub, index) => (
-                                            <div key={index}>
-                                                <div className="flex justify-between">
-                                                    <span className="text-purple-200">Status:</span>
-                                                    <span className={`px-2 py-1 rounded text-xs ${sub.status === 'active' ? 'bg-green-500/20 text-green-400' : 'bg-gray-500/20 text-gray-400'
-                                                        }`}>
-                                                        {sub.status}
-                                                    </span>
-                                                </div>
-                                                {sub.current_period_end && (
-                                                    <p className="text-purple-200 text-xs mt-1">
-                                                        Next: {formatDate(sub.current_period_end)}
-                                                    </p>
-                                                )}
-                                            </div>
-                                        ))}
-                                        {(!selectedUser.subscriptions || selectedUser.subscriptions.length === 0) && (
-                                            <p className="text-gray-400 text-xs">No active subscriptions</p>
-                                        )}
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <h3 className="text-lg font-semibold text-white mb-2">Activity</h3>
-                                    <div className="space-y-1 text-sm">
-                                        <p className="text-purple-200">Generations: <span className="text-green-400 font-semibold">{selectedUser.generation_count || 0}</span></p>
-                                        <p className="text-purple-200">Status: <span className={`px-2 py-1 rounded text-xs ${getSubscriptionStatus(selectedUser).status === 'active'
-                                                ? 'bg-green-500/20 text-green-400'
-                                                : 'bg-gray-500/20 text-gray-400'
-                                            }`}>
-                                            {getSubscriptionStatus(selectedUser).plan}
-                                        </span></p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Generations Gallery */}
-                        <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6">
-                            <div className="flex items-center justify-between mb-6">
-                                <h2 className="text-xl font-semibold text-white">User Generations</h2>
-                                <button
-                                    onClick={() => fetchUserGenerations(selectedUser.id)}
-                                    className="text-purple-400 hover:text-purple-300 transition-colors"
-                                >
-                                    <RefreshCw className="w-4 h-4" />
-                                </button>
-                            </div>
-
-                            {loadingGenerations ? (
-                                <div className="text-center py-12">
-                                    <RefreshCw className="w-8 h-8 animate-spin text-purple-400 mx-auto mb-4" />
-                                    <p className="text-purple-200 text-lg">Loading generations...</p>
-                                </div>
-                            ) : userGenerations.length === 0 ? (
-                                <div className="text-center py-12">
-                                    <Activity className="w-16 h-16 text-purple-300 mx-auto mb-4 opacity-50" />
-                                    <p className="text-purple-200 text-lg">No generations found</p>
-                                    <p className="text-purple-300 text-sm">This user hasn't created any content yet</p>
-                                </div>
-                            ) : (
-                                <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                                    {userGenerations.map((generation) => {
-                                        // Helper function to get image URLs
-                                        const getImageUrls = (generation) => {
-                                            if (!generation.output_file_url) return [];
-                                            try {
-                                                const parsed = JSON.parse(generation.output_file_url);
-                                                return Array.isArray(parsed) ? parsed : [generation.output_file_url];
-                                            } catch {
-                                                return [generation.output_file_url];
-                                            }
-                                        };
-
-                                        // Helper function to check if it's a video
-                                        const isVideoGeneration = (generation) => {
-                                            const videoToolTypes = [
-                                                'gen_02', 'gen_03', 'gen_06',
-                                                'fal_minimax_hailuo', 'fal_wan_pro', 'fal_kling_pro', 'fal_veo2', 'fal_video_upscaler',
-                                                'wan22_pro', 'fal_ltxv', 'fal_veo3_fast', 'ai_scene_gen', 'fal_wan_v22_a14b', 'ai_scene_gen', 'fal_omnihuman', 'fal_seedance_pro', 'fal_mmaudio_video2',
-                                                'fal_wan_v22_text2video_lora', 'fal_wan_v22_img2video_lora', 'fal_wan_v22_video2video'
-                                            ];
-                                            return videoToolTypes.includes(generation.tool_type) ||
-                                                (generation.output_file_url && generation.output_file_url.toLowerCase().includes('video'));
-                                        };
-
-                                        const imageUrls = getImageUrls(generation);
-                                        const primaryUrl = imageUrls[0];
-                                        const isVideo = isVideoGeneration(generation);
-                                        const getStatusColor = (status) => {
-                                            switch (status) {
-                                                case 'completed':
-                                                    return 'bg-green-500/20 text-green-400 border-green-500/30';
-                                                case 'processing':
-                                                    return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30';
-                                                case 'failed':
-                                                    return 'bg-red-500/20 text-red-400 border-red-500/30';
-                                                default:
-                                                    return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
-                                            }
-                                        };
-
-                                        return (
-                                            <div
-                                                key={generation.id}
-                                                className="bg-white/10 backdrop-blur-md rounded-2xl overflow-hidden hover:bg-white/20 transition-all duration-300 transform hover:-translate-y-1 flex flex-col"
-                                            >
-                                                <div className="relative">
-                                                    {primaryUrl ? (
-                                                        <div
-                                                            className="relative cursor-pointer"
-                                                            onClick={() => {
-                                                                setSelectedGeneration(generation);
-                                                            }}
-                                                        >
-                                                            {generation.tool_type?.includes('music') || generation.tool_type?.includes('cassetteai') ? (
-                                                                <div className="w-full h-24 bg-gradient-to-br from-pink-500/20 to-rose-500/20 rounded flex items-center justify-center">
-                                                                    <div className="w-12 h-12 bg-gradient-to-r from-pink-500 to-rose-500 rounded-full flex items-center justify-center">
-                                                                        <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
-                                                                            <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
-                                                                        </svg>
-                                                                    </div>
-                                                                </div>
-                                                            ) : isAudioType(generation.tool_type) ? (
-                                                                <div 
-                                                                    className="w-full h-48 bg-gradient-to-br from-pink-500/20 to-rose-500/20 rounded flex items-center justify-center cursor-pointer hover:from-pink-500/30 hover:to-rose-500/30 transition-colors"
-                                                                    onClick={(e) => {
-                                                                        e.stopPropagation();
-                                                                        handlePlayMusic(generation);
-                                                                    }}
-                                                                >
-                                                                    <div className="w-16 h-16 bg-gradient-to-r from-pink-500 to-rose-500 rounded-full flex items-center justify-center">
-                                                                        {currentlyPlaying === generation.id && isPlaying ? (
-                                                                            <Pause className="w-8 h-8 text-white" />
-                                                                        ) : (
-                                                                            <Play className="w-8 h-8 text-white ml-1" />
-                                                                        )}
-                                                                    </div>
-                                                                </div>
-                                                            ) : isVideo ? (
-                                                                <VideoThumbnail 
-                                                                    generation={generation}
-                                                                    className="w-full h-48 object-cover hover:opacity-90 transition-opacity"
-                                                                />
-                                                            ) : (
-                                                                <img
-                                                                    src={primaryUrl}
-                                                                    alt={generation.generation_name}
-                                                                    className="w-full h-48 object-cover hover:opacity-90 transition-opacity"
-                                                                />
-                                                            )}
-
-                                                            {/* Multiple images indicator */}
-                                                            {imageUrls.length > 1 && (
-                                                                <div className="absolute top-2 left-2 bg-black/70 text-white px-2 py-1 rounded-lg text-xs font-medium">
-                                                                    +{imageUrls.length - 1} more
-                                                                </div>
-                                                            )}
-
-                                                            {/* Click to view overlay */}
-                                                             <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity duration-200">
-                                                                 <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center">
-                                                                     <Play className="w-6 h-6 text-white ml-1" />
-                                                                 </div>
-                                                             </div>
-                                                         </div>
-                                                     ) : (
-                                                         <div className="w-full h-48 bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-lg flex items-center justify-center">
-                                                             {getToolIcon(generation.tool_type)}
-                                                         </div>
-                                                     )}
-                                                 </div>
-
-                                                <div className="p-4 flex-1 flex flex-col">
-                                                    <h3 className="font-semibold text-white text-sm mb-2 line-clamp-2">
-                                                        {generation.generation_name}
-                                                    </h3>
-
-                                                    <div className="flex items-center space-x-2 mb-2">
-                                                        <div className="w-4 h-4 bg-gradient-to-r from-purple-500 to-pink-500 rounded flex items-center justify-center text-white">
-                                                            {getToolIcon(generation.tool_type)}
-                                                        </div>
-                                                        <span className="text-purple-200 text-xs truncate">{generation.tool_name}</span>
-                                                    </div>
-
-                                                    <div className="flex items-center justify-between text-purple-300 text-xs mb-3">
-                                                        <span>{generation.tokens_used} tokens</span>
-                                                        <span>{new Date(generation.created_at).toLocaleDateString()}</span>
-                                                    </div>
-
-                                                    {/* Admin Actions */}
-                                                    <div className="flex space-x-1 mt-auto">
-                                                        <button
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                handleToggleShowcase(generation.id, generation.showcased);
-                                                            }}
-                                                            className={`flex-1 p-2 rounded-lg text-xs font-medium transition-colors ${
-                                                                generation.showcased 
-                                                                    ? 'bg-yellow-500 hover:bg-yellow-600 text-white' 
-                                                                    : 'bg-gray-500 hover:bg-gray-600 text-white'
-                                                            }`}
-                                                            title={generation.showcased ? 'Remove from showcase' : 'Add to showcase'}
-                                                        >
-                                                            <Flag className="w-3 h-3 mx-auto" />
-                                                        </button>
-                                                        <button
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                handleDownloadGeneration(generation);
-                                                            }}
-                                                            className="flex-1 bg-green-500 hover:bg-green-600 text-white p-2 rounded-lg text-xs font-medium transition-colors"
-                                                            title="Download"
-                                                        >
-                                                            <Download className="w-3 h-3 mx-auto" />
-                                                        </button>
-                                                        <button
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                handleDeleteGeneration(generation);
-                                                            }}
-                                                            className="flex-1 bg-red-500 hover:bg-red-600 text-white p-2 rounded-lg text-xs font-medium transition-colors"
-                                                            title="Permanent Delete"
-                                                        >
-                                                            <Trash2 className="w-3 h-3 mx-auto" />
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            )}
-
             {/* Ban User Modal */}
             {showBanModal && banningUser && (
                 <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
@@ -2560,176 +2191,6 @@ const formatConfigValue = (key, value) => {
                         
                         <div className="absolute bottom-4 left-4 bg-black/50 backdrop-blur-sm text-white p-3 rounded-lg">
                             <p className="font-semibold">{enlargedImage.title}</p>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Generation Detail Modal */}
-            {selectedGeneration && (
-                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-                    <div className="bg-white/10 backdrop-blur-md rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto border border-white/20">
-                        <div className="p-6">
-                            <div className="flex items-center justify-between mb-6">
-                                <h3 className="text-xl font-bold text-white">{selectedGeneration.generation_name}</h3>
-                                <button
-                                    onClick={() => setSelectedGeneration(null)}
-                                    className="text-purple-400 hover:text-purple-300 transition-colors"
-                                >
-                                    <X className="w-6 h-6" />
-                                </button>
-                            </div>
-
-                            {/* Media Display */}
-                            {selectedGeneration.output_file_url && getAllImageUrls(selectedGeneration.output_file_url).length > 0 && (
-                                <div className="mb-6">
-                                    {getMediaType(selectedGeneration) === 'video' ? (
-                                        <OptimizedVideo
-                                            src={getAllImageUrls(selectedGeneration.output_file_url)[0]}
-                                            className="w-full max-h-96 rounded-lg"
-                                            poster={selectedGeneration.metadata?.thumbnail_url || selectedGeneration.input_data?.imageUrl}
-                                            controls={true}
-                                            preload="metadata"
-                                        />
-                                    ) : getMediaType(selectedGeneration) === 'audio' ? (
-                                        <div className="w-full h-64 bg-gradient-to-br from-pink-500/20 to-rose-500/20 rounded-lg flex items-center justify-center">
-                                            <div className="text-center">
-                                                <div className="w-24 h-24 bg-gradient-to-r from-pink-500 to-rose-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                                                    <Music className="w-12 h-12 text-white" />
-                                                </div>
-                                                <h4 className="text-white font-semibold text-lg mb-2">🎵 Audio Track</h4>
-                                                <audio
-                                                    src={toCdnUrl(selectedGeneration.output_file_url)}
-                                                    controls
-                                                    className="w-full max-w-md mx-auto"
-                                                    preload="metadata"
-                                                />
-                                            </div>
-                                        </div>
-                                    ) : getAllImageUrls(selectedGeneration.output_file_url).length === 1 ? (
-                                        <OptimizedImage
-                                            src={getAllImageUrls(selectedGeneration.output_file_url)[0]}
-                                            alt={selectedGeneration.generation_name}
-                                            className="w-full max-h-96 object-contain rounded-lg"
-                                        />
-                                    ) : (
-                                        <div>
-                                            <h4 className="text-lg font-semibold text-white mb-3">
-                                                Generated Images ({getAllImageUrls(selectedGeneration.output_file_url).length})
-                                            </h4>
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                                {getAllImageUrls(selectedGeneration.output_file_url).map((url, index) => (
-                                                    <OptimizedImage
-                                                        key={index}
-                                                        src={url}
-                                                        alt={`${selectedGeneration.generation_name} - Image ${index + 1}`}
-                                                        className="w-full h-48 object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
-                                                        onClick={() => handleImageClick(url, selectedGeneration.generation_name, index)}
-                                                    />
-                                                ))}
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-
-                            {/* Admin Actions */}
-                            <div className="flex justify-between mb-6">
-                                <div className="flex space-x-2">
-                                    <button
-                                        onClick={() => handleToggleShowcase(selectedGeneration.id, selectedGeneration.showcased)}
-                                        className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-colors ${
-                                            selectedGeneration.showcased 
-                                                ? 'bg-yellow-500 hover:bg-yellow-600 text-white' 
-                                                : 'bg-gray-500 hover:bg-gray-600 text-white'
-                                        }`}
-                                    >
-                                        <Flag className="w-4 h-4" />
-                                        <span>{selectedGeneration.showcased ? 'Remove from Showcase' : 'Add to Showcase'}</span>
-                                    </button>
-                                    
-                                    <button
-                                        onClick={() => handleDownloadGeneration(selectedGeneration)}
-                                        className="flex items-center space-x-2 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg font-medium transition-colors"
-                                    >
-                                        <Download className="w-4 h-4" />
-                                        <span>Download</span>
-                                    </button>
-                                    
-                                    <button
-                                        onClick={() => handleDeleteGeneration(selectedGeneration)}
-                                        className="flex items-center space-x-2 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg font-medium transition-colors"
-                                    >
-                                        <Trash2 className="w-4 h-4" />
-                                        <span>Permanent Delete</span>
-                                    </button>
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div>
-                                    <h4 className="text-lg font-semibold text-white mb-3">Generation Details</h4>
-                                    <div className="space-y-2 text-sm">
-                                        <div className="flex justify-between">
-                                            <span className="text-purple-200">Status:</span>
-                                            <span className={`px-2 py-1 rounded text-xs ${getStatusColor(selectedGeneration.status)}`}>
-                                                {selectedGeneration.status}
-                                            </span>
-                                        </div>
-                                        <div className="flex justify-between">
-                                            <span className="text-purple-200">Tool:</span>
-                                            <span className="text-white">{selectedGeneration.tool_name}</span>
-                                        </div>
-                                        <div className="flex justify-between">
-                                            <span className="text-purple-200">Tokens Used:</span>
-                                            <span className="text-white">{selectedGeneration.tokens_used}</span>
-                                        </div>
-                                        <div className="flex justify-between">
-                                            <span className="text-purple-200">Showcased:</span>
-                                            <span className={selectedGeneration.showcased ? 'text-yellow-400' : 'text-gray-400'}>
-                                                {selectedGeneration.showcased ? 'Yes' : 'No'}
-                                            </span>
-                                        </div>
-                                        <div className="flex justify-between">
-                                            <span className="text-purple-200">Created:</span>
-                                            <span className="text-white text-right">
-                                                {new Date(selectedGeneration.created_at).toLocaleString()}
-                                            </span>
-                                        </div>
-                                        {selectedGeneration.completed_at && (
-                                            <div className="flex justify-between">
-                                                <span className="text-purple-200">Completed:</span>
-                                                <span className="text-white text-right">
-                                                    {new Date(selectedGeneration.completed_at).toLocaleString()}
-                                                </span>
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <h4 className="text-lg font-semibold text-white mb-3">Configuration</h4>
-                                    <div className="space-y-2 text-sm max-h-48 overflow-y-auto">
-                                        {selectedGeneration.input_data && Object.entries(selectedGeneration.input_data).map(([key, value]) => (
-                                            <div key={key} className="flex justify-between">
-                                                <span className="text-purple-200 capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}:</span>
-                                                <span className="text-white text-right max-w-xs truncate">
-                                                    {typeof value === 'object' ? JSON.stringify(value) : String(value)}
-                                                </span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="flex justify-end mt-6">
-                                <button
-                                    onClick={() => setSelectedGeneration(null)}
-                                    className="bg-white/10 hover:bg-white/20 text-white font-semibold py-2 px-4 rounded-lg transition-colors"
-                                >
-                                    Close
-                                </button>
-                            </div>
                         </div>
                     </div>
                 </div>
