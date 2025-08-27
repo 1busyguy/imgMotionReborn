@@ -410,7 +410,7 @@ const WAN22S2V = () => {
       console.log('🎬 Starting WAN 22 S2V generation...');
       
       generation = await createAIGeneration(
-        'fal_wan22_s2v',
+        'wan22_s2v',
         config.prompt.substring(0, 50) + '...',
         config,
         tokenCost

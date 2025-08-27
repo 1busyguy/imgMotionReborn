@@ -275,6 +275,12 @@ export const AI_TOOLS = {
     description: 'Speech-to-Video: Transform speech audio into dynamic videos',
     tokensRequired: 35, // Base cost, varies by resolution and duration
     category: 'video'
+  },
+  wan22_s2v: {
+    name: 'WAN 22 S2V',
+    description: 'Speech-to-Video: Transform speech audio into dynamic videos',
+    tokensRequired: 35, // Base cost, varies by resolution and duration
+    category: 'video'
   }
 };
 
