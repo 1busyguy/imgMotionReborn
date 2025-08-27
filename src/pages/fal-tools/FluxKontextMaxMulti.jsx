@@ -564,7 +564,7 @@ const FluxKontextMaxMulti = () => {
                           {uploadingImages ? 'Uploading...' : 'Upload multiple images'}
                         </p>
                         <p className="text-purple-300 text-xs mt-1">
-                          Select multiple images • Max 10 images • Drag & drop supported
+                          Select multiple images • Max 4 images • Drag & drop supported
                         </p>
                       </div>
                     </label>
@@ -575,7 +575,7 @@ const FluxKontextMaxMulti = () => {
                     <div className="mt-4">
                       <div className="flex items-center justify-between mb-3">
                         <span className="text-purple-200 text-sm font-medium">
-                          Uploaded Images ({config.imageUrls.length}/10)
+                          Uploaded Images ({config.imageUrls.length}/4)
                         </span>
                         <button
                           onClick={() => setConfig(prev => ({ ...prev, imageUrls: [] }))}
