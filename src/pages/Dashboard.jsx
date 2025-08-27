@@ -376,6 +376,45 @@ const Dashboard = () => {
     }
   };
 
+  const getUniqueButtonText = (tool) => {
+    const buttonTextMap = {
+      // Text-to-Video Tools
+      'fal_wan_v22_text2video_lora': 'Create Video',
+      'fal_minimax_hailuo': 'Animate Image',
+      'fal_kling_pro': 'Make HD Video',
+      'fal_ltxv': 'Generate Video',
+      'fal_seedance_pro': 'Create Scene',
+      'fal_veo3_fast': 'Quick Video',
+      'fal_veo3': 'Premium Video',
+      'ai_scene_gen': 'Build Scene',
+      
+      // Image-to-Video Tools  
+      'fal_wan_v22_img2video_lora': 'Animate Image',
+      'fal_wan_v22_video2video': 'Transform Video',
+      
+      // Image Generation Tools
+      'fal_flux_kontext': 'Edit Image',
+      'fal_flux_kontext_max_multi': 'Compose Images',
+      'fal_qwen_image': 'Generate Image',
+      'fal_qwen_image_to_image': 'Transform Image',
+      'fal_gemini_flash_image_edit': 'Edit with AI',
+      'fal_hidream_i1': 'Create Art',
+      
+      // Audio Tools
+      'fal_mmaudio_v2': 'Generate Audio',
+      'fal_mmaudio_video2': 'Add Sound',
+      'fal_cassetteai_music': 'Make Music',
+      
+      // Enhancement Tools
+      'fal_video_upscaler': 'Upscale Video',
+      'fal_bria_bg_remove': 'Remove Background',
+      
+      // Avatar Tools
+      'fal_omnihuman': 'Create Avatar'
+    };
+    
+    return buttonTextMap[tool.toolType] || 'Try Now';
+  };
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center">
@@ -482,7 +521,7 @@ const Dashboard = () => {
                     }`}
                     disabled={tool.comingSoon}
                   >
-                    {tool.comingSoon ? 'Coming Soon' : 'Try Now'}
+                    {tool.comingSoon ? 'Coming Soon' : getUniqueButtonText(tool)}
                   </button>
                 </div>
               </div>
