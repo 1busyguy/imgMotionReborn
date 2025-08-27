@@ -4,16 +4,16 @@ import { toCdnUrl } from '../utils/cdnHelpers';
 export const falTools = [
 
     // WAN v2.2-a14b TEXT-TO-VIDEO LORA - NEW TOOL
- //  {
- //       id: 38,
- //       name: "Speech to Video Creator",
- //       description: "Transform speech audio into dynamic videos - create talking avatars and animated scenes from voice recordings",
- //       image: toCdnUrl("https://xisxqackivlrakfszfop.supabase.co/storage/v1/object/public/user-files/sound_img-vid.png?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1"),
- //       tokensRequired: "35+",
- //       category: "video",
- //       toolType: "fal_wan22_s2v",
- //       route: "/wan-22-s2v"
- //   },
+    {
+      id: 38,
+        name: "Speech to Video Creator",
+        description: "Transform speech audio into dynamic videos - create talking avatars and animated scenes from voice recordings",
+        image: toCdnUrl("https://xisxqackivlrakfszfop.supabase.co/storage/v1/object/public/user-files/sound_img-vid.png?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1"),
+        tokensRequired: "35+",
+        category: "video",
+        toolType: "fal_wan22_s2v",
+        route: "/wan-22-s2v"
+/   },
     {
         id: 30,
         name: "Advanced TEXT to Video Tool",
