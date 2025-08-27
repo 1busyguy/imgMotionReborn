@@ -219,7 +219,7 @@ const WAN22S2V = () => {
         },
         body: JSON.stringify({ 
           imageUrl,
-          toolType: 'wan-22-s2v',
+          toolType: 'fal_wan-22-s2v',
           analysisType: 'motion-prompt'
         })
       });
