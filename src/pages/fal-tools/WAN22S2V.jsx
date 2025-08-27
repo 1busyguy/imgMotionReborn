@@ -104,7 +104,7 @@ const WAN22S2V = () => {
             filter: `user_id=eq.${user.id},tool_type=eq.fal_wan22_s2v`
           },
           (payload) => {
-            console.log('🎬 WAN 22 S2V Real-time update received:', payload);
+            console.log('🎬 fal_wan22_s2v Real-time update received:', payload);
             handleRealtimeUpdate(payload);
           }
         )
@@ -410,7 +410,7 @@ const WAN22S2V = () => {
       console.log('🎬 Starting WAN 22 S2V generation...');
       
       generation = await createAIGeneration(
-        'wan22_s2v',
+        'fal_wan22_s2v',
         config.prompt.substring(0, 50) + '...',
         config,
         tokenCost
