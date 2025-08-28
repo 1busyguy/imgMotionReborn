@@ -91,7 +91,7 @@ const Gallery = () => {
   const [showExpandedImage, setShowExpandedImage] = useState(false);
   
   // Pagination settings
-  const ITEMS_PER_PAGE = 20;
+  const ITEMS_PER_PAGE = 24;
   
   // Helper function to get all image URLs from a generation's output
   const getAllImageUrls = (url) => {
@@ -222,7 +222,7 @@ const collapseUrlString = (s) => {
       'fal_kling_pro',
       'fal_minimax_hailuo',
       'fal_veo3_fast',
-      'veo3-standard',
+      'fal_veo3-standard',
       'fal_ltxv',
       'fal_seedance_pro',
       'fal_wan_v22_img2video_lora',
