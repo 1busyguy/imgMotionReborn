@@ -25,6 +25,7 @@ export const falTools = [
         toolType: "fal_wan22_s2v",
         route: "/wan-22-s2v"
     },
+   // QWEN IMAGE TOOLS - NEW ADDITIONS
     {
         id: 36,
         name: "Advanced Image Generator",
@@ -79,6 +80,26 @@ export const falTools = [
         toolType: "fal_wan_v22_video2video",
         route: "/wan-v22-video2video"
     },
+  {
+        id: 22,
+        name: "Advanced IMG2VID tool $$ ",
+        description: "Fast image-to-video generation quick turnaround with excellent quality",
+        image: toCdnUrl("https://xisxqackivlrakfszfop.supabase.co/storage/v1/object/public/user-files/img2vid_v3.jpg?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1"),
+        tokensRequired: "288+",
+        category: "video",
+        toolType: "fal_veo3_fast",
+        route: "/veo3-fast"
+    },
+    {
+        id: 34,
+        name: "Superior IMG2VID tool $$$$",
+        description: "High-quality image-to-video generation, premium quality with longer processing",
+        image: toCdnUrl("https://xisxqackivlrakfszfop.supabase.co/storage/v1/object/public/user-files/img2vid_v3.jpg?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1"),
+        tokensRequired: "534+",
+        category: "video",
+        toolType: "fal_veo3",
+        route: "/veo3-standard"
+    },
 
     // FLUX KONTEXT MAX MULTI - NEW MULTI-IMAGE TOOL
     {
@@ -122,19 +143,7 @@ export const falTools = [
  //       toolType: "ai_scene_gen",
  //       route: "/ai-scene-gen"
  //   },
-
-    // MMAUDIO VIDEO2AUDIO - NEW TOOL
-    {
-        id: 28,
-        name: "Give a Video Sound",
-        description: "Generate synchronized audio for videos to match the action",
-        image: toCdnUrl("https://images.pexels.com/photos/3784424/pexels-photo-3784424.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1"),
-        tokensRequired: "5+",
-        category: "audio",
-        toolType: "fal_mmaudio_video2",
-        route: "/mmaudio-video2"
-    },
-    
+       
 //    {
 //        id: 17,
 //        name: "FLUX Kontext LoRA",
@@ -222,6 +231,17 @@ export const falTools = [
         toolType: "fal_bria_bg_remove",
         route: "/bria-bg-remove"
     },
+  // MMAUDIO VIDEO2AUDIO - NEW TOOL
+    {
+        id: 28,
+        name: "Give a Video Sound",
+        description: "Generate synchronized audio for videos to match the action",
+        image: toCdnUrl("https://images.pexels.com/photos/3784424/pexels-photo-3784424.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1"),
+        tokensRequired: "5+",
+        category: "audio",
+        toolType: "fal_mmaudio_video2",
+        route: "/mmaudio-video2"
+    },
     {
         id: 19,
         name: "Increase the clarity of your videos",
@@ -231,26 +251,6 @@ export const falTools = [
         category: "enhancement",
         toolType: "fal_video_upscaler",
         route: "/fal-video-upscaler"
-    },
-    {
-        id: 22,
-        name: "Advanced IMG2VID tool $$ ",
-        description: "Fast image-to-video generation quick turnaround with excellent quality",
-        image: toCdnUrl("https://xisxqackivlrakfszfop.supabase.co/storage/v1/object/public/user-files/img2vid_v3.jpg?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1"),
-        tokensRequired: "288+",
-        category: "video",
-        toolType: "fal_veo3_fast",
-        route: "/veo3-fast"
-    },
-    {
-        id: 34,
-        name: "Superior IMG2VID tool $$$$",
-        description: "High-quality image-to-video generation, premium quality with longer processing",
-        image: toCdnUrl("https://xisxqackivlrakfszfop.supabase.co/storage/v1/object/public/user-files/img2vid_v3.jpg?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1"),
-        tokensRequired: "534+",
-        category: "video",
-        toolType: "fal_veo3",
-        route: "/veo3-standard"
     },
     {
        id: 26,
