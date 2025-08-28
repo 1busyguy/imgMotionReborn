@@ -459,44 +459,19 @@ const FluxKontext = () => {
             if (!responseData.success) {
                 console.error('❌ Edge Function reported failure:', responseData);
 
-                // IMMEDIATELY update the database to mark as failed
-                // Store error in metadata since error_message column doesn't exist
-                try {
-                    const { error: dbUpdateError } = await supabase
-                        .from('ai_generations')
-                        .update({
-                            status: 'failed',
-                            completed_at: new Date().toISOString(),
-                            metadata: {
-                                ...config,
-                                error_type: responseData.error_type || 'unknown_error',
-                                error_message: responseData.error || 'Content policy violation detected',
-                                error_details: responseData.error,
-                                failed_at: new Date().toISOString()
-                            }
-                        })
-                        .eq('id', generation.id)
-                        .eq('user_id', user.id);
+                // The edge function should have already updated the database
+                // But we'll force an update just in case
+                console.log('Attempting to update generation status for ID:', generation.id);
 
-                    if (dbUpdateError) {
-                        console.error('Failed to update generation status in database:', dbUpdateError);
-                    } else {
-                        console.log('✅ Database updated with failed status');
-                    }
-                } catch (dbError) {
-                    console.error('Error updating database:', dbError);
-                }
-
-                // IMMEDIATELY remove the stuck generation from active list
+                // Force immediate local state updates
                 setActiveGenerations(current => {
-                    console.log('Removing failed generation from active list:', generation.id);
-                    return current.filter(g => g.id !== generation.id);
+                    const filtered = current.filter(g => g.id !== generation.id);
+                    console.log(`Removed generation from active list. Was: ${current.length}, Now: ${filtered.length}`);
+                    return filtered;
                 });
 
-                // Also update it in the main generations list to show as failed
                 setGenerations(current => {
-                    console.log('Marking generation as failed in main list:', generation.id);
-                    return current.map(g =>
+                    const updated = current.map(g =>
                         g.id === generation.id
                             ? {
                                 ...g,
@@ -505,11 +480,14 @@ const FluxKontext = () => {
                                 metadata: {
                                     ...g.metadata,
                                     error_type: responseData.error_type || 'unknown_error',
-                                    error_message: responseData.error || 'Content policy violation detected'
+                                    error_message: responseData.error || 'Content policy violation detected',
+                                    error_details: responseData.error
                                 }
                             }
                             : g
                     );
+                    console.log('Updated generation to failed status in main list');
+                    return updated;
                 });
 
                 // Check if it's a content violation
@@ -522,15 +500,23 @@ const FluxKontext = () => {
                     });
                     setShowNSFWAlert(true);
 
-                    // Force a refresh of the generations list after a short delay
-                    // This will sync with the database update
-                    setTimeout(() => {
-                        console.log('Force refreshing generations list');
-                        fetchGenerations();
-                    }, 500);
+                    // Force complete refresh from database
+                    console.log('Content violation detected - forcing database refresh');
+                    setTimeout(async () => {
+                        await fetchGenerations();
+                        // Also clear any stuck items in active generations
+                        setActiveGenerations(current =>
+                            current.filter(g => g.id !== generation.id)
+                        );
+                    }, 100);
                 } else {
                     // Other errors
                     showAlert('error', 'Generation Failed', responseData.error || 'Generation failed');
+
+                    // Still force a refresh for other errors
+                    setTimeout(async () => {
+                        await fetchGenerations();
+                    }, 100);
                 }
 
                 // Don't throw - the generation has been properly handled
