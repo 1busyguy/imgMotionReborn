@@ -246,7 +246,7 @@ export const falTools = [
         id: 19,
         name: "Increase the clarity of your videos",
         description: "Enhance video quality with this tool",
-        image: toCdnUrl("https://xisxqackivlrakfszfop.supabase.co/storage/v1/object/public/user-files/vid2vid.jpgg?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1"),
+        image: toCdnUrl("https://xisxqackivlrakfszfop.supabase.co/storage/v1/object/public/user-files/vid2vid.jpg?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1"),
         tokensRequired: "50+",
         category: "enhancement",
         toolType: "fal_video_upscaler",
