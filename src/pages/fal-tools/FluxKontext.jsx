@@ -459,6 +459,34 @@ const FluxKontext = () => {
             if (!responseData.success) {
                 console.error('❌ Edge Function reported failure:', responseData);
 
+                // IMMEDIATELY update the database to mark as failed
+                // This ensures the real-time subscription will pick up the change
+                try {
+                    const { error: dbUpdateError } = await supabase
+                        .from('ai_generations')
+                        .update({
+                            status: 'failed',
+                            completed_at: new Date().toISOString(),
+                            error_message: responseData.error || 'Content policy violation detected',
+                            metadata: {
+                                ...config,
+                                error_type: responseData.error_type || 'unknown_error',
+                                error_details: responseData.error,
+                                failed_at: new Date().toISOString()
+                            }
+                        })
+                        .eq('id', generation.id)
+                        .eq('user_id', user.id);
+
+                    if (dbUpdateError) {
+                        console.error('Failed to update generation status in database:', dbUpdateError);
+                    } else {
+                        console.log('✅ Database updated with failed status');
+                    }
+                } catch (dbError) {
+                    console.error('Error updating database:', dbError);
+                }
+
                 // IMMEDIATELY remove the stuck generation from active list
                 setActiveGenerations(current => {
                     console.log('Removing failed generation from active list:', generation.id);
@@ -474,7 +502,11 @@ const FluxKontext = () => {
                                 ...g,
                                 status: 'failed',
                                 error_message: responseData.error || 'Content policy violation detected',
-                                completed_at: new Date().toISOString()
+                                completed_at: new Date().toISOString(),
+                                metadata: {
+                                    ...g.metadata,
+                                    error_type: responseData.error_type || 'unknown_error'
+                                }
                             }
                             : g
                     );
@@ -491,10 +523,11 @@ const FluxKontext = () => {
                     setShowNSFWAlert(true);
 
                     // Force a refresh of the generations list after a short delay
+                    // This will sync with the database update
                     setTimeout(() => {
                         console.log('Force refreshing generations list');
                         fetchGenerations();
-                    }, 1000);
+                    }, 500);
                 } else {
                     // Other errors
                     showAlert('error', 'Generation Failed', responseData.error || 'Generation failed');
