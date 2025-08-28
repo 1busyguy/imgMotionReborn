@@ -187,7 +187,7 @@ const FluxKontext = () => {
                         console.log('✅ FLUX Kontext generation completed! Output URL:', newRecord.output_file_url);
                     } else if (newRecord.status === 'failed') {
                         console.log('❌ FLUX Kontext generation failed!');
-                        console.log('Error:', newRecord.error_message);
+                        console.log('Error:', newRecord.metadata?.error_message || 'Unknown error');
                         console.log('Error type:', newRecord.metadata?.error_type);
 
                         // Show appropriate alert for failures
@@ -195,8 +195,8 @@ const FluxKontext = () => {
                             // Content violation - show NSFW alert
                             setNsfwError({
                                 type: 'content_violation',
-                                message: newRecord.error_message || 'Content policy violation detected',
-                                technical: newRecord.metadata?.status_result || newRecord.error_message
+                                message: newRecord.metadata?.error_message || 'Content policy violation detected',
+                                technical: newRecord.metadata?.status_result || newRecord.metadata?.error_message
                             });
                             setShowNSFWAlert(true);
                         } else {
@@ -204,7 +204,7 @@ const FluxKontext = () => {
                             showAlert(
                                 'error',
                                 'Generation Failed',
-                                newRecord.error_message || 'Generation failed. Please check the details.'
+                                newRecord.metadata?.error_message || 'Generation failed. Please check the details.'
                             );
                         }
                     }
@@ -460,17 +460,17 @@ const FluxKontext = () => {
                 console.error('❌ Edge Function reported failure:', responseData);
 
                 // IMMEDIATELY update the database to mark as failed
-                // This ensures the real-time subscription will pick up the change
+                // Store error in metadata since error_message column doesn't exist
                 try {
                     const { error: dbUpdateError } = await supabase
                         .from('ai_generations')
                         .update({
                             status: 'failed',
                             completed_at: new Date().toISOString(),
-                            error_message: responseData.error || 'Content policy violation detected',
                             metadata: {
                                 ...config,
                                 error_type: responseData.error_type || 'unknown_error',
+                                error_message: responseData.error || 'Content policy violation detected',
                                 error_details: responseData.error,
                                 failed_at: new Date().toISOString()
                             }
@@ -501,11 +501,11 @@ const FluxKontext = () => {
                             ? {
                                 ...g,
                                 status: 'failed',
-                                error_message: responseData.error || 'Content policy violation detected',
                                 completed_at: new Date().toISOString(),
                                 metadata: {
                                     ...g.metadata,
-                                    error_type: responseData.error_type || 'unknown_error'
+                                    error_type: responseData.error_type || 'unknown_error',
+                                    error_message: responseData.error || 'Content policy violation detected'
                                 }
                             }
                             : g
@@ -1162,7 +1162,10 @@ const FluxKontext = () => {
 
                                                     {generation.status === 'failed' && (
                                                         <GenerationError
-                                                            generation={generation}
+                                                            generation={{
+                                                                ...generation,
+                                                                error_message: generation.metadata?.error_message || generation.error_message || 'Generation failed'
+                                                            }}
                                                             onRetry={onRetryGeneration}
                                                             canRetry={true}
                                                         />
