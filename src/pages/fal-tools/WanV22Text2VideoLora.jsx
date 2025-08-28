@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabaseClient';
 import { useAuth } from '../../hooks/useAuth';
 import { createAIGeneration, updateTokenCount } from '../../utils/storageHelpers';
-import { isContentPolicyError, parseContentPolicyError } from '../../utils/errorHandlers';
+import { isContentPolicyError, parseContentPolicyError } from '../../utils/falErrorHandler';
 import { toCdnUrl } from '../../utils/cdnHelpers';
 import { performSafetyAnalysis, shouldShowWarning, getSafetyWarningMessage, logSafetyAnalysis } from '../../utils/safescan';
 import NSFWAlert from '../../components/NSFWAlert';
