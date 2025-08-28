@@ -3,7 +3,19 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabaseClient';
 import { useAuth } from '../../hooks/useAuth';
 import { createAIGeneration, updateTokenCount, uploadFile } from '../../utils/storageHelpers';
-import { isNSFWError, parseNSFWError } from '../../utils/falErrorHandler';
+import { 
+  // New functions
+  parseFalError,
+  formatErrorDisplay,
+  handleRetryGeneration,
+  getErrorBadgeClasses, 
+  // Backward compatibility functions
+  isNSFWError,
+  parseNSFWError,
+  isContentPolicyError,
+  parseContentPolicyError
+} from '../../utils/falErrorHandler';
+import GenerationError from '../../components/GenerationError';  
 import { toCdnUrl } from '../../utils/cdnHelpers';
 import { performSafetyAnalysis, shouldShowWarning, getSafetyWarningMessage, logSafetyAnalysis } from '../../utils/safescan';
 import NSFWAlert from '../../components/NSFWAlert';
@@ -515,6 +527,11 @@ const FluxKontext = () => {
   const getPrimaryImageUrl = (generation) => {
     const urls = getImageUrls(generation);
     return urls[0] || null;
+  };
+
+  // 👇 ADD IT HERE - WITH YOUR OTHER HANDLERS 👇
+  const onRetryGeneration = (failedGeneration) => {
+    handleRetryGeneration(failedGeneration, setConfig, handleGenerate);
   };
 
   const getStatusColor = (status) => {
@@ -1039,12 +1056,14 @@ const FluxKontext = () => {
                             </div>
                           )}
 
-                          {generation.status === 'failed' && (
-                            <div className="mb-4 bg-red-500/20 rounded-lg p-4 text-center">
-                              <X className="w-8 h-8 text-red-400 mx-auto mb-2" />
-                              <p className="text-red-400 text-sm">Generation failed</p>
-                            </div>
-                          )}
+                          // Replace the old error display with:
+                        {generation.status === 'failed' && (
+                          <GenerationError 
+                            generation={generation} 
+                            onRetry={onRetryGeneration}
+                            canRetry={true}
+                          />
+                        )}
 
                           <div className="space-y-2 text-sm text-purple-300">
                             <p>

@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { parseFalError, updateGenerationWithError } from '../_shared/fal-error-handler.ts';
 import { shouldWatermark, addWatermarkMetadata } from '../_shared/watermark-utils.ts';
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -81,73 +82,116 @@ serve(async (req)=>{
       },
       body: JSON.stringify(falParams)
     });
-    if (!falResponse.ok) {
-      const errorText = await falResponse.text();
-      console.error('❌ FAL.ai API error:', falResponse.status, errorText);
-      throw new Error(`FAL.ai API error: ${falResponse.status} - ${errorText}`);
+    // Read body ONCE as text
+const responseBody = await falResponse.text();
+
+// Handle errors with the new handler
+if (!falResponse.ok) {
+  const errorInfo = parseFalError(falResponse, responseBody);
+  
+  await updateGenerationWithError(
+    supabase,
+    generationId,
+    errorInfo,
+    falParams  // or whatever your params are called
+  );
+  
+  throw new Error(errorInfo.errorMessage);
+}
+
+// Parse successful response
+let submitResult;
+try {
+  submitResult = JSON.parse(responseBody);
+} catch (parseError) {
+  console.error('❌ Error parsing FAL.ai response JSON:', parseError);
+  throw new Error(`Invalid JSON response from FAL.ai: ${responseBody}`);
+}
+
+console.log('📋 FAL.ai submission result:', JSON.stringify(submitResult, null, 2));
+
+// Check if we got immediate result or need to poll
+let finalResult = submitResult;
+let requestId = submitResult.request_id;
+
+// KEEP ALL THE POLLING LOGIC AS-IS!
+if (requestId && !submitResult.images) {
+  console.log('🔄 Polling for completion with request_id:', requestId);
+  
+  // Update generation with request ID for tracking
+  await supabase.from('ai_generations').update({
+    metadata: {
+      fal_request_id: requestId,
+      processing_started: new Date().toISOString(),
+      status: 'submitted_to_fal',
+      tool_type: 'flux-kontext',
+      needs_watermark: needsWatermark,
+      ...addWatermarkMetadata({}, needsWatermark)
     }
-    const submitResult = await falResponse.json();
-    console.log('📋 FAL.ai submission result:', JSON.stringify(submitResult, null, 2));
-    // Check if we got immediate result or need to poll
-    let finalResult = submitResult;
-    let requestId = submitResult.request_id;
-    // If we have a request_id, we need to poll for completion
-    if (requestId && !submitResult.images) {
-      console.log('🔄 Polling for completion with request_id:', requestId);
-      // Update generation with request ID for tracking
-      await supabase.from('ai_generations').update({
-        metadata: {
-          fal_request_id: requestId,
-          processing_started: new Date().toISOString(),
-          status: 'submitted_to_fal',
-          tool_type: 'flux-kontext',
-          needs_watermark: needsWatermark,
-          ...addWatermarkMetadata({}, needsWatermark)
+  }).eq('id', generationId);
+  
+  // Poll for completion (max 5 minutes) - KEEP ALL THIS!
+  const maxAttempts = 30;
+  let attempts1 = 0;
+  
+  while(attempts1 < maxAttempts){
+    await new Promise((resolve)=>setTimeout(resolve, 10000));
+    attempts1++;
+    console.log(`🔍 Polling attempt ${attempts1}/${maxAttempts} for request ${requestId}`);
+    
+    try {
+      const statusResponse = await fetch(`https://fal.run/fal-ai/flux-kontext/dev/requests/${requestId}/status`, {
+        headers: {
+          'Authorization': `Key ${falApiKey}`
         }
-      }).eq('id', generationId);
-      // Poll for completion (max 5 minutes)
-      const maxAttempts = 30; // 30 attempts × 10 seconds = 5 minutes
-      let attempts1 = 0;
-      while(attempts1 < maxAttempts){
-        await new Promise((resolve)=>setTimeout(resolve, 10000)); // Wait 10 seconds
-        attempts1++;
-        console.log(`🔍 Polling attempt ${attempts1}/${maxAttempts} for request ${requestId}`);
-        try {
-          const statusResponse = await fetch(`https://fal.run/fal-ai/flux-kontext/dev/requests/${requestId}/status`, {
+      });
+      
+      if (statusResponse.ok) {
+        const statusResult = await statusResponse.json();
+        console.log(`📊 Status check ${attempts1}:`, statusResult.status);
+        
+        if (statusResult.status === 'COMPLETED') {
+          // Get the final result
+          const resultResponse = await fetch(`https://fal.run/fal-ai/flux-kontext/dev/requests/${requestId}`, {
             headers: {
               'Authorization': `Key ${falApiKey}`
             }
           });
-          if (statusResponse.ok) {
-            const statusResult = await statusResponse.json();
-            console.log(`📊 Status check ${attempts1}:`, statusResult.status);
-            if (statusResult.status === 'COMPLETED') {
-              // Get the final result
-              const resultResponse = await fetch(`https://fal.run/fal-ai/flux-kontext/dev/requests/${requestId}`, {
-                headers: {
-                  'Authorization': `Key ${falApiKey}`
-                }
-              });
-              if (resultResponse.ok) {
-                finalResult = await resultResponse.json();
-                console.log('🎉 Got final result from FAL.ai');
-                break;
-              }
-            } else if (statusResult.status === 'FAILED') {
-              throw new Error('FAL.ai generation failed');
-            }
+          
+          if (resultResponse.ok) {
+            finalResult = await resultResponse.json();
+            console.log('🎉 Got final result from FAL.ai');
+            break;
           }
-        } catch (pollError) {
-          console.warn(`⚠️ Polling attempt ${attempts1} failed:`, pollError.message);
-          if (attempts1 === maxAttempts) {
-            throw new Error('Polling failed after maximum attempts');
-          }
+        } else if (statusResult.status === 'FAILED') {
+          // Use error handler for polling failures too
+          const errorInfo = parseFalError(
+            { status: 422 } as Response, 
+            'FAL.ai generation failed during polling'
+          );
+          
+          await updateGenerationWithError(
+            supabase,
+            generationId,
+            errorInfo,
+            falParams
+          );
+          
+          throw new Error('FAL.ai generation failed during polling');
         }
       }
-      if (attempts1 >= maxAttempts) {
-        throw new Error('Generation timed out after 5 minutes');
+    } catch (pollError) {
+      console.warn(`⚠️ Polling attempt ${attempts1} failed:`, pollError.message);
+      if (attempts1 === maxAttempts) {
+        throw new Error('Polling failed after maximum attempts');
       }
     }
+  }
+  
+  if (attempts1 >= maxAttempts) {
+    throw new Error('Generation timed out after 5 minutes');
+  }
+}
     // Extract image URLs from FAL.ai response
     let outputUrls = [];
     let primaryUrl = null;
