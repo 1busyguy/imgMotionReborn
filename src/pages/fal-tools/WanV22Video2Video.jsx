@@ -8,7 +8,7 @@ import {
   parseFalError,
   formatErrorDisplay,
   handleRetryGeneration,
-  getErrorBadgeClasses 
+  getErrorBadgeClasses, 
   // Backward compatibility functions
   isNSFWError,
   parseNSFWError,
