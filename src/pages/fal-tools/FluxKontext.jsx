@@ -459,16 +459,42 @@ const FluxKontext = () => {
             if (!responseData.success) {
                 console.error('❌ Edge Function reported failure:', responseData);
 
+                // IMMEDIATELY remove the stuck generation from active list
+                setActiveGenerations(current => {
+                    console.log('Removing failed generation from active list:', generation.id);
+                    return current.filter(g => g.id !== generation.id);
+                });
+
+                // Also update it in the main generations list to show as failed
+                setGenerations(current => {
+                    console.log('Marking generation as failed in main list:', generation.id);
+                    return current.map(g =>
+                        g.id === generation.id
+                            ? {
+                                ...g,
+                                status: 'failed',
+                                error_message: responseData.error || 'Content policy violation detected',
+                                completed_at: new Date().toISOString()
+                            }
+                            : g
+                    );
+                });
+
                 // Check if it's a content violation
                 if (responseData.error_type === 'content_violation') {
-                    // The generation has already been marked as failed in the database
-                    // Just show the NSFW alert
+                    // Show the NSFW alert
                     setNsfwError({
                         type: 'content_violation',
                         message: responseData.error || 'Content policy violation detected',
                         technical: responseData.error
                     });
                     setShowNSFWAlert(true);
+
+                    // Force a refresh of the generations list after a short delay
+                    setTimeout(() => {
+                        console.log('Force refreshing generations list');
+                        fetchGenerations();
+                    }, 1000);
                 } else {
                     // Other errors
                     showAlert('error', 'Generation Failed', responseData.error || 'Generation failed');
@@ -814,8 +840,8 @@ const FluxKontext = () => {
                                                 key={option.value}
                                                 onClick={() => setConfig(prev => ({ ...prev, resolutionMode: option.value }))}
                                                 className={`px-3 py-2 rounded-lg text-sm font-medium transition-all flex items-center space-x-2 ${config.resolutionMode === option.value
-                                                        ? 'bg-blue-500 text-white'
-                                                        : 'bg-white/10 text-purple-200 hover:bg-white/20'
+                                                    ? 'bg-blue-500 text-white'
+                                                    : 'bg-white/10 text-purple-200 hover:bg-white/20'
                                                     }`}
                                             >
                                                 {option.icon}
@@ -834,8 +860,8 @@ const FluxKontext = () => {
                                         <button
                                             onClick={() => setConfig(prev => ({ ...prev, outputFormat: "jpeg" }))}
                                             className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${config.outputFormat === "jpeg"
-                                                    ? 'bg-blue-500 text-white'
-                                                    : 'bg-white/10 text-purple-200 hover:bg-white/20'
+                                                ? 'bg-blue-500 text-white'
+                                                : 'bg-white/10 text-purple-200 hover:bg-white/20'
                                                 }`}
                                         >
                                             JPEG
@@ -843,8 +869,8 @@ const FluxKontext = () => {
                                         <button
                                             onClick={() => setConfig(prev => ({ ...prev, outputFormat: "png" }))}
                                             className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${config.outputFormat === "png"
-                                                    ? 'bg-blue-500 text-white'
-                                                    : 'bg-white/10 text-purple-200 hover:bg-white/20'
+                                                ? 'bg-blue-500 text-white'
+                                                : 'bg-white/10 text-purple-200 hover:bg-white/20'
                                                 }`}
                                         >
                                             PNG
@@ -861,8 +887,8 @@ const FluxKontext = () => {
                                         <button
                                             onClick={() => setConfig(prev => ({ ...prev, acceleration: "none" }))}
                                             className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${config.acceleration === "none"
-                                                    ? 'bg-blue-500 text-white'
-                                                    : 'bg-white/10 text-purple-200 hover:bg-white/20'
+                                                ? 'bg-blue-500 text-white'
+                                                : 'bg-white/10 text-purple-200 hover:bg-white/20'
                                                 }`}
                                         >
                                             None
@@ -870,8 +896,8 @@ const FluxKontext = () => {
                                         <button
                                             onClick={() => setConfig(prev => ({ ...prev, acceleration: "fast" }))}
                                             className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${config.acceleration === "fast"
-                                                    ? 'bg-blue-500 text-white'
-                                                    : 'bg-white/10 text-purple-200 hover:bg-white/20'
+                                                ? 'bg-blue-500 text-white'
+                                                : 'bg-white/10 text-purple-200 hover:bg-white/20'
                                                 }`}
                                         >
                                             Fast

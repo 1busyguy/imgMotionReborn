@@ -30,25 +30,8 @@ serve(async (req) => {
             throw new Error('Unauthorized');
         }
 
-        // Add this near the top of your serve function, after authentication
-        console.log('🔍 FLUX KONTEXT DEBUG MODE:', {
-            generationId,
-            prompt: prompt?.substring(0, 100),
-            user: user.id,
-            timestamp: new Date().toISOString()
-        });
-
-        // Get user profile to check subscription status
-        const { data: profile } = await supabase
-            .from('profiles')
-            .select('subscription_tier, subscription_status')
-            .eq('id', user.id)
-            .single();
-
-        const needsWatermark = shouldWatermark(profile);
-        console.log('🎨 Watermark needed for user:', needsWatermark);
-
-        // Parse request body
+        // Parse request body - MUST happen before any usage of these variables
+        const requestBody = await req.json();
         const {
             generationId: reqGenerationId,
             imageUrl,
@@ -62,7 +45,7 @@ serve(async (req) => {
             resolutionMode = "1:1",
             imageAnalysis,
             acceleration = "none"
-        } = await req.json();
+        } = requestBody;
 
         generationId = reqGenerationId;
 
@@ -71,7 +54,8 @@ serve(async (req) => {
             hasImageUrl: !!imageUrl,
             prompt: prompt?.substring(0, 50) + '...',
             numImages,
-            resolutionMode
+            resolutionMode,
+            user: user.id
         });
 
         // Validate required parameters
@@ -84,6 +68,16 @@ serve(async (req) => {
         if (!prompt?.trim()) {
             throw new Error('Prompt is required');
         }
+
+        // Get user profile to check subscription status
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('subscription_tier, subscription_status')
+            .eq('id', user.id)
+            .single();
+
+        const needsWatermark = shouldWatermark(profile);
+        console.log('🎨 Watermark needed for user:', needsWatermark);
 
         // Update generation status to processing
         await supabase
@@ -104,9 +98,7 @@ serve(async (req) => {
         // Check if we should use polling (for models with unreliable webhooks)
         const USE_POLLING = Deno.env.get('FAL_FLUX_KONTEXT_USE_POLLING') !== 'false'; // Default to true
 
-        // Prepare webhook URL even if we're polling (belt and suspenders)
-        const webhookUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/fal-webhook`;
-
+        // Prepare FAL.ai API request
         const falParams: any = {
             image_url: imageUrl,
             prompt: prompt,
@@ -119,20 +111,13 @@ serve(async (req) => {
             acceleration: acceleration
         };
 
-        // Add webhook URL (even if polling, as a fallback)
-        if (!USE_POLLING || Deno.env.get('FAL_INCLUDE_WEBHOOK_ALWAYS') === 'true') {
-            falParams.webhook_url = webhookUrl;
-            falParams.webhook_events_filter = ["completed", "failed"];
-            console.log('📡 Including webhook URL:', webhookUrl);
-        }
-
         // Only add seed if it's a positive number
         if (seed && seed > 0) {
             falParams.seed = seed;
         }
 
         console.log('📡 Calling FAL.ai API with params:', JSON.stringify(falParams, null, 2));
-        console.log('⚙️ Mode:', USE_POLLING ? 'POLLING' : 'WEBHOOK');
+        console.log('⚙️ Mode: POLLING (webhooks unreliable for flux-kontext)');
 
         // Call FAL.ai API
         const falResponse = await fetch('https://fal.run/fal-ai/flux-kontext/dev', {
@@ -146,12 +131,12 @@ serve(async (req) => {
 
         const responseBody = await falResponse.text();
 
-        // Handle errors
+        // Handle submission errors
         if (!falResponse.ok) {
             console.log('❌ FAL.ai submission error:', falResponse.status);
             const errorInfo = parseFalError(falResponse, responseBody);
 
-            // Ensure we properly mark as failed with correct error type
+            // Update generation as failed
             await supabase
                 .from('ai_generations')
                 .update({
@@ -171,7 +156,6 @@ serve(async (req) => {
 
             console.log(`✅ Generation ${generationId} marked as failed (${errorInfo.errorType}) during submission`);
 
-            // Return error response instead of throwing
             return new Response(JSON.stringify({
                 success: false,
                 error: errorInfo.errorMessage,
@@ -182,7 +166,7 @@ serve(async (req) => {
                     ...corsHeaders,
                     'Content-Type': 'application/json'
                 },
-                status: 200 // Return 200 since we handled it gracefully
+                status: 200
             });
         }
 
@@ -197,12 +181,12 @@ serve(async (req) => {
 
         console.log('📋 FAL.ai submission result:', JSON.stringify(submitResult, null, 2));
 
-        // Check if we got immediate result or need to poll/wait
+        // Check if we got immediate result or need to poll
         let finalResult = submitResult;
-        let requestId = submitResult.request_id || submitResult.gateway_request_id;
+        const requestId = submitResult.request_id || submitResult.gateway_request_id;
 
-        // If we have a request_id and are using polling, poll for completion
-        if (requestId && USE_POLLING) {
+        // If we have a request_id, poll for completion
+        if (requestId) {
             console.log('🔄 Using POLLING mode for request_id:', requestId);
 
             // Update generation with request ID
@@ -225,7 +209,6 @@ serve(async (req) => {
             const maxAttempts = 30;
             let attempts = 0;
             let generationFailed = false;
-            let failureHandled = false;
 
             while (attempts < maxAttempts && !generationFailed) {
                 await new Promise(resolve => setTimeout(resolve, 10000)); // Wait 10 seconds
@@ -264,11 +247,10 @@ serve(async (req) => {
                                 console.log('🎉 Got final result from FAL.ai');
                                 break;
                             } else {
-                                // Handle error when fetching completed result (might be content violation)
+                                // Handle error when fetching completed result
                                 const errorText = await resultResponse.text();
                                 console.error('❌ Failed to get result:', resultResponse.status, errorText);
 
-                                // Check if it's a 422 (content violation)
                                 let errorType = 'processing_error';
                                 let errorMessage = 'Failed to retrieve generation result';
 
@@ -277,7 +259,6 @@ serve(async (req) => {
                                     errorMessage = 'Content policy violation: Your input was flagged by the safety system.';
                                 }
 
-                                // Update generation with error
                                 await supabase
                                     .from('ai_generations')
                                     .update({
@@ -298,24 +279,20 @@ serve(async (req) => {
 
                                 console.log(`✅ Generation ${generationId} marked as failed (${errorType})`);
                                 generationFailed = true;
-                                failureHandled = true;
                                 break;
                             }
                         } else if (statusResult.status === 'FAILED' || statusResult.status === 'ERROR') {
                             console.log('❌ Generation failed during polling:', statusResult);
 
-                            // Extract error details
                             let errorMessage = 'Generation failed during processing';
                             let errorCode = 500;
                             let errorType = 'processing_error';
 
-                            // Check various possible error locations in FAL response
                             const errorText = statusResult.error ||
                                 statusResult.error_message ||
                                 statusResult.message ||
                                 JSON.stringify(statusResult);
 
-                            // Check for content violation indicators
                             const errorStr = typeof errorText === 'string' ? errorText : JSON.stringify(errorText);
                             const lowerError = errorStr.toLowerCase();
 
@@ -333,48 +310,6 @@ serve(async (req) => {
                                     : JSON.stringify(statusResult.error);
                             }
 
-                            // Try to get more details from the full result endpoint
-                            try {
-                                const fullResultResponse = await fetch(
-                                    `https://fal.run/fal-ai/flux-kontext/dev/requests/${requestId}`,
-                                    {
-                                        headers: {
-                                            'Authorization': `Key ${falApiKey}`
-                                        }
-                                    }
-                                );
-
-                                const fullResultText = await fullResultResponse.text();
-                                console.log('📋 Full error result text:', fullResultText);
-
-                                // Try to parse if it's JSON
-                                try {
-                                    const fullResult = JSON.parse(fullResultText);
-                                    console.log('📋 Parsed error result:', fullResult);
-
-                                    // Check for content violation in full result
-                                    if (fullResultResponse.status === 422 ||
-                                        fullResult.status_code === 422 ||
-                                        (fullResult.error && fullResult.error.toString().toLowerCase().includes('content'))) {
-                                        errorCode = 422;
-                                        errorType = 'content_violation';
-                                        errorMessage = 'Content policy violation: Your input was flagged by the safety system.';
-                                    }
-                                } catch (parseError) {
-                                    console.log('Could not parse full result as JSON:', fullResultText);
-                                    // Check if the text itself contains content violation indicators
-                                    if (fullResultText.toLowerCase().includes('content') ||
-                                        fullResultText.toLowerCase().includes('policy')) {
-                                        errorCode = 422;
-                                        errorType = 'content_violation';
-                                        errorMessage = 'Content policy violation: Your input was flagged by the safety system.';
-                                    }
-                                }
-                            } catch (e) {
-                                console.warn('Could not fetch full error details:', e);
-                            }
-
-                            // Update generation with proper error status
                             await supabase
                                 .from('ai_generations')
                                 .update({
@@ -395,13 +330,10 @@ serve(async (req) => {
 
                             console.log(`✅ Generation ${generationId} marked as failed (${errorType})`);
                             generationFailed = true;
-                            failureHandled = true;
                             break;
                         }
-                        // Add check for IN_QUEUE status to continue polling
                         else if (statusResult.status === 'IN_QUEUE' || statusResult.status === 'IN_PROGRESS') {
                             console.log('⏳ Still processing, continuing to poll...');
-                            // Continue polling
                         }
                     } else {
                         console.warn(`⚠️ Status check failed with HTTP ${statusResponse.status}`);
@@ -409,7 +341,6 @@ serve(async (req) => {
                 } catch (pollError) {
                     console.warn(`⚠️ Polling attempt ${attempts} failed:`, pollError.message);
                     if (attempts === maxAttempts) {
-                        // Mark as failed after max attempts
                         await supabase
                             .from('ai_generations')
                             .update({
@@ -427,7 +358,6 @@ serve(async (req) => {
                             .eq('id', generationId);
 
                         generationFailed = true;
-                        failureHandled = true;
                     }
                 }
             }
@@ -435,8 +365,6 @@ serve(async (req) => {
             // Check if we exited due to failure
             if (generationFailed) {
                 console.log('⚠️ Generation failed during polling');
-
-                // Return appropriate response
                 return new Response(JSON.stringify({
                     success: false,
                     message: 'Generation failed',
@@ -452,7 +380,6 @@ serve(async (req) => {
             }
 
             if (attempts >= maxAttempts && !generationFailed) {
-                // Timeout - mark as failed
                 await supabase
                     .from('ai_generations')
                     .update({
@@ -482,102 +409,127 @@ serve(async (req) => {
                     status: 200
                 });
             }
-
-            // Process the completed result
-            await processCompletedGeneration(
-                finalResult,
-                generationId,
-                user.id,
-                outputFormat,
-                requestId,
-                needsWatermark,
-                imageAnalysis,
-                guidanceScale,
-                steps,
-                resolutionMode,
-                attempts,
-                supabase
-            );
-
-            return new Response(JSON.stringify({
-                success: true,
-                message: 'Generation completed via polling',
-                generation_id: generationId,
-                mode: 'polling'
-            }), {
-                headers: {
-                    ...corsHeaders,
-                    'Content-Type': 'application/json'
-                }
-            });
-
-        } else if (requestId && !USE_POLLING) {
-            // Webhook mode - return immediately
-            console.log('⏳ Using WEBHOOK mode for request_id:', requestId);
-
-            await supabase
-                .from('ai_generations')
-                .update({
-                    metadata: {
-                        fal_request_id: requestId,
-                        processing_started: new Date().toISOString(),
-                        status: 'submitted_to_fal',
-                        tool_type: 'flux-kontext',
-                        needs_watermark: needsWatermark,
-                        mode: 'webhook',
-                        webhook_url: webhookUrl,
-                        image_analysis: imageAnalysis,
-                        ...addWatermarkMetadata({}, needsWatermark)
-                    }
-                })
-                .eq('id', generationId);
-
-            return new Response(JSON.stringify({
-                success: true,
-                message: 'Generation submitted. Webhook will handle completion.',
-                generation_id: generationId,
-                request_id: requestId,
-                mode: 'webhook'
-            }), {
-                headers: {
-                    ...corsHeaders,
-                    'Content-Type': 'application/json'
-                }
-            });
-
-        } else if (!requestId && (submitResult.images || submitResult.image)) {
-            // Immediate result
-            console.log('🎉 Got immediate result from FAL.ai');
-
-            await processCompletedGeneration(
-                submitResult,
-                generationId,
-                user.id,
-                outputFormat,
-                null,
-                needsWatermark,
-                imageAnalysis,
-                guidanceScale,
-                steps,
-                resolutionMode,
-                0,
-                supabase
-            );
-
-            return new Response(JSON.stringify({
-                success: true,
-                message: 'Generation completed immediately',
-                generation_id: generationId,
-                mode: 'immediate'
-            }), {
-                headers: {
-                    ...corsHeaders,
-                    'Content-Type': 'application/json'
-                }
-            });
-        } else {
-            throw new Error('Unexpected response from FAL.ai - no request_id or result');
         }
+
+        // Process completed generation (either immediate or after polling)
+        let outputUrls = [];
+        let primaryUrl = null;
+
+        if (finalResult.images && Array.isArray(finalResult.images)) {
+            for (const img of finalResult.images) {
+                if (img && typeof img === 'object' && img.url) {
+                    outputUrls.push(img.url);
+                }
+            }
+            primaryUrl = outputUrls[0];
+        } else if (finalResult.image && finalResult.image.url) {
+            primaryUrl = finalResult.image.url;
+            outputUrls = [primaryUrl];
+        }
+
+        if (!primaryUrl) {
+            console.error('❌ No images found in response:', JSON.stringify(finalResult, null, 2));
+            throw new Error('No images generated by FAL.ai API');
+        }
+
+        console.log('📸 Generated image URLs:', outputUrls);
+
+        // Store images permanently
+        let finalUrls = [];
+        let finalPrimaryUrl = primaryUrl;
+
+        try {
+            console.log('📥 Storing images permanently...');
+
+            for (let i = 0; i < outputUrls.length; i++) {
+                const imageUrl = outputUrls[i];
+                const response = await fetch(imageUrl);
+
+                if (response.ok) {
+                    const imageData = await response.arrayBuffer();
+                    const timestamp = Date.now();
+                    const fileExtension = outputFormat === 'jpeg' ? 'jpg' : 'png';
+                    const filePath = `${user.id}/flux-kontext/${timestamp}_${i}.${fileExtension}`;
+
+                    const { error: uploadError } = await supabase.storage
+                        .from('user-files')
+                        .upload(filePath, imageData, {
+                            contentType: `image/${outputFormat}`,
+                            upsert: true
+                        });
+
+                    if (!uploadError) {
+                        const { data: { publicUrl } } = supabase.storage
+                            .from('user-files')
+                            .getPublicUrl(filePath);
+
+                        finalUrls.push(publicUrl);
+                        if (i === 0) {
+                            finalPrimaryUrl = publicUrl;
+                        }
+                        console.log(`✅ Image ${i + 1} stored permanently:`, publicUrl);
+                    } else {
+                        console.error(`❌ Failed to upload image ${i + 1}:`, uploadError);
+                        finalUrls.push(imageUrl);
+                    }
+                }
+            }
+        } catch (storageError) {
+            console.warn('⚠️ Storage failed, using original URLs:', storageError);
+            finalUrls = outputUrls;
+        }
+
+        // Update generation with result
+        const { error: updateError } = await supabase
+            .from('ai_generations')
+            .update({
+                output_file_url: finalUrls.length === 1 ? finalPrimaryUrl : JSON.stringify(finalUrls),
+                status: 'completed',
+                completed_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+                metadata: {
+                    fal_request_id: requestId || finalResult.request_id,
+                    processing_time: finalResult.processing_time || 'unknown',
+                    num_images_generated: finalUrls.length,
+                    primary_url: finalPrimaryUrl,
+                    all_urls: finalUrls,
+                    original_urls: outputUrls,
+                    model: 'flux-kontext-dev',
+                    tool_type: 'flux-kontext',
+                    guidance_scale: guidanceScale,
+                    steps: steps,
+                    seed: finalResult.seed || 'random',
+                    resolution_mode: resolutionMode,
+                    output_format: outputFormat,
+                    input_image_analysis: imageAnalysis || null,
+                    has_nsfw_concepts: finalResult.has_nsfw_concepts || [],
+                    polling_attempts: requestId ? attempts : 0,
+                    needs_watermark: needsWatermark,
+                    ...addWatermarkMetadata({}, needsWatermark)
+                }
+            })
+            .eq('id', generationId);
+
+        if (updateError) {
+            console.error('❌ Error updating generation record:', updateError);
+            throw new Error(`Database update failed: ${updateError.message}`);
+        }
+
+        console.log('✅ Generation completed successfully');
+
+        return new Response(JSON.stringify({
+            success: true,
+            message: 'Generation completed',
+            generation_id: generationId,
+            primary_url: finalPrimaryUrl,
+            all_urls: finalUrls,
+            mode: requestId ? 'polling' : 'immediate'
+        }), {
+            headers: {
+                ...corsHeaders,
+                'Content-Type': 'application/json'
+            }
+        });
 
     } catch (error) {
         console.error('❌ Error in fal-flux-kontext:', error);
@@ -620,124 +572,3 @@ serve(async (req) => {
         });
     }
 });
-
-// Helper function to process completed generation
-async function processCompletedGeneration(
-    finalResult: any,
-    generationId: string,
-    userId: string,
-    outputFormat: string,
-    requestId: string | null,
-    needsWatermark: boolean,
-    imageAnalysis: any,
-    guidanceScale: number,
-    steps: number,
-    resolutionMode: string,
-    pollingAttempts: number,
-    supabase: any
-) {
-    // Extract image URLs from FAL.ai response
-    let outputUrls = [];
-    let primaryUrl = null;
-
-    if (finalResult.images && Array.isArray(finalResult.images)) {
-        for (const img of finalResult.images) {
-            if (img && typeof img === 'object' && img.url) {
-                outputUrls.push(img.url);
-            }
-        }
-        primaryUrl = outputUrls[0];
-    } else if (finalResult.image && finalResult.image.url) {
-        primaryUrl = finalResult.image.url;
-        outputUrls = [primaryUrl];
-    }
-
-    if (!primaryUrl) {
-        throw new Error('No images generated by FAL.ai API');
-    }
-
-    console.log('📸 Generated image URLs:', outputUrls);
-
-    // Store images permanently
-    let finalUrls = [];
-    let finalPrimaryUrl = primaryUrl;
-
-    try {
-        console.log('📥 Storing images permanently...');
-
-        for (let i = 0; i < outputUrls.length; i++) {
-            const imageUrl = outputUrls[i];
-            const response = await fetch(imageUrl);
-
-            if (response.ok) {
-                const imageData = await response.arrayBuffer();
-                const timestamp = Date.now();
-                const fileExtension = outputFormat === 'jpeg' ? 'jpg' : 'png';
-                const filePath = `${userId}/flux-kontext/${timestamp}_${i}.${fileExtension}`;
-
-                const { error: uploadError } = await supabase.storage
-                    .from('user-files')
-                    .upload(filePath, imageData, {
-                        contentType: `image/${outputFormat}`,
-                        upsert: true
-                    });
-
-                if (!uploadError) {
-                    const { data: { publicUrl } } = supabase.storage
-                        .from('user-files')
-                        .getPublicUrl(filePath);
-
-                    finalUrls.push(publicUrl);
-                    if (i === 0) {
-                        finalPrimaryUrl = publicUrl;
-                    }
-                    console.log(`✅ Image ${i + 1} stored permanently:`, publicUrl);
-                } else {
-                    console.error(`❌ Failed to upload image ${i + 1}:`, uploadError);
-                    finalUrls.push(imageUrl);
-                }
-            }
-        }
-    } catch (storageError) {
-        console.warn('⚠️ Storage failed, using original URLs:', storageError);
-        finalUrls = outputUrls;
-    }
-
-    // Update generation with result
-    const { error: updateError } = await supabase
-        .from('ai_generations')
-        .update({
-            output_file_url: finalUrls.length === 1 ? finalPrimaryUrl : JSON.stringify(finalUrls),
-            status: 'completed',
-            completed_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-            metadata: {
-                fal_request_id: requestId || finalResult.request_id,
-                processing_time: finalResult.processing_time || 'unknown',
-                num_images_generated: finalUrls.length,
-                primary_url: finalPrimaryUrl,
-                all_urls: finalUrls,
-                original_urls: outputUrls,
-                model: 'flux-kontext-dev',
-                tool_type: 'flux-kontext',
-                guidance_scale: guidanceScale,
-                steps: steps,
-                seed: finalResult.seed || 'random',
-                resolution_mode: resolutionMode,
-                output_format: outputFormat,
-                input_image_analysis: imageAnalysis || null,
-                has_nsfw_concepts: finalResult.has_nsfw_concepts || [],
-                polling_attempts: pollingAttempts,
-                needs_watermark: needsWatermark,
-                ...addWatermarkMetadata({}, needsWatermark)
-            }
-        })
-        .eq('id', generationId);
-
-    if (updateError) {
-        console.error('❌ Error updating generation record:', updateError);
-        throw new Error(`Database update failed: ${updateError.message}`);
-    }
-
-    console.log('✅ Generation completed successfully');
-}
