@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { parseFalError, updateGenerationWithError } from '../_shared/fal-error-handler.ts';
 
 // Enhanced logging function for FAL.ai requests
 function logFALRequest(url: string, params: any, generationId: string) {
@@ -165,30 +166,16 @@ serve(async (req) => {
     logFALResponse(falResponse, responseBody, generationId);
     
     if (!falResponse.ok) {
-      // Store detailed error information in database for analysis
-      await supabase
-        .from('ai_generations')
-        .update({
-          status: 'failed',
-          completed_at: new Date().toISOString(),
-          error_message: `FAL.ai API error (${falResponse.status}): ${responseBody}`,
-          metadata: {
-            fal_error_details: {
-              status_code: falResponse.status,
-              status_text: falResponse.statusText,
-              response_body: responseBody,
-              response_headers: Object.fromEntries(falResponse.headers.entries()),
-              error_timestamp: new Date().toISOString(),
-              request_params: falParams,
-              queue_url: queueUrl
-            },
-            error_type: falResponse.status === 422 ? 'content_violation' :
-                       falResponse.status === 500 ? 'server_error' : 'api_error'
-          }
-        })
-        .eq('id', generationId);
-      
-      throw new Error(`FAL.ai API error (${falResponse.status}): ${responseBody}`);
+      const errorInfo = parseFalError(falResponse, responseBody);
+  
+      await updateGenerationWithError(
+        supabase,
+        generationId,
+        errorInfo,
+        falParams  // You already have this variable! ✅
+      );
+  
+      throw new Error(errorInfo.errorMessage);
     }
 
     // Parse the successful response
