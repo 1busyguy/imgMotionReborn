@@ -1056,7 +1056,6 @@ const FluxKontext = () => {
                             </div>
                           )}
 
-                          // Replace the old error display with:
                         {generation.status === 'failed' && (
                           <GenerationError 
                             generation={generation} 
