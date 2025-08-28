@@ -203,11 +203,14 @@ const FluxKontextMaxMulti = () => {
       const uploadPromises = files.map(file => uploadFile(file, 'flux-kontext-max-multi-images'));
       const uploadResults = await Promise.all(uploadPromises);
       
-    if (config.imageUrls.length < 4) {
-      setConfig(prev => ({
-        ...prev,
-        imageUrls: [...prev.imageUrls, ...newUrls]
-      }));
+      const newUrls = uploadResults.map(result => result.url);
+      
+      if (config.imageUrls.length < 4) {
+        setConfig(prev => ({
+          ...prev,
+          imageUrls: [...prev.imageUrls, ...newUrls]
+        }));
+      }
     } catch (error) {
       console.error('Error uploading images:', error);
       alert('Error uploading images. Please try again.');
@@ -238,6 +241,8 @@ const FluxKontextMaxMulti = () => {
       alert('Please upload at least one image');
       return;
     }
+
+    const validImageUrls = config.imageUrls.filter(url => url && url.trim() !== '');
 
     if (validImageUrls.length > 4) {
       alert('Maximum 4 images allowed');
@@ -1154,7 +1159,7 @@ const FluxKontextMaxMulti = () => {
             <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-10">
               <div className="bg-black/50 backdrop-blur-sm rounded-full px-4 py-2">
                 <div className="flex space-x-2">
-                  {config.imageUrls.length < 4 && (
+                  {imageViewer.images.map((url, index) => (
                     <button
                       key={index}
                       onClick={() => setImageViewer(prev => ({ ...prev, currentIndex: index }))}
@@ -1174,7 +1179,7 @@ const FluxKontextMaxMulti = () => {
                   ))}
                 </div>
               </div>
-                  JPG and PNG only • Max 10MB • Max 4 images • Drag & drop supported
+            </div>
           )}
 
           {/* Instructions */}
