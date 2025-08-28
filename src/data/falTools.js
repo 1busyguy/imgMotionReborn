@@ -3,7 +3,18 @@ import { toCdnUrl } from '../utils/cdnHelpers';
 
 export const falTools = [
 
-    // WAN v2.2-a14b TEXT-TO-VIDEO LORA - NEW TOOL
+    
+    // GEMINI 2.5 FLASH IMAGE EDIT - NEW TOOL
+    {
+        id: 35,
+        name: "Google Nano Banana TEXT2img",
+        description: "Advanced AI image editing with edit and enhance images with your own words",
+        image: toCdnUrl("https://xisxqackivlrakfszfop.supabase.co/storage/v1/object/public/user-files/txt2img_v1.jpg?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1"),
+        tokensRequired: "8+",
+        category: "image",
+        toolType: "fal_gemini_flash_image_edit",
+        route: "/gemini-flash-image-edit"
+    },
     {
       id: 38,
         name: "Speech to Video Creator",
@@ -14,6 +25,27 @@ export const falTools = [
         toolType: "fal_wan22_s2v",
         route: "/wan-22-s2v"
     },
+    {
+        id: 36,
+        name: "Advanced Image Generator",
+        description: "Advanced text-to-image generation high-quality realistic images",
+        image: toCdnUrl("https://xisxqackivlrakfszfop.supabase.co/storage/v1/object/public/user-files/txt2img_v1.jpg?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1"),
+        tokensRequired: "8+",
+        category: "image",
+        toolType: "fal_qwen_image",
+        route: "/qwen-image"
+    },
+    {
+        id: 37,
+        name: "Advanced Editing Img2Img tool",
+        description: "Transform existing images - edit, enhance, and reimagine your photos",
+        image: toCdnUrl("https://xisxqackivlrakfszfop.supabase.co/storage/v1/object/public/user-files/img2img_v3.jpg?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1"),
+        tokensRequired: "10+",
+        category: "image",
+        toolType: "fal_qwen_image_to_image",
+        route: "/qwen-image-to-image"
+    },
+     // WAN v2.2-a14b TEXT-TO-VIDEO LORA - NEW TOOL
     {
         id: 30,
         name: "Advanced TEXT to Video Tool",
@@ -79,9 +111,6 @@ export const falTools = [
         toolType: "fal_flux_kontext",
         route: "/flux-kontext"
     },
-
-    
-
     // AI SCENE MAKER - FEATURED FIRST TOOL
  //   {
  //       id: 21,
@@ -223,40 +252,15 @@ export const falTools = [
         toolType: "fal_veo3",
         route: "/veo3-standard"
     },
-    
-    // GEMINI 2.5 FLASH IMAGE EDIT - NEW TOOL
     {
-        id: 35,
-        name: "Google Nano Banana TEXT2img",
-        description: "Advanced AI image editing with edit and enhance images with your own words",
-        image: toCdnUrl("https://xisxqackivlrakfszfop.supabase.co/storage/v1/object/public/user-files/txt2img_v1.jpg?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1"),
-        tokensRequired: "8+",
-        category: "image",
-        toolType: "fal_gemini_flash_image_edit",
-        route: "/gemini-flash-image-edit"
+       id: 26,
+       name: "CassetteAI Music Generator",
+       description: "Generate original music tracks with AI - from chill beats to epic orchestral pieces",
+       image: toCdnUrl("https://images.pexels.com/photos/164821/pexels-photo-164821.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1"),
+       tokensRequired: "15+",
+       category: "audio",
+       toolType: "fal_cassetteai_music",
+       route: "/cassetteai-music"
     },
-    
-    // QWEN IMAGE TOOLS - NEW ADDITIONS
-    {
-        id: 36,
-        name: "Advanced Image Generator",
-        description: "Advanced text-to-image generation high-quality realistic images",
-        image: toCdnUrl("https://xisxqackivlrakfszfop.supabase.co/storage/v1/object/public/user-files/txt2img_v1.jpg?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1"),
-        tokensRequired: "8+",
-        category: "image",
-        toolType: "fal_qwen_image",
-        route: "/qwen-image"
-    },
-    {
-        id: 37,
-        name: "Advanced Editing Img2Img tool",
-        description: "Transform existing images - edit, enhance, and reimagine your photos",
-        image: toCdnUrl("https://xisxqackivlrakfszfop.supabase.co/storage/v1/object/public/user-files/img2img_v3.jpg?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1"),
-        tokensRequired: "10+",
-        category: "image",
-        toolType: "fal_qwen_image_to_image",
-        route: "/qwen-image-to-image"
-    },
-    // WAN 22 S2V - NEW SPEECH-TO-VIDEO TOOL
    
 ];
