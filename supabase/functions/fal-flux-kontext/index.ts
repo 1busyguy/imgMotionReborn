@@ -30,6 +30,14 @@ serve(async (req) => {
             throw new Error('Unauthorized');
         }
 
+        // Add this near the top of your serve function, after authentication
+        console.log('🔍 FLUX KONTEXT DEBUG MODE:', {
+            generationId,
+            prompt: prompt?.substring(0, 100),
+            user: user.id,
+            timestamp: new Date().toISOString()
+        });
+
         // Get user profile to check subscription status
         const { data: profile } = await supabase
             .from('profiles')
@@ -217,6 +225,7 @@ serve(async (req) => {
             const maxAttempts = 30;
             let attempts = 0;
             let generationFailed = false;
+            let failureHandled = false;
 
             while (attempts < maxAttempts && !generationFailed) {
                 await new Promise(resolve => setTimeout(resolve, 10000)); // Wait 10 seconds
@@ -237,6 +246,7 @@ serve(async (req) => {
                     if (statusResponse.ok) {
                         const statusResult = await statusResponse.json();
                         console.log(`📊 Status check ${attempts}:`, statusResult.status);
+                        console.log(`📊 Full status result:`, JSON.stringify(statusResult, null, 2));
 
                         if (statusResult.status === 'COMPLETED') {
                             // Get the final result
@@ -254,47 +264,76 @@ serve(async (req) => {
                                 console.log('🎉 Got final result from FAL.ai');
                                 break;
                             } else {
-                                // Handle error when fetching completed result
+                                // Handle error when fetching completed result (might be content violation)
                                 const errorText = await resultResponse.text();
                                 console.error('❌ Failed to get result:', resultResponse.status, errorText);
 
-                                const errorInfo = parseFalError(resultResponse, errorText);
-                                await updateGenerationWithError(
-                                    supabase,
-                                    generationId,
-                                    errorInfo,
-                                    falParams
-                                );
+                                // Check if it's a 422 (content violation)
+                                let errorType = 'processing_error';
+                                let errorMessage = 'Failed to retrieve generation result';
 
-                                throw new Error(errorInfo.errorMessage);
+                                if (resultResponse.status === 422) {
+                                    errorType = 'content_violation';
+                                    errorMessage = 'Content policy violation: Your input was flagged by the safety system.';
+                                }
+
+                                // Update generation with error
+                                await supabase
+                                    .from('ai_generations')
+                                    .update({
+                                        status: 'failed',
+                                        completed_at: new Date().toISOString(),
+                                        error_message: errorMessage,
+                                        metadata: {
+                                            ...falParams,
+                                            fal_request_id: requestId,
+                                            error_type: errorType,
+                                            error_code: resultResponse.status,
+                                            polling_attempt: attempts,
+                                            failed_at: new Date().toISOString(),
+                                            error_details: errorText
+                                        }
+                                    })
+                                    .eq('id', generationId);
+
+                                console.log(`✅ Generation ${generationId} marked as failed (${errorType})`);
+                                generationFailed = true;
+                                failureHandled = true;
+                                break;
                             }
                         } else if (statusResult.status === 'FAILED' || statusResult.status === 'ERROR') {
                             console.log('❌ Generation failed during polling:', statusResult);
 
-                            // Extract error details from status result
+                            // Extract error details
                             let errorMessage = 'Generation failed during processing';
                             let errorCode = 500;
                             let errorType = 'processing_error';
 
-                            // Check for content policy violation indicators
-                            if (statusResult.error) {
-                                const errorStr = typeof statusResult.error === 'string'
+                            // Check various possible error locations in FAL response
+                            const errorText = statusResult.error ||
+                                statusResult.error_message ||
+                                statusResult.message ||
+                                JSON.stringify(statusResult);
+
+                            // Check for content violation indicators
+                            const errorStr = typeof errorText === 'string' ? errorText : JSON.stringify(errorText);
+                            const lowerError = errorStr.toLowerCase();
+
+                            if (lowerError.includes('content') ||
+                                lowerError.includes('policy') ||
+                                lowerError.includes('nsfw') ||
+                                lowerError.includes('inappropriate') ||
+                                lowerError.includes('safety')) {
+                                errorCode = 422;
+                                errorType = 'content_violation';
+                                errorMessage = 'Content policy violation: Your input was flagged by the safety system.';
+                            } else if (statusResult.error) {
+                                errorMessage = typeof statusResult.error === 'string'
                                     ? statusResult.error
                                     : JSON.stringify(statusResult.error);
-
-                                if (errorStr.toLowerCase().includes('content') ||
-                                    errorStr.toLowerCase().includes('policy') ||
-                                    errorStr.toLowerCase().includes('nsfw') ||
-                                    errorStr.toLowerCase().includes('inappropriate')) {
-                                    errorCode = 422;
-                                    errorType = 'content_violation';
-                                    errorMessage = 'Content policy violation: Your input was flagged by the safety system.';
-                                } else {
-                                    errorMessage = errorStr;
-                                }
                             }
 
-                            // Also check the full result for error details
+                            // Try to get more details from the full result endpoint
                             try {
                                 const fullResultResponse = await fetch(
                                     `https://fal.run/fal-ai/flux-kontext/dev/requests/${requestId}`,
@@ -305,13 +344,27 @@ serve(async (req) => {
                                     }
                                 );
 
-                                if (fullResultResponse.ok) {
-                                    const fullResult = await fullResultResponse.json();
-                                    console.log('📋 Full error result:', fullResult);
+                                const fullResultText = await fullResultResponse.text();
+                                console.log('📋 Full error result text:', fullResultText);
 
-                                    // Check for 422 or content violation in the full result
-                                    if (fullResult.status_code === 422 ||
+                                // Try to parse if it's JSON
+                                try {
+                                    const fullResult = JSON.parse(fullResultText);
+                                    console.log('📋 Parsed error result:', fullResult);
+
+                                    // Check for content violation in full result
+                                    if (fullResultResponse.status === 422 ||
+                                        fullResult.status_code === 422 ||
                                         (fullResult.error && fullResult.error.toString().toLowerCase().includes('content'))) {
+                                        errorCode = 422;
+                                        errorType = 'content_violation';
+                                        errorMessage = 'Content policy violation: Your input was flagged by the safety system.';
+                                    }
+                                } catch (parseError) {
+                                    console.log('Could not parse full result as JSON:', fullResultText);
+                                    // Check if the text itself contains content violation indicators
+                                    if (fullResultText.toLowerCase().includes('content') ||
+                                        fullResultText.toLowerCase().includes('policy')) {
                                         errorCode = 422;
                                         errorType = 'content_violation';
                                         errorMessage = 'Content policy violation: Your input was flagged by the safety system.';
@@ -341,35 +394,93 @@ serve(async (req) => {
                                 .eq('id', generationId);
 
                             console.log(`✅ Generation ${generationId} marked as failed (${errorType})`);
-
-                            // Set flag to exit polling loop
                             generationFailed = true;
-
-                            // Don't throw here - just return a proper response
-                            return new Response(JSON.stringify({
-                                success: false,
-                                error: errorMessage,
-                                generation_id: generationId,
-                                error_type: errorType
-                            }), {
-                                headers: {
-                                    ...corsHeaders,
-                                    'Content-Type': 'application/json'
-                                },
-                                status: 200 // Return 200 since we handled it gracefully
-                            });
+                            failureHandled = true;
+                            break;
                         }
+                        // Add check for IN_QUEUE status to continue polling
+                        else if (statusResult.status === 'IN_QUEUE' || statusResult.status === 'IN_PROGRESS') {
+                            console.log('⏳ Still processing, continuing to poll...');
+                            // Continue polling
+                        }
+                    } else {
+                        console.warn(`⚠️ Status check failed with HTTP ${statusResponse.status}`);
                     }
                 } catch (pollError) {
                     console.warn(`⚠️ Polling attempt ${attempts} failed:`, pollError.message);
                     if (attempts === maxAttempts) {
-                        throw new Error('Polling failed after maximum attempts');
+                        // Mark as failed after max attempts
+                        await supabase
+                            .from('ai_generations')
+                            .update({
+                                status: 'failed',
+                                completed_at: new Date().toISOString(),
+                                error_message: 'Generation timed out after maximum polling attempts',
+                                metadata: {
+                                    ...falParams,
+                                    fal_request_id: requestId,
+                                    error_type: 'timeout',
+                                    polling_attempts: attempts,
+                                    failed_at: new Date().toISOString()
+                                }
+                            })
+                            .eq('id', generationId);
+
+                        generationFailed = true;
+                        failureHandled = true;
                     }
                 }
             }
 
-            if (attempts >= maxAttempts) {
-                throw new Error('Generation timed out after 5 minutes');
+            // Check if we exited due to failure
+            if (generationFailed) {
+                console.log('⚠️ Generation failed during polling');
+
+                // Return appropriate response
+                return new Response(JSON.stringify({
+                    success: false,
+                    message: 'Generation failed',
+                    generation_id: generationId,
+                    mode: 'polling'
+                }), {
+                    headers: {
+                        ...corsHeaders,
+                        'Content-Type': 'application/json'
+                    },
+                    status: 200
+                });
+            }
+
+            if (attempts >= maxAttempts && !generationFailed) {
+                // Timeout - mark as failed
+                await supabase
+                    .from('ai_generations')
+                    .update({
+                        status: 'failed',
+                        completed_at: new Date().toISOString(),
+                        error_message: 'Generation timed out after 5 minutes',
+                        metadata: {
+                            ...falParams,
+                            fal_request_id: requestId,
+                            error_type: 'timeout',
+                            polling_attempts: attempts,
+                            failed_at: new Date().toISOString()
+                        }
+                    })
+                    .eq('id', generationId);
+
+                return new Response(JSON.stringify({
+                    success: false,
+                    error: 'Generation timed out after 5 minutes',
+                    generation_id: generationId,
+                    mode: 'polling'
+                }), {
+                    headers: {
+                        ...corsHeaders,
+                        'Content-Type': 'application/json'
+                    },
+                    status: 200
+                });
             }
 
             // Process the completed result
