@@ -591,7 +591,7 @@ const GeminFlashImageEdit = () => {
                   </label>
                   
                   <div className="space-y-3">
-                    {Array.from({ length: Math.max(1, config.imageUrls.length + 1) }).map((_, index) => (
+                    {Array.from({ length: Math.max(1, Math.min(10, config.imageUrls.length + 1)) }).map((_, index) => (
                       <div key={index} className="relative">
                         <div 
                           className="border-2 border-dashed border-white/30 rounded-lg p-3 text-center transition-colors hover:border-white/50"
@@ -656,7 +656,7 @@ const GeminFlashImageEdit = () => {
                     ))}
                     
                     {/* Add Image Button */}
-                    {config.imageUrls.length < 10 && (
+                    {config.imageUrls.length < 10 && config.imageUrls.filter(url => url.trim()).length < 10 && (
                       <button
                         onClick={addImageSlot}
                         className="w-full border-2 border-dashed border-purple-400/50 rounded-lg p-3 text-center hover:border-purple-400 hover:bg-purple-500/10 transition-colors"
