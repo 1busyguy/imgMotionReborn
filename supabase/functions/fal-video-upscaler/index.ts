@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { parseFalError, updateGenerationWithError } from '../_shared/fal-error-handler.ts';
 
 // Helper function to get the correct webhook URL
 function getWebhookUrl(): string {
@@ -105,22 +106,41 @@ serve(async (req) => {
       body: JSON.stringify(falParams),
     });
 
-    if (!falResponse.ok) {
-      const errorText = await falResponse.text();
-      console.error('❌ FAL.ai queue submission error:', falResponse.status, errorText);
-      throw new Error(`FAL.ai queue submission error: ${falResponse.status} - ${errorText}`);
-    }
+    // Read body ONCE as text first
+        const responseBody = await falResponse.text();
 
-    const queueResult = await falResponse.json();
-    console.log('✅ FAL.ai queue submission successful:', {
-      request_id: queueResult.request_id,
-      gateway_request_id: queueResult.gateway_request_id
-    });
+        // Handle errors with the new handler
+        if (!falResponse.ok) {
+          const errorInfo = parseFalError(falResponse, responseBody);
+  
+          await updateGenerationWithError(
+            supabase,
+            generationId,
+            errorInfo,
+            falParams  // or whatever your params are called
+          );
+  
+          throw new Error(errorInfo.errorMessage);
+        }
 
-    const requestId = queueResult.request_id;
-    if (!requestId) {
-      throw new Error('No request_id received from FAL.ai queue');
-    }
+        // Parse successful response from the same responseBody
+        let queueResult;
+        try {
+          queueResult = JSON.parse(responseBody);
+        } catch (parseError) {
+          console.error('❌ Error parsing FAL.ai response JSON:', parseError);
+          throw new Error(`Invalid JSON response from FAL.ai: ${responseBody}`);
+        }
+
+console.log('✅ FAL.ai queue submission successful:', {
+  request_id: queueResult.request_id,
+  gateway_request_id: queueResult.gateway_request_id
+});
+
+const requestId = queueResult.request_id;
+if (!requestId) {
+  throw new Error('No request_id received from FAL.ai queue');
+}
 
     // Update generation with queue request ID for webhook tracking
     await supabase
