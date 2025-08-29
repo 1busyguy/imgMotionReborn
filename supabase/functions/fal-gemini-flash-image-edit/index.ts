@@ -1,22 +1,21 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { parseFalError, updateGenerationWithError } from '../_shared/fal-error-handler.ts';
 
 // Enhanced logging function for FAL.ai requests
 function logFALRequest(url: string, params: any, generationId: string) {
-    console.log('🔡 === FAL.AI REQUEST DETAILS ===');
+    console.log('📡 === FAL.AI REQUEST DETAILS ===');
     console.log('🔗 URL:', url);
     console.log('🆔 Generation ID:', generationId);
     console.log('📋 Request Parameters:', JSON.stringify(params, null, 2));
     console.log('⏰ Request Timestamp:', new Date().toISOString());
-    console.log('🔡 === END REQUEST DETAILS ===');
+    console.log('📡 === END REQUEST DETAILS ===');
 }
 
 // Enhanced logging function for FAL.ai responses
 function logFALResponse(response: Response, responseBody: string, generationId: string) {
     console.log('📨 === FAL.AI RESPONSE DETAILS ===');
     console.log('🆔 Generation ID:', generationId);
-    console.log('📢 Status Code:', response.status);
+    console.log('🔢 Status Code:', response.status);
     console.log('📝 Status Text:', response.statusText);
     console.log('📋 Response Headers:', Object.fromEntries(response.headers.entries()));
     console.log('📄 Response Body Length:', responseBody.length);
@@ -168,17 +167,32 @@ serve(async (req) => {
         logFALResponse(falResponse, responseBody, generationId);
 
         if (!falResponse.ok) {
-            const errorInfo = parseFalError(falResponse, responseBody);
+            // Store detailed error information in database for analysis
+            await supabase
+                .from('ai_generations')
+                .update({
+                    status: 'failed',
+                    completed_at: new Date().toISOString(),
+                    error_message: `FAL.ai API error (${falResponse.status}): ${responseBody}`,
+                    updated_at: new Date().toISOString(), // Ensure updated_at is set to trigger real-time
+                    metadata: {
+                        fal_error_details: {
+                            status_code: falResponse.status,
+                            status_text: falResponse.statusText,
+                            response_body: responseBody,
+                            response_headers: Object.fromEntries(falResponse.headers.entries()),
+                            error_timestamp: new Date().toISOString(),
+                            request_params: falParams,
+                            queue_url: queueUrl
+                        },
+                        error_type: falResponse.status === 422 ? 'content_violation' :
+                            falResponse.status === 500 ? 'server_error' : 'api_error'
+                    }
+                })
+                .eq('id', generationId);
 
-            await updateGenerationWithError(
-                supabase,
-                generationId,
-                errorInfo,
-                falParams
-            );
-
-            throw new Error(errorInfo.errorMessage);
-        }  // ← FIXED: Removed extra closing brace here
+            throw new Error(`FAL.ai API error (${falResponse.status}): ${responseBody}`);
+        }
 
         // Parse the successful response
         let queueResult;

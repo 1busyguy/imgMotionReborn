@@ -1,284 +1,281 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { parseFalError, updateGenerationWithError } from '../_shared/fal-error-handler.ts';
 
 // Enhanced logging function for FAL.ai requests
 function logFALRequest(url: string, params: any, generationId: string) {
-    console.log('📡 === FAL.AI REQUEST DETAILS ===');
-    console.log('🔗 URL:', url);
-    console.log('🆔 Generation ID:', generationId);
-    console.log('📋 Request Parameters:', JSON.stringify(params, null, 2));
-    console.log('⏰ Request Timestamp:', new Date().toISOString());
-    console.log('📡 === END REQUEST DETAILS ===');
+  console.log('📡 === FAL.AI REQUEST DETAILS ===');
+  console.log('🔗 URL:', url);
+  console.log('🆔 Generation ID:', generationId);
+  console.log('📋 Request Parameters:', JSON.stringify(params, null, 2));
+  console.log('⏰ Request Timestamp:', new Date().toISOString());
+  console.log('📡 === END REQUEST DETAILS ===');
 }
 
 // Enhanced logging function for FAL.ai responses
 function logFALResponse(response: Response, responseBody: string, generationId: string) {
-    console.log('📨 === FAL.AI RESPONSE DETAILS ===');
-    console.log('🆔 Generation ID:', generationId);
-    console.log('📢 Status Code:', response.status);
-    console.log('📝 Status Text:', response.statusText);
-    console.log('📋 Response Headers:', Object.fromEntries(response.headers.entries()));
-    console.log('📄 Response Body Length:', responseBody.length);
-    console.log('📄 Full Response Body:', responseBody);
-    console.log('⏰ Response Timestamp:', new Date().toISOString());
-
-    // Special handling for error status codes
-    if (response.status === 422) {
-        console.log('🚫 === CONTENT VIOLATION DETECTED (422) ===');
-        console.log('🚫 This indicates content policy violation');
-        console.log('🚫 Response Body:', responseBody);
-
-        try {
-            const errorData = JSON.parse(responseBody);
-            console.log('🚫 Parsed Error Data:', JSON.stringify(errorData, null, 2));
-
-            if (errorData.detail) {
-                console.log('🚫 Error Details:', JSON.stringify(errorData.detail, null, 2));
-            }
-        } catch (e) {
-            console.log('🚫 Could not parse error JSON, raw body:', responseBody);
-        }
-        console.log('🚫 === END CONTENT VIOLATION ANALYSIS ===');
-    } else if (response.status === 500) {
-        console.log('🔥 === SERVER ERROR DETECTED (500) ===');
-        console.log('🔥 This indicates FAL.ai server issues');
-        console.log('🔥 Response Body:', responseBody);
-        console.log('🔥 === END SERVER ERROR ANALYSIS ===');
-    } else if (response.status >= 400) {
-        console.log('❌ === CLIENT/SERVER ERROR ===');
-        console.log('❌ Status:', response.status);
-        console.log('❌ Response Body:', responseBody);
-        console.log('❌ === END ERROR ANALYSIS ===');
+  console.log('📨 === FAL.AI RESPONSE DETAILS ===');
+  console.log('🆔 Generation ID:', generationId);
+  console.log('🔢 Status Code:', response.status);
+  console.log('📝 Status Text:', response.statusText);
+  console.log('📋 Response Headers:', Object.fromEntries(response.headers.entries()));
+  console.log('📄 Response Body Length:', responseBody.length);
+  console.log('📄 Full Response Body:', responseBody);
+  console.log('⏰ Response Timestamp:', new Date().toISOString());
+  
+  // Special handling for error status codes
+  if (response.status === 422) {
+    console.log('🚫 === CONTENT VIOLATION DETECTED (422) ===');
+    console.log('🚫 This indicates content policy violation');
+    console.log('🚫 Response Body:', responseBody);
+    
+    try {
+      const errorData = JSON.parse(responseBody);
+      console.log('🚫 Parsed Error Data:', JSON.stringify(errorData, null, 2));
+      
+      if (errorData.detail) {
+        console.log('🚫 Error Details:', JSON.stringify(errorData.detail, null, 2));
+      }
+    } catch (e) {
+      console.log('🚫 Could not parse error JSON, raw body:', responseBody);
     }
-
-    console.log('📨 === END RESPONSE DETAILS ===');
+    console.log('🚫 === END CONTENT VIOLATION ANALYSIS ===');
+  } else if (response.status === 500) {
+    console.log('🔥 === SERVER ERROR DETECTED (500) ===');
+    console.log('🔥 This indicates FAL.ai server issues');
+    console.log('🔥 Response Body:', responseBody);
+    console.log('🔥 === END SERVER ERROR ANALYSIS ===');
+  } else if (response.status >= 400) {
+    console.log('❌ === CLIENT/SERVER ERROR ===');
+    console.log('❌ Status:', response.status);
+    console.log('❌ Response Body:', responseBody);
+    console.log('❌ === END ERROR ANALYSIS ===');
+  }
+  
+  console.log('📨 === END RESPONSE DETAILS ===');
 }
 
 // Helper function to get the correct webhook URL
 function getWebhookUrl(): string {
-    const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
-    const projectRef = supabaseUrl.split('.')[0].replace('https://', '');
-    return `https://${projectRef}.supabase.co/functions/v1/fal-webhook`;
+  const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
+  const projectRef = supabaseUrl.split('.')[0].replace('https://', '');
+  return `https://${projectRef}.supabase.co/functions/v1/fal-webhook`;
 }
 
 const corsHeaders = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
 serve(async (req) => {
-    if (req.method === 'OPTIONS') {
-        return new Response('ok', { headers: corsHeaders });
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders });
+  }
+
+  let generationId: string | undefined;
+
+  try {
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
+
+    // Authenticate user
+    const authHeader = req.headers.get('Authorization')!;
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user } } = await supabase.auth.getUser(token);
+
+    if (!user) {
+      throw new Error('Unauthorized');
     }
 
-    let generationId: string | undefined;
+    // Parse request body
+    const {
+      generationId: reqGenerationId,
+      imageUrl,
+      prompt,
+      duration = "8s",
+      generateAudio = true,
+      resolution = "720p"
+    } = await req.json();
 
-    try {
-        const supabase = createClient(
-            Deno.env.get('SUPABASE_URL') ?? '',
-            Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-        );
+    generationId = reqGenerationId;
 
-        // Authenticate user
-        const authHeader = req.headers.get('Authorization')!;
-        const token = authHeader.replace('Bearer ', '');
-        const { data: { user } } = await supabase.auth.getUser(token);
+    console.log('🎬 VEO3 Standard generation request:', {
+      generationId,
+      hasImageUrl: !!imageUrl,
+      prompt: prompt?.substring(0, 50) + '...',
+      duration,
+      generateAudio,
+      resolution
+    });
 
-        if (!user) {
-            throw new Error('Unauthorized');
-        }
+    // Validate required parameters
+    if (!generationId || !imageUrl || !prompt?.trim()) {
+      throw new Error('Missing required parameters: generationId, imageUrl, and prompt are required');
+    }
 
-        // Parse request body
-        const {
-            generationId: reqGenerationId,
-            imageUrl,
-            prompt,
-            duration = "8s",
-            generateAudio = true,
-            resolution = "720p"
-        } = await req.json();
+    // Update generation status to processing
+    await supabase
+      .from('ai_generations')
+      .update({ 
+        status: 'processing',
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', generationId)
+      .eq('user_id', user.id);
 
-        generationId = reqGenerationId;
+    // Get FAL API key from environment
+    const falApiKey = Deno.env.get('FAL_API_KEY');
+    if (!falApiKey) {
+      throw new Error('FAL_API_KEY not configured');
+    }
 
-        console.log('🎬 VEO3 Standard generation request:', {
-            generationId,
-            hasImageUrl: !!imageUrl,
-            prompt: prompt?.substring(0, 50) + '...',
-            duration,
-            generateAudio,
-            resolution
-        });
+    // Prepare FAL.ai API request for VEO3 Standard
+    const falParams = {
+      prompt: prompt.trim(),
+      image_url: imageUrl,
+      duration: duration,
+      generate_audio: generateAudio,
+      resolution: resolution
+    };
 
-        // Validate required parameters
-        if (!generationId || !imageUrl || !prompt?.trim()) {
-            throw new Error('Missing required parameters: generationId, imageUrl, and prompt are required');
-        }
+    console.log('📡 Submitting to FAL.ai queue with webhook:', JSON.stringify(falParams, null, 2));
 
-        // Update generation status to processing
-        await supabase
-            .from('ai_generations')
-            .update({
-                status: 'processing',
-                updated_at: new Date().toISOString()
-            })
-            .eq('id', generationId)
-            .eq('user_id', user.id);
+    // Use FAL.ai queue system with webhook
+    const webhookUrl = getWebhookUrl();
+    
+    const queueUrl = `https://queue.fal.run/fal-ai/veo3/image-to-video?fal_webhook=${encodeURIComponent(webhookUrl)}`;
+    
+    // Enhanced logging BEFORE request
+    logFALRequest(queueUrl, falParams, generationId);
 
-        // Get FAL API key from environment
-        const falApiKey = Deno.env.get('FAL_API_KEY');
-        if (!falApiKey) {
-            throw new Error('FAL_API_KEY not configured');
-        }
+    // Submit to FAL.ai queue
+    const falResponse = await fetch(queueUrl, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Key ${falApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(falParams),
+    });
 
-        // Prepare FAL.ai API request for VEO3 Standard
-        const falParams = {
-            prompt: prompt.trim(),
-            image_url: imageUrl,
-            duration: duration,
-            generate_audio: generateAudio,
-            resolution: resolution
-        };
-
-        console.log('📡 Submitting to FAL.ai queue with webhook:', JSON.stringify(falParams, null, 2));
-
-        // Use FAL.ai queue system with webhook
-        const webhookUrl = getWebhookUrl();
-
-        const queueUrl = `https://queue.fal.run/fal-ai/veo3/image-to-video?fal_webhook=${encodeURIComponent(webhookUrl)}`;
-
-        // Enhanced logging BEFORE request
-        logFALRequest(queueUrl, falParams, generationId);
-
-        // Submit to FAL.ai queue
-        const falResponse = await fetch(queueUrl, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Key ${falApiKey}`,
-                'Content-Type': 'application/json',
+    // Enhanced response logging - ALWAYS read the response body
+    const responseBody = await falResponse.text();
+    logFALResponse(falResponse, responseBody, generationId);
+    
+    if (!falResponse.ok) {
+      // Store detailed error information in database for analysis
+      await supabase
+        .from('ai_generations')
+        .update({
+          status: 'failed',
+          completed_at: new Date().toISOString(),
+          error_message: `FAL.ai API error (${falResponse.status}): ${responseBody}`,
+          metadata: {
+            fal_error_details: {
+              status_code: falResponse.status,
+              status_text: falResponse.statusText,
+              response_body: responseBody,
+              response_headers: Object.fromEntries(falResponse.headers.entries()),
+              error_timestamp: new Date().toISOString(),
+              request_params: falParams,
+              queue_url: queueUrl
             },
-            body: JSON.stringify(falParams),
-        });
-
-        // Enhanced response logging - ALWAYS read the response body
-        const responseBody = await falResponse.text();
-        logFALResponse(falResponse, responseBody, generationId);
-
-        if (!falResponse.ok) {
-            const errorInfo = parseFalError(falResponse, responseBody);
-
-            await updateGenerationWithError(
-                supabase,
-                generationId,
-                errorInfo,
-                falParams
-            );
-
-            // Return structured error response instead of throwing
-            console.log(`✅ Generation ${generationId} marked as failed (${errorInfo.errorType})`);
-
-            return new Response(JSON.stringify({
-                success: false,
-                error: errorInfo.errorMessage,
-                generation_id: generationId,
-                error_type: errorInfo.errorType
-            }), {
-                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-                status: 200  // Return 200 with error in body
-            });
-        }
-
-        // Parse the successful response
-        let queueResult;
-        try {
-            queueResult = JSON.parse(responseBody);
-        } catch (parseError) {
-            console.error('❌ Error parsing FAL.ai response JSON:', parseError);
-            throw new Error(`Invalid JSON response from FAL.ai: ${responseBody}`);
-        }
-
-        console.log('✅ FAL.ai queue submission successful:', {
-            request_id: queueResult.request_id,
-            gateway_request_id: queueResult.gateway_request_id
-        });
-
-        const requestId = queueResult.request_id;
-        if (!requestId) {
-            throw new Error('No request_id received from FAL.ai queue');
-        }
-
-        // Update generation with queue request ID for webhook tracking
-        await supabase
-            .from('ai_generations')
-            .update({
-                metadata: {
-                    fal_request_id: requestId,
-                    gateway_request_id: queueResult.gateway_request_id,
-                    processing_started: new Date().toISOString(),
-                    status: 'queued_at_fal',
-                    model: 'veo3-standard',
-                    tool_type: 'veo3-standard',
-                    webhook_url: webhookUrl,
-                    webhook_enabled: true,
-                    queue_submission_time: new Date().toISOString()
-                }
-            })
-            .eq('id', generationId);
-
-        console.log('✅ VEO3 Standard request queued successfully, webhook will handle completion');
-
-        // Return immediately - webhook will handle completion
-        return new Response(JSON.stringify({
-            success: true,
-            status: 'queued',
-            generation_id: generationId,
-            message: 'VEO3 Standard video generation queued successfully. Webhook will update when complete.',
-            fal_request_id: requestId,
-            estimated_time: '5-12 minutes'
-        }), {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
-
-    } catch (error) {
-        console.error('❌ Error in fal-veo3:', error);
-
-        // Update generation as failed if we have the ID
-        if (generationId) {
-            try {
-                const supabase = createClient(
-                    Deno.env.get('SUPABASE_URL') ?? '',
-                    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-                );
-
-                await supabase
-                    .from('ai_generations')
-                    .update({
-                        status: 'failed',
-                        completed_at: new Date().toISOString(),
-                        metadata: {
-                            error_message: error.message,
-                            error_type: 'server_error',
-                            failed_at: new Date().toISOString()
-                        }
-                    })
-                    .eq('id', generationId);
-            } catch (updateError) {
-                console.error('❌ Error updating failed generation:', updateError);
-            }
-        }
-
-        return new Response(
-            JSON.stringify({
-                success: false,
-                error: error.message,
-                generation_id: generationId,
-                error_type: 'server_error'
-            }),
-            {
-                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-                status: 500
-            }
-        );
+            error_type: falResponse.status === 422 ? 'content_violation' :
+                       falResponse.status === 500 ? 'server_error' : 'api_error'
+          }
+        })
+        .eq('id', generationId);
+      
+      throw new Error(`FAL.ai API error (${falResponse.status}): ${responseBody}`);
     }
+
+    // Parse the successful response
+    let queueResult;
+    try {
+      queueResult = JSON.parse(responseBody);
+    } catch (parseError) {
+      console.error('❌ Error parsing FAL.ai response JSON:', parseError);
+      throw new Error(`Invalid JSON response from FAL.ai: ${responseBody}`);
+    }
+    
+    console.log('✅ FAL.ai queue submission successful:', {
+      request_id: queueResult.request_id,
+      gateway_request_id: queueResult.gateway_request_id
+    });
+
+    const requestId = queueResult.request_id;
+    if (!requestId) {
+      throw new Error('No request_id received from FAL.ai queue');
+    }
+
+    // Update generation with queue request ID for webhook tracking
+    await supabase
+      .from('ai_generations')
+      .update({
+        metadata: {
+          fal_request_id: requestId,
+          gateway_request_id: queueResult.gateway_request_id,
+          processing_started: new Date().toISOString(),
+          status: 'queued_at_fal',
+          model: 'veo3-standard',
+          tool_type: 'veo3-standard',
+          webhook_url: webhookUrl,
+          webhook_enabled: true,
+          queue_submission_time: new Date().toISOString()
+        }
+      })
+      .eq('id', generationId);
+
+    console.log('✅ VEO3 Standard request queued successfully, webhook will handle completion');
+
+    // Return immediately - webhook will handle completion
+    return new Response(JSON.stringify({
+      success: true,
+      status: 'queued',
+      generation_id: generationId,
+      message: 'VEO3 Standard video generation queued successfully. Webhook will update when complete.',
+      fal_request_id: requestId,
+      estimated_time: '5-12 minutes'
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
+
+  } catch (error) {
+    console.error('❌ Error in fal-veo3:', error);
+    
+    // Update generation as failed if we have the ID
+    if (generationId) {
+      try {
+        const supabase = createClient(
+          Deno.env.get('SUPABASE_URL') ?? '',
+          Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+        );
+        
+        await supabase
+          .from('ai_generations')
+          .update({ 
+            status: 'failed',
+            completed_at: new Date().toISOString(),
+            error_message: error.message
+          })
+          .eq('id', generationId);
+      } catch (updateError) {
+        console.error('❌ Error updating failed generation:', updateError);
+      }
+    }
+    
+    return new Response(
+      JSON.stringify({ 
+        success: false, 
+        error: error.message,
+        generation_id: generationId
+      }),
+      { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 500 
+      }
+    );
+  }
 });
