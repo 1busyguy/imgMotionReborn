@@ -1,22 +1,22 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { parseFalError, updateGenerationWithError } from '../_shared/fal-error-handler.ts';
 
 // Enhanced logging function for FAL.ai requests
 function logFALRequest(url: string, params: any, generationId: string) {
-    console.log('📡 === FAL.AI REQUEST DETAILS ===');
+    console.log('🔡 === FAL.AI REQUEST DETAILS ===');
     console.log('🔗 URL:', url);
     console.log('🆔 Generation ID:', generationId);
     console.log('📋 Request Parameters:', JSON.stringify(params, null, 2));
     console.log('⏰ Request Timestamp:', new Date().toISOString());
-    console.log('📡 === END REQUEST DETAILS ===');
+    console.log('🔡 === END REQUEST DETAILS ===');
 }
 
 // Enhanced logging function for FAL.ai responses
 function logFALResponse(response: Response, responseBody: string, generationId: string) {
     console.log('📨 === FAL.AI RESPONSE DETAILS ===');
     console.log('🆔 Generation ID:', generationId);
-    console.log('🔢 Status Code:', response.status);
+    console.log('📢 Status Code:', response.status);
     console.log('📝 Status Text:', response.statusText);
     console.log('📋 Response Headers:', Object.fromEntries(response.headers.entries()));
     console.log('📄 Response Body Length:', responseBody.length);
@@ -168,17 +168,17 @@ serve(async (req) => {
         logFALResponse(falResponse, responseBody, generationId);
 
         if (!falResponse.ok) {
-          const errorInfo = parseFalError(falResponse, responseBody);
-  
-          await updateGenerationWithError(
-            supabase,
-            generationId,
-            errorInfo,
-            falParams  // You already have this variable! ✅
-          );
-  
-          throw new Error(errorInfo.errorMessage);
-        }}
+            const errorInfo = parseFalError(falResponse, responseBody);
+
+            await updateGenerationWithError(
+                supabase,
+                generationId,
+                errorInfo,
+                falParams
+            );
+
+            throw new Error(errorInfo.errorMessage);
+        }  // ← FIXED: Removed extra closing brace here
 
         // Parse the successful response
         let queueResult;
