@@ -3,7 +3,19 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabaseClient';
 import { useAuth } from '../../hooks/useAuth';
 import { createAIGeneration, updateTokenCount, uploadFile } from '../../utils/storageHelpers';
-import { isNSFWError, parseNSFWError } from '../../utils/falErrorHandler';
+import { 
+  // New functions
+  parseFalError,
+  formatErrorDisplay,
+  handleRetryGeneration,
+  getErrorBadgeClasses, 
+  // Backward compatibility functions
+  isNSFWError,
+  parseNSFWError,
+  isContentPolicyError,
+  parseContentPolicyError
+} from '../../utils/falErrorHandler';
+import GenerationError from '../../components/GenerationError';  
 import { toCdnUrl } from '../../utils/cdnHelpers';
 import { performSafetyAnalysis, shouldShowWarning, getSafetyWarningMessage, logSafetyAnalysis } from '../../utils/safescan';
 import NSFWAlert from '../../components/NSFWAlert';
@@ -388,32 +400,38 @@ const GeminFlashImageEdit = () => {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Generation failed');
-      }
-
-      setConfig(prev => ({ ...prev, prompt: '' }));
-      console.log('✅ Gemini Flash Image Edit generation request submitted successfully');
-
-    } catch (error) {
-      console.error('❌ Error generating:', error);
-      
-      if (generation) {
-        setGenerations(current => current.filter(g => g.id !== generation.id));
-        setActiveGenerations(current => current.filter(g => g.id !== generation.id));
-      }
-      
-      if (isNSFWError(error.message)) {
-        const nsfwDetails = parseNSFWError(error.message);
-        setNsfwError(nsfwDetails);
-        setShowNSFWAlert(true);
-      } else {
-        showAlert('error', 'Generation Failed', `Gemini Flash Image Edit failed: ${error.message}`);
-      }
-    } finally {
-      setGenerating(false);
-    }
-  };
+          const errorData = await response.json();
+          console.error('Edge Function error:', errorData);
+  
+          // The edge function already categorized the error
+          if (generation) {
+            // Remove from local state since it failed
+            setGenerations(current => current.filter(g => g.id !== generation.id));
+            setActiveGenerations(current => current.filter(g => g.id !== generation.id));
+          }
+  
+          // Check if it's a content violation to show the right alert
+          const errorMessage = errorData.error || errorData.message || 'Generation failed';
+  
+          // Check for content violations (422 errors)
+          if (response.status === 422 || 
+              errorMessage.toLowerCase().includes('content') || 
+              errorMessage.toLowerCase().includes('policy')) {
+    
+            if (isContentPolicyError(errorMessage)) {
+              const errorDetails = parseContentPolicyError(errorMessage);
+              setNsfwError(errorDetails);
+              setShowNSFWAlert(true);
+            } else {
+              showAlert('error', 'Content Policy Violation', errorMessage);
+            }
+          } else {
+            // For other errors, show the alert
+            showAlert('error', 'Generation Failed', errorMessage);
+          }
+  
+          return; // Don't throw, just return
+        }
 
   const handleDownload = async (imageUrl) => {
     try {
@@ -461,6 +479,11 @@ const GeminFlashImageEdit = () => {
 
   const copyPrompt = (prompt) => {
     navigator.clipboard.writeText(prompt);
+  };
+
+  // 👇 ADD IT HERE - WITH YOUR OTHER HANDLERS 👇
+  const onRetryGeneration = (failedGeneration) => {
+    handleRetryGeneration(failedGeneration, setConfig, handleGenerate);
   };
 
   const getStatusColor = (status) => {
@@ -863,15 +886,14 @@ const GeminFlashImageEdit = () => {
                             </div>
                           )}
 
-                          {generation.status === 'failed' && (
-                            <div className="mb-4 bg-red-500/20 rounded-lg p-4 text-center">
-                              <X className="w-8 h-8 text-red-400 mx-auto mb-2" />
-                              <p className="text-red-400 text-sm">Image editing failed</p>
-                              {generation.error_message && (
-                                <p className="text-red-300 text-xs mt-2">{generation.error_message}</p>
-                              )}
-                            </div>
-                          )}
+                          // Replace the old error display with:
+                            {generation.status === 'failed' && (
+                              <GenerationError 
+                                generation={generation} 
+                                onRetry={onRetryGeneration}
+                                canRetry={true}
+                              />
+                            )}}
 
                           <div className="space-y-2 text-sm text-purple-300">
                             <p>
