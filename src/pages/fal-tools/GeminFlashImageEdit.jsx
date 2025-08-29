@@ -288,11 +288,16 @@ const GeminFlashImageEdit = () => {
   };
 
   const addImageSlot = () => {
-    if (config.imageUrls.length < 10) {
+    const validImageCount = config.imageUrls.filter(url => url.trim()).length;
+    if (validImageCount < 10) {
+    if (validImageCount < 10 && config.imageUrls.length < 10) {
       setConfig(prev => ({
         ...prev,
         imageUrls: [...prev.imageUrls, '']
       }));
+    } else {
+      showAlert('warning', 'Image Limit Reached', 'Maximum 10 images allowed for Gemini Flash Image Edit');
+    } else if (validImageCount >= 10) {
     }
   };
 
@@ -313,6 +318,11 @@ const GeminFlashImageEdit = () => {
     
     if (validImageUrls.length === 0) {
       alert('Please upload at least one image');
+      return;
+    }
+
+    if (validImageUrls.length > 10) {
+      showAlert('error', 'Too Many Images', 'Maximum 10 images allowed. Please remove some images and try again.');
       return;
     }
 
