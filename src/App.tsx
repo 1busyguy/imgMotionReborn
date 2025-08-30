@@ -424,17 +424,17 @@ function App() {
             <Route 
               path="/admin" 
               element={
-                <ProtectedRoute>
+                <ProtectedAdminRoute>
                   <Admin />
-                </ProtectedRoute>
+                </ProtectedAdminRoute>
               } 
             />
             <Route 
               path="/admin/user/:userId" 
               element={
-                <ProtectedRoute>
+                <ProtectedAdminRoute>
                   <Admin />
-                </ProtectedRoute>
+                </ProtectedAdminRoute>
               } 
             />
             <Route path="/about" element={<About />} />
