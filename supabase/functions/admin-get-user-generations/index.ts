@@ -52,7 +52,7 @@ serve(async (req) => {
     // Fetch ALL generations for the user (INCLUDING soft-deleted)
     // Admin should see everything
     const { data: generations, error: generationsError } = await supabase
-      .from('public.ai_generations')
+      .from('ai_generations')
       .select('*')
       .eq('user_id', userId)
       .order('created_at', { ascending: false });
