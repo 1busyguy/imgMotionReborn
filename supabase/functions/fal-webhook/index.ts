@@ -523,7 +523,7 @@ serve(async (req) => {
         });
     }
 
-    // Check for FAL headers
+    // Check if this is an FFmpeg webhook callback (no FAL headers)
     const falHeaders = {
         requestId: req.headers.get('x-fal-webhook-request-id'),
         userId: req.headers.get('x-fal-webhook-user-id'),
@@ -532,7 +532,21 @@ serve(async (req) => {
     };
 
     const hasFalHeaders = Object.values(falHeaders).every(h => h !== null);
+    const isFFmpegWebhook = !hasFalHeaders;
 
+    console.log('🔍 Webhook type detection:', {
+        hasFalHeaders,
+        isFFmpegWebhook,
+        headers: Object.fromEntries(req.headers.entries())
+    });
+
+    // Handle FFmpeg webhook callbacks (from Railway service)
+    if (isFFmpegWebhook) {
+        console.log('🎬 Processing FFmpeg webhook callback');
+        return await handleFFmpegWebhook(req);
+    }
+
+    // Check for FAL headers
     if (!hasFalHeaders) {
         return new Response(JSON.stringify({
             error: 'Not a valid FAL.ai webhook'
