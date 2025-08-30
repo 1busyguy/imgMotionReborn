@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
-import { Zap, Mail, Lock, ArrowLeft, AlertTriangle, ShoppingCart, Crown, Building2 } from 'lucide-react';
+import { Zap, Mail, Lock, User, ArrowLeft } from 'lucide-react';
 
 const Signup = () => {
   const [formData, setFormData] = useState({
@@ -12,12 +12,6 @@ const Signup = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [ipBlocked, setIpBlocked] = useState(false);
-  const [checkingIP, setCheckingIP] = useState(false);
-  const [checkingBanStatus, setCheckingBanStatus] = useState(false);
-  const [userBanned, setUserBanned] = useState(false);
-  const [banDetails, setBanDetails] = useState(null);
-  const navigate = useNavigate();
 
   const handleChange = (e) => {
     setFormData({
@@ -26,142 +20,44 @@ const Signup = () => {
     });
   };
 
-  // Check IP signup limit
-  const checkIPLimit = async () => {
-    setCheckingIP(true);
-    try {
-      console.log('🔍 Checking IP signup limit...');
-      
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/check-ip-signup-limit`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (!response.ok) {
-        console.warn('IP check failed, allowing signup');
-        return true; // Fail open
-      }
-
-      const result = await response.json();
-      console.log('IP check result:', result);
-
-      if (!result.allowed) {
-        console.log('🚫 IP blocked from signup:', result.reason);
-        setIpBlocked(true);
-        return false;
-      }
-
-      return true;
-    } catch (error) {
-      console.error('IP check error:', error);
-      return true; // Fail open - don't block legitimate users
-    } finally {
-      setCheckingIP(false);
-    }
-  };
-
-  // Check if user email is banned
-  const checkUserBanStatus = async (email) => {
-    setCheckingBanStatus(true);
-    try {
-      console.log('🔍 Checking ban status for email:', email);
-      
-      const { data: bannedUser, error } = await supabase
-        .from('profiles')
-        .select('banned, ban_reason, banned_at, email')
-        .eq('email', email)
-        .eq('banned', true)
-        .single();
-
-      if (error && error.code !== 'PGRST116') {
-        console.error('Error checking ban status:', error);
-        return true; // Fail open - allow signup if check fails
-      }
-
-      if (bannedUser) {
-        console.log('🚫 User is banned:', bannedUser);
-        setBanDetails(bannedUser);
-        setUserBanned(true);
-        return false; // User is banned
-      }
-
-      console.log('✅ User is not banned, can proceed');
-      return true; // User is not banned
-    } catch (error) {
-      console.error('Ban check error:', error);
-      return true; // Fail open
-    } finally {
-      setCheckingBanStatus(false);
-    }
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setSuccess('');
-    setLoading(true);
 
-    // Validate passwords match
     if (formData.password !== formData.confirmPassword) {
       setError('Passwords do not match');
-      setLoading(false);
       return;
     }
 
-    // Validate password strength
     if (formData.password.length < 6) {
-      setError('Password must be at least 6 characters long');
-      setLoading(false);
+      setError('Password must be at least 6 characters');
       return;
     }
+
+    setLoading(true);
 
     try {
-      // Check if user email is banned first
-      const canSignup = await checkUserBanStatus(formData.email);
-      if (!canSignup) {
-        setLoading(false);
-        return;
-      }
-
-      // Check IP limit before proceeding
-      const ipAllowed = await checkIPLimit();
-      if (!ipAllowed) {
-        setLoading(false);
-        return;
-      }
-
-      console.log('📝 Creating user account...');
-      
+      // Sign up the user - let the database trigger handle profile creation
       const { data, error } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
         options: {
-          emailRedirectTo: `${window.location.origin}/dashboard`,
-          data: {
-            email: formData.email
-          }
+          emailRedirectTo: `https://imgmotion.com/dashboard`
         }
       });
 
       if (error) throw error;
 
       if (data.user) {
-        console.log('✅ User created successfully:', data.user.id);
+        if (data.user.email_confirmed_at) {
+          setSuccess('Account created successfully! You can now sign in.');
+        } else {
+          setSuccess('Account created! Please check your email and click the confirmation link to activate your account.');
+        }
         
-        // Increment IP signup count for successful email signups
+        // Capture IP address for record keeping (don't block signup if this fails)
         try {
-          await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/increment-ip-signup`, {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${data.session?.access_token}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ signupType: 'email' })
-          });
-          
-          // Also capture IP in profile
           await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/capture-signup-ip`, {
             method: 'POST',
             headers: {
@@ -170,43 +66,25 @@ const Signup = () => {
             },
             body: JSON.stringify({ signupType: 'email' })
           });
-          
-          console.log('✅ IP tracking completed for email signup');
         } catch (ipError) {
-          console.warn('IP tracking failed (non-critical):', ipError);
+          console.warn('IP capture failed (non-critical):', ipError);
         }
-
-        if (data.user.email_confirmed_at) {
-          // User is already confirmed (shouldn't happen with new signups)
-          navigate('/dashboard');
-        } else {
-          // Show success message for email confirmation
-          setSuccess('Account created! Please check your email and click the confirmation link to complete your registration.');
-        }
+        
+        setFormData({ email: '', password: '', confirmPassword: '' });
       }
     } catch (error) {
-      console.error('Signup error:', error);
-      setError(error.message);
+      if (error.message.includes('Database error saving new user')) {
+        setError('There was an issue setting up your account. Please try again or contact support.');
+      } else {
+        setError(error.message || 'An error occurred during signup');
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  const handleGoogleSignup = async () => {
+  const handleGoogleSignUp = async () => {
     try {
-      // Note: For OAuth, we can't check email ban status beforehand
-      // since we don't have the email until after OAuth completes.
-      // Ban checking for OAuth users happens in the ProtectedRoute component
-      // in App.tsx after they're redirected back from Google.
-      // This is the standard pattern for OAuth flows.
-      console.log('🔍 OAuth signup - ban checking will happen after OAuth completes');
-      
-      // Check IP limit before OAuth
-      const ipAllowed = await checkIPLimit();
-      if (!ipAllowed) {
-        return;
-      }
-
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
@@ -214,132 +92,13 @@ const Signup = () => {
         }
       });
       if (error) throw error;
+      
+      // Note: IP capture for OAuth will happen when user lands on dashboard
+      // since they get redirected after OAuth completion
     } catch (error) {
       setError(error.message);
     }
   };
-
-  // Banned User Message Component
-  if (userBanned && banDetails) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center p-4">
-        <div className="max-w-md w-full bg-white/10 backdrop-blur-md rounded-2xl p-8 shadow-2xl border border-red-500/30">
-          <div className="text-center">
-            <div className="flex justify-center mb-6">
-              <div className="w-16 h-16 bg-gradient-to-r from-red-500 to-red-600 rounded-2xl flex items-center justify-center">
-                <AlertTriangle className="w-8 h-8 text-white" />
-              </div>
-            </div>
-            
-            <h1 className="text-3xl font-bold text-white mb-4">Account Suspended</h1>
-            
-            <div className="bg-red-500/20 border border-red-500/30 rounded-lg p-4 mb-6">
-              <p className="text-red-200 leading-relaxed">
-                This email address is associated with a suspended account and cannot be used to create a new account.
-              </p>
-              {banDetails.ban_reason && (
-                <p className="text-red-300 text-sm mt-2">
-                  <strong>Reason:</strong> {banDetails.ban_reason}
-                </p>
-              )}
-              {banDetails.banned_at && (
-                <p className="text-red-300 text-sm mt-1">
-                  <strong>Date:</strong> {new Date(banDetails.banned_at).toLocaleDateString()}
-                </p>
-              )}
-            </div>
-
-            <div className="space-y-4">
-              <Link
-                to="/contact"
-                className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-bold py-3 px-6 rounded-lg transition-all duration-300 transform hover:scale-105 flex items-center justify-center space-x-2"
-              >
-                <Mail className="w-5 h-5" />
-                <span>Contact Support</span>
-              </Link>
-              
-              <Link
-                to="/"
-                className="block text-purple-300 hover:text-purple-200 transition-colors"
-              >
-                Return to Home
-              </Link>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // IP Blocked Message Component
-  if (ipBlocked) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center p-4">
-        <div className="max-w-md w-full bg-white/10 backdrop-blur-md rounded-2xl p-8 shadow-2xl border border-orange-500/30">
-          <div className="text-center">
-            <div className="flex justify-center mb-6">
-              <div className="w-16 h-16 bg-gradient-to-r from-orange-500 to-red-500 rounded-2xl flex items-center justify-center">
-                <Zap className="w-8 h-8 text-white" />
-              </div>
-            </div>
-            
-            <h1 className="text-3xl font-bold text-white mb-4">Free Account Limit Reached</h1>
-            
-            <div className="bg-orange-500/20 border border-orange-500/30 rounded-lg p-4 mb-6">
-              <p className="text-orange-200 leading-relaxed">
-                Thanks for your interest in imgMotion! We have limited FREE accounts available per location. 
-                To continue creating amazing content, please see what we offer with our premium plans.
-              </p>
-            </div>
-
-            <div className="space-y-4">
-              <Link
-                to="/pricing"
-                className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-bold py-3 px-6 rounded-lg transition-all duration-300 transform hover:scale-105 flex items-center justify-center space-x-2"
-              >
-                <Crown className="w-5 h-5" />
-                <span>View Premium Plans</span>
-              </Link>
-              
-              <Link
-                to="/settings?tab=billing"
-                className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white font-bold py-3 px-6 rounded-lg transition-all duration-300 transform hover:scale-105 flex items-center justify-center space-x-2"
-              >
-                <ShoppingCart className="w-5 h-5" />
-                <span>Purchase Tokens</span>
-              </Link>
-              
-              <Link
-                to="/contact"
-                className="block text-center bg-white/10 hover:bg-white/20 text-white font-semibold py-3 px-6 rounded-lg transition-colors border border-white/20"
-              >
-                Contact Support
-              </Link>
-              
-              <Link
-                to="/"
-                className="block text-center text-purple-300 hover:text-purple-200 transition-colors"
-              >
-                Return to Home
-              </Link>
-            </div>
-
-            {/* Premium Features Preview */}
-            <div className="mt-8 bg-white/5 rounded-lg p-4">
-              <h3 className="text-white font-semibold mb-3">Premium Benefits:</h3>
-              <ul className="text-purple-200 text-sm space-y-1 text-left">
-                <li>• 3,000+ tokens monthly</li>
-                <li>• No watermarks on content</li>
-                <li>• Priority processing</li>
-                <li>• Commercial usage rights</li>
-                <li>• Premium AI models</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center p-4">
@@ -357,7 +116,7 @@ const Signup = () => {
           </div>
           
           <h1 className="text-3xl font-bold text-white mb-2">Join imgMotion</h1>
-          <p className="text-purple-200">Create your account and get 200 free tokens to start!</p>
+          <p className="text-purple-200">Create your account and start creating amazing content</p>
         </div>
 
         {error && (
@@ -432,10 +191,10 @@ const Signup = () => {
 
           <button
             type="submit"
-            disabled={loading || checkingIP || checkingBanStatus}
+            disabled={loading}
             className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-semibold py-3 px-4 rounded-lg transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {loading ? 'Creating Account...' : checkingBanStatus ? 'Checking Ban Status...' : checkingIP ? 'Checking IP...' : 'Create Account'}
+            {loading ? 'Creating Account...' : 'Create Account'}
           </button>
         </form>
 
@@ -450,9 +209,8 @@ const Signup = () => {
           </div>
 
           <button
-            onClick={handleGoogleSignup}
-            disabled={checkingIP || checkingBanStatus}
-            className="mt-4 w-full bg-white hover:bg-gray-50 text-gray-900 font-semibold py-3 px-4 rounded-lg transition-all duration-300 transform hover:scale-105 flex items-center justify-center space-x-3 border border-gray-300 disabled:opacity-50"
+            onClick={handleGoogleSignUp}
+            className="mt-4 w-full bg-white hover:bg-gray-50 text-gray-900 font-semibold py-3 px-4 rounded-lg transition-all duration-300 transform hover:scale-105 flex items-center justify-center space-x-3 border border-gray-300"
           >
             <svg className="w-5 h-5" viewBox="0 0 24 24">
               <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -460,28 +218,14 @@ const Signup = () => {
               <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
               <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
             </svg>
-            <span>{checkingBanStatus ? 'Checking Status...' : checkingIP ? 'Checking IP...' : 'Continue with Google'}</span>
+            <span>Continue with Google</span>
           </button>
         </div>
-
         <div className="mt-6 text-center">
           <p className="text-purple-200">
             Already have an account?{' '}
             <Link to="/login" className="text-purple-400 hover:text-purple-300 font-semibold">
               Sign in
-            </Link>
-          </p>
-        </div>
-
-        <div className="mt-6 text-center">
-          <p className="text-purple-300 text-xs">
-            By creating an account, you agree to our{' '}
-            <Link to="/terms" className="text-purple-400 hover:text-purple-300 underline">
-              Terms of Service
-            </Link>
-            {' '}and{' '}
-            <Link to="/privacy" className="text-purple-400 hover:text-purple-300 underline">
-              Privacy Policy
             </Link>
           </p>
         </div>
