@@ -83,6 +83,9 @@ export const useAuth = () => {
           // Check if user is banned when they sign in
           if (event === 'SIGNED_IN') {
             checkUserBanStatus(session.user.id);
+            
+            // Handle IP tracking for new OAuth users
+            handleOAuthIPTracking(session);
           }
         }
         
@@ -108,6 +111,44 @@ export const useAuth = () => {
     } catch (error) {
       console.warn('Could not check ban status:', error);
       // Fail open - don't block login if we can't check
+    }
+  };
+
+  const handleOAuthIPTracking = async (session) => {
+    try {
+      // Check if this is a new user (created in last 2 minutes)
+      const userCreatedAt = new Date(session.user.created_at);
+      const now = new Date();
+      const timeDiff = now.getTime() - userCreatedAt.getTime();
+      const isNewUser = timeDiff < 120000; // 2 minutes
+      
+      if (isNewUser && session.user.app_metadata?.provider === 'google') {
+        console.log('📍 New OAuth user detected, capturing IP and incrementing count');
+        
+        // Increment IP signup count for new OAuth users
+        await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/increment-ip-signup`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ signupType: 'oauth' })
+        });
+        
+        // Also capture in profile
+        await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/capture-signup-ip`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ signupType: 'oauth' })
+        });
+        
+        console.log('✅ OAuth IP tracking completed');
+      }
+    } catch (error) {
+      console.warn('OAuth IP tracking failed (non-critical):', error);
     }
   };
 
