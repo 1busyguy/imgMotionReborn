@@ -690,6 +690,25 @@ serve(async (req)=>{
           } catch (thumbnailError) {
             console.warn('⚠️ Thumbnail storage failed, using original URL:', thumbnailError);
             finalThumbnailUrl = thumbnailUrl;
+          }
+        }
+      }
+      // UPDATED: Only trigger FFmpeg processing for VIDEO generations
+      if (ENABLE_FFMPEG_PROCESSING && FFMPEG_SERVICE_URL) {
+        try {
+          // Check if this is a video generation before calling FFmpeg
+          const isVideo = isVideoGeneration(generation.tool_type, finalOutputUrl);
+          const isImage = isImageGeneration(generation.tool_type, finalOutputUrl);
+          if (isVideo) {
+            console.log('🎬 Video generation detected, proceeding with FFmpeg processing');
+            // ENHANCED PROFILE DEBUGGING
+            // TEMPORARILY DISABLED: FFmpeg service endpoints not available
+            console.log('⚠️ FFmpeg processing temporarily disabled - service endpoints not available');
+            console.log('🔧 To re-enable: Fix Railway FFmpeg service endpoints and authorization');
+          } else {
+            console.log('📷 Non-video generation detected, skipping FFmpeg processing');
+          }
+        } catch (ffmpegError) {
           console.log('⚠️ FFmpeg processing failed but webhook will continue');
         }
       } else {
@@ -716,18 +735,18 @@ serve(async (req)=>{
         }
       }).eq('id', generation.id);
       console.log('✅ Generation completed:', generation.id);
-      // UPDATED: Only trigger FFmpeg processing for VIDEO generations
-      if (ENABLE_FFMPEG_PROCESSING && FFMPEG_SERVICE_URL) {
-        try {
-          // Check if this is a video generation before calling FFmpeg
-          const isVideo = isVideoGeneration(generation.tool_type, finalOutputUrl);
-          const isImage = isImageGeneration(generation.tool_type, finalOutputUrl);
-          if (isVideo) {
-            console.log('🎬 Video generation detected, proceeding with FFmpeg processing');
-            // ENHANCED PROFILE DEBUGGING
-            // TEMPORARILY DISABLED: FFmpeg service endpoints not available
-            console.log('⚠️ FFmpeg processing temporarily disabled - service endpoints not available');
-            console.log('🔧 To re-enable: Fix Railway FFmpeg service endpoints and authorization');
+      return new Response(JSON.stringify({
+        success: true,
+        message: "Generation completed",
+        generation_id: generation.id,
+        output_url: finalOutputUrl,
+        thumbnail_url: finalThumbnailUrl
+      }), {
+        status: 200,
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json'
+        }
       });
     } else if (event.status === "FAILED" || event.status === "ERROR" || event.status === "CANCELLED") {
       const errorAnalysis = handleWebhookError(event, generation);
@@ -813,6 +832,4 @@ serve(async (req)=>{
       }
     });
   }
-});
-
 });
