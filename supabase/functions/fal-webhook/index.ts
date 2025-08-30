@@ -690,8 +690,10 @@ serve(async (req)=>{
           } catch (thumbnailError) {
             console.warn('⚠️ Thumbnail storage failed, using original URL:', thumbnailError);
             finalThumbnailUrl = thumbnailUrl;
-          }
+          console.log('⚠️ FFmpeg processing failed but webhook will continue');
         }
+      } else {
+        console.log('🔇 FFmpeg processing disabled or not configured');
       }
       // Update as completed with thumbnail URL if available
       await supabase.from('ai_generations').update({
@@ -723,94 +725,9 @@ serve(async (req)=>{
           if (isVideo) {
             console.log('🎬 Video generation detected, proceeding with FFmpeg processing');
             // ENHANCED PROFILE DEBUGGING
-            console.log('🔍 STARTING PROFILE LOOKUP:', {
-              looking_for_user_id: generation.user_id,
-              user_id_type: typeof generation.user_id,
-              user_id_length: generation.user_id?.length
-            });
-            const { data: userProfile, error: profileError } = await supabase.from('profiles').select('subscription_tier, subscription_status, id, email').eq('id', generation.user_id).single();
-            console.log('🔍 PROFILE QUERY RESULT:', {
-              profile_found: !!userProfile,
-              profile_error: profileError,
-              error_code: profileError?.code,
-              error_message: profileError?.message,
-              raw_profile_data: userProfile
-            });
-            // If no profile found, let's check if user exists at all
-            if (!userProfile || profileError) {
-              console.log('❌ Profile not found, checking if user exists in profiles table...');
-              const { data: allProfileIds, error: listError } = await supabase.from('profiles').select('id, email, subscription_tier').limit(10);
-              console.log('📋 Sample profiles in database:', {
-                count: allProfileIds?.length,
-                sample_profiles: allProfileIds,
-                list_error: listError
-              });
-              // Check if the user_id format matches what's in the database
-              const { data: exactMatch, error: exactError } = await supabase.from('profiles').select('*').eq('id', generation.user_id);
-              console.log('🎯 Exact ID match check:', {
-                exact_match_found: !!exactMatch?.length,
-                exact_match_data: exactMatch,
-                exact_error: exactError
-              });
-            }
-            // Continue with your existing tier logic but with more detailed logging
-            if (userProfile) {
-              console.log('✅ PROFILE FOUND - DETAILED ANALYSIS:', {
-                profile_id: userProfile.id,
-                email: userProfile.email,
-                subscription_tier: userProfile.subscription_tier,
-                subscription_tier_type: typeof userProfile.subscription_tier,
-                subscription_status: userProfile.subscription_status,
-                raw_object: JSON.stringify(userProfile, null, 2)
-              });
-            } else {
-              console.log('❌ NO PROFILE FOUND FOR USER:', generation.user_id);
-            }
-            console.log('🔍 USER TIER DEBUGGING:', {
-              generation_user_id: generation.user_id,
-              profile_found: !!userProfile,
-              profile_error: profileError,
-              full_profile: userProfile,
-              subscription_tier: userProfile?.subscription_tier,
-              subscription_status: userProfile?.subscription_status,
-              user_email: userProfile?.email
-            });
-            // FIXED: Use the correct field that exists
-            const userTier = userProfile?.subscription_tier || userProfile?.subscription_status || 'free';
-            // FIXED: Check for your actual pro tier value
-            const isFreeTier = !userProfile || !userProfile.subscription_tier || userProfile.subscription_tier.toLowerCase() === 'free';
-            console.log('🎯 TIER DECISION:', {
-              detected_tier: userTier,
-              subscription_tier_value: userProfile?.subscription_tier,
-              is_free_tier: isFreeTier,
-              should_watermark: isFreeTier
-            });
-            // Process video with FFmpeg (frame extraction + conditional watermarking)
-            await processVideoWithFFmpeg(generation, finalOutputUrl, userProfile);
-          } else if (isImage) {
-            console.log('📷 Image generation detected, skipping FFmpeg processing');
-            console.log('📷 Tool type:', generation.tool_type);
-            console.log('📷 File URL:', finalOutputUrl);
-          } else {
-            console.log('❓ Unknown generation type, skipping FFmpeg processing');
-            console.log('❓ Tool type:', generation.tool_type);
-            console.log('❓ File URL:', finalOutputUrl);
-          }
-        } catch (ffmpegError) {
-          console.error('FFmpeg processing error:', ffmpegError);
-        // Don't fail the webhook, just log the error
-        }
-      }
-      return new Response(JSON.stringify({
-        success: true,
-        message: "Generation completed",
-        generation_id: generation.id
-      }), {
-        status: 200,
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json'
-        }
+            // TEMPORARILY DISABLED: FFmpeg service endpoints not available
+            console.log('⚠️ FFmpeg processing temporarily disabled - service endpoints not available');
+            console.log('🔧 To re-enable: Fix Railway FFmpeg service endpoints and authorization');
       });
     } else if (event.status === "FAILED" || event.status === "ERROR" || event.status === "CANCELLED") {
       const errorAnalysis = handleWebhookError(event, generation);
