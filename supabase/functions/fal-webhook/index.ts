@@ -142,6 +142,43 @@ async function handleFFmpegWebhook(req: Request) {
             throw new Error(`Database update failed: ${updateError.message}`);
         }
 
+        console.log('✅ Successfully updated generation:', {
+            generation_id,
+            processing_id,
+            status,
+            thumbnail_updated: !!updateData.thumbnail_url,
+            output_updated: !!updateData.output_file_url,
+            metadata_updated: !!updateData.metadata
+        });
+
+        return new Response(JSON.stringify({
+            success: true,
+            generation_id,
+            processing_id,
+            status,
+            message: `FFmpeg processing ${status}`
+        }), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+
+    } catch (error) {
+        console.error('❌ Error in ffmpeg-webhook:', error);
+        console.error('Error stack:', error.stack);
+
+        return new Response(
+            JSON.stringify({
+                success: false,
+                error: error.message,
+                timestamp: new Date().toISOString()
+            }),
+            {
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+                status: 500
+            }
+        );
+    }
+}
+
 let _jwks_cache = null;
 let _jwks_cache_time = 0;
 const JWKS_CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
