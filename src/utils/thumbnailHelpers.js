@@ -8,20 +8,11 @@
 export const shouldWatermarkContent = (profile) => {
   if (!profile) return true; // Default to watermark if no profile
   
-  const shouldWatermark = profile.subscription_status === 'free' || 
+  // Watermark for free tier users
+  return profile.subscription_status === 'free' || 
          profile.subscription_tier === 'free' ||
          profile.subscription_status === null || 
          profile.subscription_status === undefined;
-
-  console.log('🎨 FRONTEND WATERMARK CHECK:', {
-    profile_exists: !!profile,
-    subscription_status: profile?.subscription_status,
-    subscription_tier: profile?.subscription_tier,
-    should_watermark: shouldWatermark
-  });
-
-  // Watermark for free tier users
-  return shouldWatermark;
 };
 
 /**
