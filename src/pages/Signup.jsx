@@ -88,13 +88,16 @@ const Signup = () => {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/dashboard`
+          redirectTo: `${window.location.origin}/dashboard`,
+          queryParams: {
+            signup_type: 'oauth'
+          }
         }
       });
       if (error) throw error;
       
-      // Note: IP capture for OAuth will happen when user lands on dashboard
-      // since they get redirected after OAuth completion
+      // Note: IP tracking for OAuth will happen in login handler
+      // when we detect it's a new user (created in last minute)
     } catch (error) {
       setError(error.message);
     }

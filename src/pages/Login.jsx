@@ -37,6 +37,19 @@ const Login = () => {
       if (data.user.email_confirmed_at) {
         // Update last login IP for record keeping (don't block login if this fails)
         try {
+          // Also increment IP signup count for OAuth users on first login
+          if (data.user.created_at && new Date(data.user.created_at).getTime() > Date.now() - 60000) {
+            // User was created in the last minute, likely OAuth signup
+            await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/increment-ip-signup`, {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${data.session?.access_token}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({ signupType: 'oauth' })
+            });
+          }
+          
           await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/capture-login-ip`, {
             method: 'POST',
             headers: {
