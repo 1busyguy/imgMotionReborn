@@ -6,7 +6,7 @@ export const maintenanceConfig = {
   enabled: false, // Change this to true to enable maintenance mode
   
   // Maintenance page content
-  title: "imgMotionMagic is Getting Better",
+  title: "imgMotion is Getting Better",
   subtitle: "We're making some exciting improvements",
   message: "Our AI-powered creative platform is temporarily offline while we enhance your experience with new features and improvements.",
   
@@ -14,13 +14,12 @@ export const maintenanceConfig = {
   estimatedCompletion: "We'll be back online soon",
   
   // Contact information
-  contactEmail: "imgmotionapp@gmail.com",
+  contactEmail: "jim@imgmotion.com",
   
   // Social links (optional)
   socialLinks: {
-    twitter: "#",
-    instagram: "#",
-    youtube: "#"
+    twitter: "https://x.com/ImgMotion"
+    
   },
   
   // Allow specific routes during maintenance (for admin access)
