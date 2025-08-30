@@ -12,6 +12,9 @@ const Signup = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [ipBlocked, setIpBlocked] = useState(false);
+  const [ipBlockInfo, setIpBlockInfo] = useState(null);
+  const [checkingIP, setCheckingIP] = useState(false);
 
   const handleChange = (e) => {
     setFormData({
@@ -20,10 +23,49 @@ const Signup = () => {
     });
   };
 
+  // Check IP signup limit before allowing signup
+  const checkIPLimit = async () => {
+    setCheckingIP(true);
+    try {
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/check-ip-signup-limit`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log('IP limit check result:', result);
+        
+        if (!result.allowed) {
+          setIpBlocked(true);
+          setIpBlockInfo(result);
+          return false;
+        }
+        return true;
+      } else {
+        console.warn('IP check failed, allowing signup');
+        return true; // Fail open
+      }
+    } catch (error) {
+      console.warn('IP check error, allowing signup:', error);
+      return true; // Fail open
+    } finally {
+      setCheckingIP(false);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setSuccess('');
+
+    // Check IP limit first
+    const ipAllowed = await checkIPLimit();
+    if (!ipAllowed) {
+      return; // IP blocked, show upgrade message
+    }
 
     if (formData.password !== formData.confirmPassword) {
       setError('Passwords do not match');
@@ -58,6 +100,17 @@ const Signup = () => {
         
         // Capture IP address for record keeping (don't block signup if this fails)
         try {
+          // Increment IP signup count
+          await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/increment-ip-signup`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${data.session?.access_token}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ signupType: 'email' })
+          });
+          
+          // Also capture in profile
           await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/capture-signup-ip`, {
             method: 'POST',
             headers: {
@@ -84,6 +137,12 @@ const Signup = () => {
   };
 
   const handleGoogleSignUp = async () => {
+    // Check IP limit first for OAuth too
+    const ipAllowed = await checkIPLimit();
+    if (!ipAllowed) {
+      return; // IP blocked, show upgrade message
+    }
+
     try {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
@@ -102,6 +161,64 @@ const Signup = () => {
       setError(error.message);
     }
   };
+
+  // IP Blocked Message Component
+  if (ipBlocked && ipBlockInfo) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-white/10 backdrop-blur-md rounded-2xl p-8 shadow-2xl text-center">
+          <Link to="/" className="inline-flex items-center space-x-2 text-purple-200 hover:text-white transition-colors mb-6">
+            <ArrowLeft className="w-4 h-4" />
+            <span>Back to Home</span>
+          </Link>
+          
+          <div className="flex justify-center mb-6">
+            <div className="w-16 h-16 bg-gradient-to-r from-amber-500 to-orange-500 rounded-2xl flex items-center justify-center">
+              <Zap className="w-8 h-8 text-white" />
+            </div>
+          </div>
+          
+          <h1 className="text-3xl font-bold text-white mb-4">Thanks for Your Interest!</h1>
+          <p className="text-purple-200 mb-6 leading-relaxed">
+            We have limited FREE accounts available to ensure the best experience for all users. 
+            We'd love to have you join our community with one of our premium plans!
+          </p>
+          
+          <div className="bg-amber-500/20 border border-amber-500/30 rounded-lg p-4 mb-6">
+            <p className="text-amber-200 text-sm">
+              <strong>Why upgrade?</strong> Get more tokens, access to premium tools, 
+              no watermarks, and priority support.
+            </p>
+          </div>
+          
+          <div className="space-y-4">
+            <Link
+              to="/pricing"
+              className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-semibold py-3 px-4 rounded-lg transition-all duration-300 transform hover:scale-105 inline-block"
+            >
+              View Our Plans
+            </Link>
+            
+            <Link
+              to="/contact"
+              className="w-full bg-white/10 hover:bg-white/20 text-white font-semibold py-3 px-4 rounded-lg transition-all duration-300 border border-white/20 inline-block"
+            >
+              Contact Sales
+            </Link>
+          </div>
+          
+          <div className="mt-6 text-center">
+            <p className="text-purple-300 text-sm">
+              Already have an account?{' '}
+              <Link to="/login" className="text-purple-400 hover:text-purple-300 font-semibold">
+                Sign in here
+              </Link>
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center p-4">
@@ -194,10 +311,10 @@ const Signup = () => {
 
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || checkingIP}
             className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-semibold py-3 px-4 rounded-lg transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {loading ? 'Creating Account...' : 'Create Account'}
+            {checkingIP ? 'Checking...' : loading ? 'Creating Account...' : 'Create Account'}
           </button>
         </form>
 
@@ -213,6 +330,7 @@ const Signup = () => {
 
           <button
             onClick={handleGoogleSignUp}
+            disabled={checkingIP}
             className="mt-4 w-full bg-white hover:bg-gray-50 text-gray-900 font-semibold py-3 px-4 rounded-lg transition-all duration-300 transform hover:scale-105 flex items-center justify-center space-x-3 border border-gray-300"
           >
             <svg className="w-5 h-5" viewBox="0 0 24 24">
@@ -221,7 +339,7 @@ const Signup = () => {
               <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
               <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
             </svg>
-            <span>Continue with Google</span>
+            <span>{checkingIP ? 'Checking...' : 'Continue with Google'}</span>
           </button>
         </div>
         <div className="mt-6 text-center">
