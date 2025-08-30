@@ -18,6 +18,130 @@ console.log('🔧 FFmpeg Configuration:', {
     useEdgeFunctionEndpoints: USE_EDGE_FUNCTION_ENDPOINTS
 });
 
+// Handle FFmpeg webhook callbacks (thumbnail extraction, watermarking)
+async function handleFFmpegWebhook(req: Request) {
+    try {
+        const supabase = createClient(
+            Deno.env.get('SUPABASE_URL') ?? '',
+            Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+        );
+
+        // Parse FFmpeg webhook payload
+        const requestBody = await req.text();
+        console.log('🎬 FFmpeg webhook payload:', requestBody);
+
+        let webhookData;
+        try {
+            webhookData = JSON.parse(requestBody);
+        } catch (parseError) {
+            console.error('❌ JSON parse error:', parseError);
+            return new Response(JSON.stringify({
+                success: false,
+                error: "Invalid JSON",
+                bodyReceived: requestBody
+            }), {
+                status: 400,
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            });
+        }
+
+        const {
+            generation_id,
+            processing_id,
+            status,
+            timestamp,
+            thumbnail_url,
+            watermarked_url,
+            result,
+            error: error_message
+        } = webhookData;
+
+        console.log('🎬 FFmpeg webhook received:', {
+            generation_id,
+            processing_id,
+            status,
+            has_thumbnail_url: !!thumbnail_url,
+            has_watermarked_url: !!watermarked_url
+        });
+
+        if (!generation_id) {
+            throw new Error('Generation ID is required');
+        }
+
+        // Get the generation record
+        const { data: generation, error: fetchError } = await supabase
+            .from('ai_generations')
+            .select('user_id, metadata, tool_type, output_file_url')
+            .eq('id', generation_id)
+            .single();
+
+        if (fetchError || !generation) {
+            console.error('❌ Error fetching generation:', fetchError);
+            throw new Error('Generation not found');
+        }
+
+        // Prepare update data
+        const updateData: any = {
+            updated_at: new Date().toISOString()
+        };
+
+        // Handle thumbnail completion
+        if (status === 'completed' && thumbnail_url) {
+            updateData.thumbnail_url = thumbnail_url;
+            updateData.metadata = {
+                ...generation.metadata,
+                thumbnail_processing: {
+                    status: 'completed',
+                    thumbnail_url: thumbnail_url,
+                    completed_at: new Date().toISOString(),
+                    processing_id: processing_id
+                }
+            };
+            console.log('✅ Thumbnail processing completed:', thumbnail_url);
+        }
+
+        // Handle watermark completion
+        if (status === 'completed' && watermarked_url) {
+            updateData.output_file_url = watermarked_url;
+            updateData.metadata = {
+                ...generation.metadata,
+                watermark_processing: {
+                    status: 'completed',
+                    watermarked_url: watermarked_url,
+                    original_url: generation.output_file_url,
+                    completed_at: new Date().toISOString(),
+                    processing_id: processing_id,
+                    watermarked: true
+                }
+            };
+            console.log('✅ Watermark processing completed:', watermarked_url);
+        }
+
+        // Handle failures
+        if (status === 'failed') {
+            updateData.metadata = {
+                ...generation.metadata,
+                ffmpeg_processing: {
+                    status: 'failed',
+                    error_message: error_message,
+                    failed_at: new Date().toISOString(),
+                    processing_id: processing_id
+                }
+            };
+            console.log('❌ FFmpeg processing failed:', error_message);
+        }
+
+        // Update the generation record
+        const { error: updateError } = await supabase
+            .from('ai_generations')
+            .update(updateData)
+            .eq('id', generation_id);
+
+        if (updateError) {
+            console.error('❌ Error updating generation:', updateError);
+            throw new Error(`Database update failed: ${updateError.message}`);
+        }
+
 let _jwks_cache = null;
 let _jwks_cache_time = 0;
 const JWKS_CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
