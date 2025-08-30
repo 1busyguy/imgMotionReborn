@@ -932,52 +932,43 @@ serve(async (req) => {
 
                         // Continue with your existing tier logic but with more detailed logging
                         if (userProfile) {
+                            // FIXED: Use the correct field that exists
+                            const userTier = userProfile?.subscription_tier ||
+                                userProfile?.subscription_status ||
+                                'free';
+
+                            // FIXED: Check for your actual pro tier value
+                            const isFreeTier = !userProfile || 
+                                !userProfile.subscription_tier || 
+                                userProfile.subscription_tier.toLowerCase() === 'free';
+
                             console.log('✅ PROFILE FOUND - DETAILED ANALYSIS:', {
                                 profile_id: userProfile.id,
                                 email: userProfile.email,
                                 subscription_tier: userProfile.subscription_tier,
                                 subscription_tier_type: typeof userProfile.subscription_tier,
                                 subscription_status: userProfile.subscription_status,
+                                calculated_user_tier: userTier,
+                                is_free_tier_calculated: isFreeTier,
+                                will_add_watermark: isFreeTier,
                                 raw_object: JSON.stringify(userProfile, null, 2)
                             });
+
+                            // Process video with FFmpeg (frame extraction + conditional watermarking)
+                            await processVideoWithFFmpeg(generation, finalOutputUrl, userProfile);
                         } else {
                             console.log('❌ NO PROFILE FOUND FOR USER:', generation.user_id);
+                            
+                            // Default to free tier if no profile found
+                            const userTier = 'free';
+                            const isFreeTier = true;
+                            
+                            console.log('🎯 NO PROFILE - DEFAULT TO FREE TIER');
+                            
+                            // Process with default free tier settings
+                            await processVideoWithFFmpeg(generation, finalOutputUrl, null);
                         }
 
-                        console.log('🎨 WATERMARK TIER DEBUGGING - DETAILED:', {
-                            generation_user_id: generation.user_id,
-                            profile_found: !!userProfile,
-                            profile_error: profileError,
-                            full_profile: userProfile,
-                            subscription_tier: userProfile?.subscription_tier,
-                            subscription_status: userProfile?.subscription_status,
-                            user_email: userProfile?.email,
-                            calculated_user_tier: userTier,
-                            is_free_tier_calculated: isFreeTier,
-                            will_add_watermark: isFreeTier,
-                            ffmpeg_enabled: ENABLE_FFMPEG_PROCESSING,
-                            ffmpeg_service_url: !!FFMPEG_SERVICE_URL
-                        });
-
-                        // FIXED: Use the correct field that exists
-                        const userTier = userProfile?.subscription_tier ||
-                            userProfile?.subscription_status ||
-                            'free';
-
-                        // FIXED: Check for your actual pro tier value
-                        const isFreeTier = !userProfile || 
-                            !userProfile.subscription_tier || 
-                            userProfile.subscription_tier.toLowerCase() === 'free';
-
-                        console.log('🎯 TIER DECISION:', {
-                            detected_tier: userTier,
-                            subscription_tier_value: userProfile?.subscription_tier,
-                            is_free_tier: isFreeTier,
-                            should_watermark: isFreeTier
-                        });
-
-                        // Process video with FFmpeg (frame extraction + conditional watermarking)
-                        await processVideoWithFFmpeg(generation, finalOutputUrl, userProfile);
                     } else if (isImage) {
                         console.log('📷 Image generation detected, skipping FFmpeg processing');
                         console.log('📷 Tool type:', generation.tool_type);
