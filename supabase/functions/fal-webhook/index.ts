@@ -944,14 +944,19 @@ serve(async (req) => {
                             console.log('❌ NO PROFILE FOUND FOR USER:', generation.user_id);
                         }
 
-                        console.log('🔍 USER TIER DEBUGGING:', {
+                        console.log('🎨 WATERMARK TIER DEBUGGING - DETAILED:', {
                             generation_user_id: generation.user_id,
                             profile_found: !!userProfile,
                             profile_error: profileError,
                             full_profile: userProfile,
                             subscription_tier: userProfile?.subscription_tier,
                             subscription_status: userProfile?.subscription_status,
-                            user_email: userProfile?.email
+                            user_email: userProfile?.email,
+                            calculated_user_tier: userTier,
+                            is_free_tier_calculated: isFreeTier,
+                            will_add_watermark: isFreeTier,
+                            ffmpeg_enabled: ENABLE_FFMPEG_PROCESSING,
+                            ffmpeg_service_url: !!FFMPEG_SERVICE_URL
                         });
 
                         // FIXED: Use the correct field that exists
