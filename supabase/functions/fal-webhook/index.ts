@@ -66,6 +66,7 @@ function isVideoGeneration(toolType: string, outputUrl: string): boolean {
         'runway',
         'luma',
         'kling',
+        'qwen',
         'video'
     ];
 
@@ -90,6 +91,8 @@ function isImageGeneration(toolType: string, outputUrl: string): boolean {
         'sdxl',
         'image',
         'txt2img',
+        'gemini',
+        'qwen',
         'img2img'
     ];
 
@@ -293,7 +296,8 @@ function logWebhookResponse(event: any, generation: any) {
     console.log('📊 === END WEBHOOK ANALYSIS ===');
 }
 
-// Enhanced error handling for webhook failures
+// Replace the handleWebhookError function in fal-webhook/index.ts:
+
 function handleWebhookError(event: any, generation: any) {
     console.log('🚨 === PROCESSING WEBHOOK ERROR ===');
 
@@ -301,68 +305,101 @@ function handleWebhookError(event: any, generation: any) {
     let errorCode = null;
     let contentViolation = false;
     let serverError = false;
+    let badRequest = false;
 
-    // Extract error information from various possible locations
-    if (event.error) {
-        if (typeof event.error === 'string') {
-            errorMessage = event.error;
-        } else if (event.error.message) {
-            errorMessage = event.error.message;
-        } else if (event.error.detail) {
-            errorMessage = event.error.detail;
-        }
+    // Check all possible error locations in FAL webhook response
+    const errorSources = [
+        event.error,
+        event.payload?.error,
+        event.response?.error,
+        event.data?.error
+    ];
 
-        // Check for status codes
-        if (event.error.status_code) {
-            errorCode = event.error.status_code;
-        } else if (event.error.code) {
-            errorCode = event.error.code;
+    for (const source of errorSources) {
+        if (source) {
+            if (typeof source === 'string') {
+                errorMessage = source;
+            } else if (source.message) {
+                errorMessage = source.message;
+            } else if (source.detail) {
+                errorMessage = typeof source.detail === 'string'
+                    ? source.detail
+                    : JSON.stringify(source.detail);
+            } else if (source.error) {
+                errorMessage = source.error;
+            }
+
+            // Extract status code
+            if (source.status_code) {
+                errorCode = source.status_code;
+            } else if (source.code) {
+                errorCode = source.code;
+            } else if (source.status) {
+                errorCode = source.status;
+            }
+
+            if (errorMessage !== 'Generation failed') break;
         }
     }
 
-    // Check payload for errors
-    if (event.payload?.error) {
-        if (typeof event.payload.error === 'string') {
-            errorMessage = event.payload.error;
-        } else {
-            errorMessage = event.payload.error.message || event.payload.error.detail || errorMessage;
-            errorCode = event.payload.error.status_code || event.payload.error.code || errorCode;
-        }
+    // Also check direct event properties
+    if (!errorCode && event.status_code) {
+        errorCode = event.status_code;
+    }
+    if (!errorCode && event.http_status) {
+        errorCode = event.http_status;
     }
 
-    // Detect content violations (422 errors)
-    if (errorCode === 422 || errorCode === '422' ||
-        errorMessage.toLowerCase().includes('content') ||
-        errorMessage.toLowerCase().includes('policy') ||
-        errorMessage.toLowerCase().includes('violation') ||
-        errorMessage.toLowerCase().includes('inappropriate') ||
-        errorMessage.toLowerCase().includes('nsfw')) {
+    // Parse error code if it's a string
+    const numericCode = typeof errorCode === 'string' ? parseInt(errorCode) : errorCode;
+
+    // Categorize error based on code and message
+    if (numericCode === 422) {
         contentViolation = true;
-        console.log('🚫 CONTENT VIOLATION DETECTED');
-    }
-
-    // Detect server errors (500 errors)
-    if (errorCode === 500 || errorCode === '500' ||
-        errorMessage.toLowerCase().includes('server error') ||
-        errorMessage.toLowerCase().includes('internal error')) {
+        if (errorMessage === 'Generation failed') {
+            errorMessage = 'Content policy violation: The input contains inappropriate content';
+        }
+    } else if (numericCode === 500) {
         serverError = true;
-        console.log('🔥 SERVER ERROR DETECTED');
+        if (errorMessage === 'Generation failed') {
+            errorMessage = 'Server error: FAL.ai service temporarily unavailable';
+        }
+    } else if (numericCode === 400) {
+        badRequest = true;
+        if (errorMessage === 'Generation failed') {
+            errorMessage = 'Invalid request: Please check your input parameters';
+        }
     }
 
-    console.log('📊 Error Analysis:', {
-        errorCode,
+    // Additional content violation detection through message content
+    const violationKeywords = [
+        'policy', 'violation', 'inappropriate', 'nsfw', 'content',
+        'unsafe', 'prohibited', 'not allowed', 'rejected'
+    ];
+
+    if (!contentViolation && violationKeywords.some(keyword =>
+        errorMessage.toLowerCase().includes(keyword))) {
+        contentViolation = true;
+    }
+
+    console.log('📊 Error Analysis Complete:', {
+        errorCode: numericCode,
         contentViolation,
         serverError,
-        errorMessage: errorMessage.substring(0, 100) + '...'
+        badRequest,
+        errorMessage: errorMessage.substring(0, 200)
     });
 
     return {
         errorMessage,
-        errorCode,
+        errorCode: numericCode,
         contentViolation,
         serverError,
+        badRequest,
         errorType: contentViolation ? 'content_violation' :
-            serverError ? 'server_error' : 'unknown_error'
+            serverError ? 'server_error' :
+                badRequest ? 'bad_request' :
+                    'unknown_error'
     };
 }
 
@@ -932,47 +969,47 @@ serve(async (req) => {
 
                         // Continue with your existing tier logic but with more detailed logging
                         if (userProfile) {
-                            // FIXED: Use the correct field that exists
-                            const userTier = userProfile?.subscription_tier ||
-                                userProfile?.subscription_status ||
-                                'free';
-
-                            // FIXED: Check for your actual pro tier value
-                            const isFreeTier = !userProfile || 
-                                !userProfile.subscription_tier || 
-                                userProfile.subscription_tier.toLowerCase() === 'free';
-
                             console.log('✅ PROFILE FOUND - DETAILED ANALYSIS:', {
                                 profile_id: userProfile.id,
                                 email: userProfile.email,
                                 subscription_tier: userProfile.subscription_tier,
                                 subscription_tier_type: typeof userProfile.subscription_tier,
                                 subscription_status: userProfile.subscription_status,
-                                calculated_user_tier: userTier,
-                                is_free_tier_calculated: isFreeTier,
-                                will_add_watermark: isFreeTier,
                                 raw_object: JSON.stringify(userProfile, null, 2)
                             });
-
-                            // Process video with FFmpeg (frame extraction + conditional watermarking)
-                            // TEMPORARILY DISABLED: FFmpeg watermark service not available
-                            // await processVideoWithFFmpeg(generation, finalOutputUrl, userProfile);
-                            console.log('⚠️ FFmpeg watermark processing temporarily disabled - service not available');
                         } else {
                             console.log('❌ NO PROFILE FOUND FOR USER:', generation.user_id);
-                            
-                            // Default to free tier if no profile found
-                            const userTier = 'free';
-                            const isFreeTier = true;
-                            
-                            console.log('🎯 NO PROFILE - DEFAULT TO FREE TIER');
-                            
-                            // Process with default free tier settings
-                            // TEMPORARILY DISABLED: FFmpeg watermark service not available
-                            // await processVideoWithFFmpeg(generation, finalOutputUrl, null);
-                            console.log('⚠️ FFmpeg watermark processing temporarily disabled - service not available');
                         }
 
+                        console.log('🔍 USER TIER DEBUGGING:', {
+                            generation_user_id: generation.user_id,
+                            profile_found: !!userProfile,
+                            profile_error: profileError,
+                            full_profile: userProfile,
+                            subscription_tier: userProfile?.subscription_tier,
+                            subscription_status: userProfile?.subscription_status,
+                            user_email: userProfile?.email
+                        });
+
+                        // FIXED: Use the correct field that exists
+                        const userTier = userProfile?.subscription_tier ||
+                            userProfile?.subscription_status ||
+                            'free';
+
+                        // FIXED: Check for your actual pro tier value
+                        const isFreeTier = !userProfile || 
+                            !userProfile.subscription_tier || 
+                            userProfile.subscription_tier.toLowerCase() === 'free';
+
+                        console.log('🎯 TIER DECISION:', {
+                            detected_tier: userTier,
+                            subscription_tier_value: userProfile?.subscription_tier,
+                            is_free_tier: isFreeTier,
+                            should_watermark: isFreeTier
+                        });
+
+                        // Process video with FFmpeg (frame extraction + conditional watermarking)
+                        await processVideoWithFFmpeg(generation, finalOutputUrl, userProfile);
                     } else if (isImage) {
                         console.log('📷 Image generation detected, skipping FFmpeg processing');
                         console.log('📷 Tool type:', generation.tool_type);
@@ -1001,24 +1038,32 @@ serve(async (req) => {
             });
 
         } else if (event.status === "FAILED" || event.status === "ERROR" || event.status === "CANCELLED") {
-            // Enhanced failure handling with detailed error analysis
             const errorAnalysis = handleWebhookError(event, generation);
 
             console.log('🚨 Processing webhook failure:', {
                 generationId: generation.id,
                 status: event.status,
                 errorType: errorAnalysis.errorType,
-                errorCode: errorAnalysis.errorCode,
-                contentViolation: errorAnalysis.contentViolation,
-                serverError: errorAnalysis.serverError
+                errorCode: errorAnalysis.errorCode
             });
+
+            // Create user-friendly error message based on error type
+            let userFriendlyMessage = errorAnalysis.errorMessage;
+
+            if (errorAnalysis.contentViolation) {
+                userFriendlyMessage = `Content Policy Violation: Your input was flagged by our content safety system. Please ensure your prompts and images comply with our content policy.`;
+            } else if (errorAnalysis.serverError) {
+                userFriendlyMessage = `Server Error: The AI service is temporarily experiencing issues. Please try again in a few minutes.`;
+            } else if (errorAnalysis.badRequest) {
+                userFriendlyMessage = `Invalid Request: There was an issue with your input. Please check your image and prompt, then try again.`;
+            }
 
             await supabase
                 .from('ai_generations')
                 .update({
                     status: 'failed',
                     completed_at: new Date().toISOString(),
-                    error_message: errorAnalysis.errorMessage,
+                    error_message: userFriendlyMessage,
                     metadata: {
                         ...generation.metadata,
                         webhook_received: true,
@@ -1029,14 +1074,16 @@ serve(async (req) => {
                             error_type: errorAnalysis.errorType,
                             content_violation: errorAnalysis.contentViolation,
                             server_error: errorAnalysis.serverError,
-                            full_error: event.error,
+                            bad_request: errorAnalysis.badRequest,
+                            raw_error: errorAnalysis.errorMessage,
+                            full_event: event,
                             analyzed_at: new Date().toISOString()
                         }
                     }
                 })
                 .eq('id', generation.id);
 
-            console.log(`✅ Generation ${generation.id} marked as failed with error type: ${errorAnalysis.errorType}`);
+            console.log(`✅ Generation ${generation.id} marked as failed with type: ${errorAnalysis.errorType}`);
 
             return new Response(JSON.stringify({
                 success: true,
