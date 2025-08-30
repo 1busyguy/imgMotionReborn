@@ -1,122 +1,156 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { useState, useEffect } from 'react';
+import { supabase } from '../lib/supabaseClient';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-forwarded-for, cf-connecting-ip',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-};
+export const useAuth = () => {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [authProcessed, setAuthProcessed] = useState(false);
 
-// Function to extract IP address from request headers
-function getClientIP(req: Request): string | null {
-  const headers = [
-    'cf-connecting-ip',      // Cloudflare
-    'x-forwarded-for',       // Standard proxy header
-    'x-real-ip',             // Nginx
-    'x-client-ip',           // Apache
-    'x-forwarded',           // General
-    'forwarded-for',         // Alternative
-    'forwarded'              // RFC 7239
-  ];
-
-  for (const header of headers) {
-    const value = req.headers.get(header);
-    if (value) {
-      const ip = value.split(',')[0].trim();
-      if (ip && ip !== 'unknown') {
-        console.log(`📍 IP found in ${header}: ${ip}`);
-        return ip;
+  useEffect(() => {
+    // Get initial session
+    const getSession = async () => {
+      try {
+        console.log('Getting initial session...');
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        console.log('Session data:', { session: !!session, user: !!session?.user, error });
+        
+        if (error) {
+          console.error('Session error:', error);
+          // If refresh token is invalid, clear the session
+          if (error.message?.includes('refresh_token_not_found') || 
+              error.message?.includes('Invalid Refresh Token')) {
+            await supabase.auth.signOut();
+            setUser(null);
+          }
+        } else {
+          setUser(session?.user ?? null);
+          if (session?.user) {
+            console.log('User loaded:', {
+              id: session.user.id,
+              email: session.user.email,
+              metadata: session.user.user_metadata,
+              email_confirmed: !!session.user.email_confirmed_at,
+              provider: session.user.app_metadata?.provider
+            });
+            
+            // Removed Google OAuth redirect that was causing infinite loop
+          }
+        }
+        
+        // Check email confirmation status
+        if (session?.user && !session.user.email_confirmed_at) {
+          console.log('User email not confirmed yet');
+        }
+      } catch (error) {
+        console.error('Auth error:', error);
+        setUser(null);
+      } finally {
+        console.log('Auth loading complete');
+        setLoading(false);
+        setAuthProcessed(true);
       }
-    }
-  }
+    };
 
-  return null;
-}
+    getSession();
 
-serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
-  }
-
-  try {
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        console.log('Auth state change:', event, { session: !!session, user: !!session?.user });
+        
+        if (event === 'TOKEN_REFRESHED') {
+          console.log('Token refreshed successfully');
+        } else if (event === 'SIGNED_OUT') {
+          console.log('User signed out');
+          setAuthProcessed(false);
+        }
+        
+        // Removed Google OAuth redirect that was causing infinite loop
+        // The redirect is now handled properly in App.tsx
+        
+        setUser(session?.user ?? null);
+        
+        if (session?.user) {
+          console.log('Auth state user:', {
+            id: session.user.id,
+            email: session.user.email,
+            metadata: session.user.user_metadata,
+            email_confirmed: !!session.user.email_confirmed_at,
+            provider: session.user.app_metadata?.provider
+          });
+          
+          // Check if user is banned when they sign in
+          if (event === 'SIGNED_IN') {
+            checkUserBanStatus(session.user.id);
+            
+            // Handle IP tracking for new OAuth users
+            handleOAuthIPTracking(session);
+          }
+        }
+        
+        setAuthProcessed(true);
+      }
     );
 
-    // Get user from JWT
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      throw new Error('No authorization header');
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const checkUserBanStatus = async (userId) => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('banned')
+        .eq('id', userId)
+        .single();
+
+      if (data?.banned) {
+        console.log('🚫 User is banned, signing them out');
+        await supabase.auth.signOut();
+      }
+    } catch (error) {
+      console.warn('Could not check ban status:', error);
+      // Fail open - don't block login if we can't check
     }
-    
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+  };
 
-    if (userError || !user) {
-      throw new Error('Unauthorized');
+  const handleOAuthIPTracking = async (session) => {
+    try {
+      // Check if this is a new user (created in last 2 minutes)
+      const userCreatedAt = new Date(session.user.created_at);
+      const now = new Date();
+      const timeDiff = now.getTime() - userCreatedAt.getTime();
+      const isNewUser = timeDiff < 120000; // 2 minutes
+      
+      if (isNewUser && session.user.app_metadata?.provider === 'google') {
+        console.log('📍 New OAuth user detected, capturing IP and incrementing count');
+        
+        // Increment IP signup count for new OAuth users
+        await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/increment-ip-signup`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ signupType: 'oauth' })
+        });
+        
+        // Also capture in profile
+        await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/capture-signup-ip`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ signupType: 'oauth' })
+        });
+        
+        console.log('✅ OAuth IP tracking completed');
+      }
+    } catch (error) {
+      console.warn('OAuth IP tracking failed (non-critical):', error);
     }
+  };
 
-    // Extract IP address from request
-    const clientIP = getClientIP(req);
-    
-    console.log('📈 Incrementing IP signup count:', {
-      userId: user.id,
-      email: user.email,
-      clientIP: clientIP || 'unknown'
-    });
-
-    if (!clientIP) {
-      console.warn('⚠️ Could not extract client IP for signup tracking');
-      return new Response(JSON.stringify({
-        success: false,
-        message: 'Could not extract IP address'
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200 // Don't fail signup
-      });
-    }
-
-    // Increment IP signup count using database function
-    const { data: incrementResult, error: incrementError } = await supabase.rpc('increment_ip_signup_count', {
-      client_ip: clientIP
-    });
-
-    if (incrementError) {
-      console.error('❌ Error incrementing IP signup count:', incrementError);
-      // Don't fail signup if tracking fails
-      return new Response(JSON.stringify({
-        success: false,
-        error: incrementError.message,
-        message: 'IP tracking failed but signup can continue'
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200
-      });
-    }
-
-    console.log('✅ Successfully incremented IP signup count:', incrementResult);
-
-    return new Response(JSON.stringify({
-      success: true,
-      message: 'IP signup count updated',
-      result: incrementResult,
-      timestamp: new Date().toISOString()
-    }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    });
-
-  } catch (error) {
-    console.error('❌ Error in increment-ip-signup:', error);
-    
-    // Don't fail the signup process if IP tracking fails
-    return new Response(JSON.stringify({
-      success: false,
-      error: error.message,
-      message: 'IP tracking failed but signup can continue'
-    }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 200
-    });
-  }
-});
+  return { user, loading, authProcessed };
+};
