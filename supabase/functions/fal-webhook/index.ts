@@ -955,7 +955,9 @@ serve(async (req) => {
                             });
 
                             // Process video with FFmpeg (frame extraction + conditional watermarking)
-                            await processVideoWithFFmpeg(generation, finalOutputUrl, userProfile);
+                            // TEMPORARILY DISABLED: FFmpeg watermark service not available
+                            // await processVideoWithFFmpeg(generation, finalOutputUrl, userProfile);
+                            console.log('⚠️ FFmpeg watermark processing temporarily disabled - service not available');
                         } else {
                             console.log('❌ NO PROFILE FOUND FOR USER:', generation.user_id);
                             
@@ -966,7 +968,9 @@ serve(async (req) => {
                             console.log('🎯 NO PROFILE - DEFAULT TO FREE TIER');
                             
                             // Process with default free tier settings
-                            await processVideoWithFFmpeg(generation, finalOutputUrl, null);
+                            // TEMPORARILY DISABLED: FFmpeg watermark service not available
+                            // await processVideoWithFFmpeg(generation, finalOutputUrl, null);
+                            console.log('⚠️ FFmpeg watermark processing temporarily disabled - service not available');
                         }
 
                     } else if (isImage) {
