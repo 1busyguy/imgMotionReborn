@@ -150,22 +150,22 @@ async function processVideoWithFFmpeg(generation: any, videoUrl: string, userPro
 
     // CRITICAL: Only process if this is actually a video generation
     const isVideo = isVideoGeneration(generation.tool_type, videoUrl);
-    
+
     if (!isVideo) {
         console.log(`📷 Skipping FFmpeg for non-video generation: ${generation.tool_type}`);
         return;
     }
 
     const tasks = [];
-    
+
     // FIXED: Use the correct field and logic for tier detection
     const userTier = userProfile?.subscription_tier ||
         userProfile?.subscription_status ||
         'free';
 
     // FIXED: Proper tier detection - check for actual paid tier values
-    const isFreeTier = !userProfile || 
-        !userProfile.subscription_tier || 
+    const isFreeTier = !userProfile ||
+        !userProfile.subscription_tier ||
         userProfile.subscription_tier.toLowerCase() === 'free' ||
         userProfile.subscription_tier.toLowerCase() === 'trial';
 
@@ -584,7 +584,7 @@ serve(async (req) => {
         // Deduplication check
         const webhookKey = `${requestId}-${event.status}`;
         const now = Date.now();
-        
+
         if (processedWebhooks.has(webhookKey)) {
             const lastProcessed = processedWebhooks.get(webhookKey);
             if (now - lastProcessed < WEBHOOK_CACHE_DURATION) {
@@ -601,10 +601,10 @@ serve(async (req) => {
                 });
             }
         }
-        
+
         // Mark as processed
         processedWebhooks.set(webhookKey, now);
-        
+
         // Clean up old entries
         for (const [key, timestamp] of processedWebhooks) {
             if (now - timestamp > WEBHOOK_CACHE_DURATION) {
@@ -615,7 +615,7 @@ serve(async (req) => {
         // Find matching generation
         const { data: generation, error: findError } = await supabase
             .from('ai_generations')
-            .select('id, user_id, metadata, status, tool_type')
+            .select('id, user_id, metadata, input_data, status, tool_type')
             .eq('metadata->>fal_request_id', requestId)
             .eq('status', 'processing')
             .maybeSingle();
@@ -684,6 +684,9 @@ serve(async (req) => {
             let finalOutputUrl = outputUrl;
             let finalOutputUrls = [];
             let finalThumbnailUrl = null;
+
+            // Prefer the input image from input_data as the thumbnail
+            const inputImageUrl = generation?.input_data?.metadata?.imageUrl ?? generation?.input_data?.imageUrl ?? null;
 
             // Handle multiple outputs if present
             if (event.payload?.images && Array.isArray(event.payload.images)) {
@@ -851,7 +854,7 @@ serve(async (req) => {
                 .update({
                     status: 'completed',
                     output_file_url: finalOutputUrls.length > 1 ? JSON.stringify(finalOutputUrls) : finalOutputUrl,
-                    thumbnail_url: finalThumbnailUrl, // Store in dedicated column if FAL provided it
+                    thumbnail_url: inputImageUrl || finalThumbnailUrl || thumbnailUrl || null, // Prefer input image URL
                     completed_at: new Date().toISOString(),
                     metadata: {
                         ...generation.metadata,
@@ -905,24 +908,24 @@ serve(async (req) => {
                         // If no profile found, let's check if user exists at all
                         if (!userProfile || profileError) {
                             console.log('❌ Profile not found, checking if user exists in profiles table...');
-                            
+
                             const { data: allProfileIds, error: listError } = await supabase
                                 .from('profiles')
                                 .select('id, email, subscription_tier')
                                 .limit(10);
-                                
+
                             console.log('📋 Sample profiles in database:', {
                                 count: allProfileIds?.length,
                                 sample_profiles: allProfileIds,
                                 list_error: listError
                             });
-                            
+
                             // Check if the user_id format matches what's in the database
                             const { data: exactMatch, error: exactError } = await supabase
                                 .from('profiles')
                                 .select('*')
                                 .eq('id', generation.user_id);
-                                
+
                             console.log('🎯 Exact ID match check:', {
                                 exact_match_found: !!exactMatch?.length,
                                 exact_match_data: exactMatch,
@@ -960,8 +963,8 @@ serve(async (req) => {
                             'free';
 
                         // FIXED: Check for your actual pro tier value
-                        const isFreeTier = !userProfile || 
-                            !userProfile.subscription_tier || 
+                        const isFreeTier = !userProfile ||
+                            !userProfile.subscription_tier ||
                             userProfile.subscription_tier.toLowerCase() === 'free';
 
                         console.log('🎯 TIER DECISION:', {
