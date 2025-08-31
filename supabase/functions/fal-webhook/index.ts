@@ -215,13 +215,13 @@ async function processVideoWithFFmpeg(generation: any, videoUrl: string, userPro
         console.log('💧 User is on FREE tier, adding watermark to VIDEO');
         console.log('💧 WATERMARK REASONING: subscription_tier=' + userProfile?.subscription_tier + ', isFreeTier=' + isFreeTier);
         tasks.push(
-            callFFmpegService('/api/v1/add-watermark', {
+            callFFmpegService('/apply-watermark', {  // ✅ Also correct
                 generation_id: generation.id,
-                video_url: videoUrl,
+                content_url: videoUrl,  // ← Note: different field name
                 user_id: generation.user_id,
-                position: 'bottom-center',
-                opacity: 0.95,
-                scale: 1.2,
+                watermark_position: 'bottom-center',  // ← Note: different field name
+                watermark_opacity: 0.95,  // ← Note: different field name
+                watermark_scale: 1.2,  // ← Note: different field name
                 webhook_url: `${SUPABASE_URL}/functions/v1/ffmpeg-webhook`
             })
         );
