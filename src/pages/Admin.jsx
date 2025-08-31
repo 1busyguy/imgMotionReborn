@@ -649,16 +649,17 @@ const formatConfigValue = (key, value) => {
     // Helper function to determine media type
     const getMediaType = (generation) => {
         const toolType = generation.tool_type;
-        
-        if (toolType?.includes('video') || toolType?.includes('kling') || toolType?.includes('wan') || 
-            toolType?.includes('minimax') || toolType?.includes('veo') || toolType?.includes('ltxv') || 
-            toolType?.includes('seedance') || toolType?.includes('fal_wan_v22_a14b') || 
+
+        if (toolType?.includes('video') || toolType?.includes('kling') || toolType?.includes('wan') ||
+            toolType?.includes('minimax') || toolType?.includes('veo') || toolType?.includes('ltxv') ||
+            toolType?.includes('seedance') || toolType?.includes('fal_wan_v22_a14b') ||
             toolType?.includes('ai_scene_gen') || toolType?.includes('fal_omnihuman')) {
-          return 'video';
-        } else if (toolType?.includes('music') || toolType?.includes('cassetteai')) {
-          return 'audio';
+            return 'video';
+        } else if (toolType?.includes('music') || toolType?.includes('cassetteai') ||
+            toolType?.includes('mmaudio')) {  // Added mmaudio check
+            return 'audio';
         } else {
-          return 'image';
+            return 'image';
         }
     };
 
@@ -676,15 +677,16 @@ const formatConfigValue = (key, value) => {
     };
 
     const getToolIcon = (toolType) => {
-        if (toolType?.includes('video') || toolType?.includes('kling') || toolType?.includes('wan') || 
-            toolType?.includes('minimax') || toolType?.includes('veo') || toolType?.includes('ltxv') || 
-            toolType?.includes('seedance') || toolType?.includes('fal_wan_v22_a14b') || 
+        if (toolType?.includes('video') || toolType?.includes('kling') || toolType?.includes('wan') ||
+            toolType?.includes('minimax') || toolType?.includes('veo') || toolType?.includes('ltxv') ||
+            toolType?.includes('seedance') || toolType?.includes('fal_wan_v22_a14b') ||
             toolType?.includes('ai_scene_gen') || toolType?.includes('fal_omnihuman')) {
-          return <Video className="w-4 h-4" />;
-        } else if (toolType?.includes('music') || toolType?.includes('cassetteai')) {
-          return <Music className="w-4 h-4" />;
+            return <Video className="w-4 h-4" />;
+        } else if (toolType?.includes('music') || toolType?.includes('cassetteai') ||
+            toolType?.includes('mmaudio')) {  // Added mmaudio check
+            return <Music className="w-4 h-4" />;
         } else {
-          return <ImageIcon className="w-4 h-4" />;
+            return <ImageIcon className="w-4 h-4" />;
         }
     };
 
