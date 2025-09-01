@@ -38,6 +38,7 @@ const RecentGenerations = () => {
     const [generations, setGenerations] = useState([]);
     const [filteredGenerations, setFilteredGenerations] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [authLoading, setAuthLoading] = useState(true);
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [searchTerm, setSearchTerm] = useState('');
@@ -69,7 +70,7 @@ const RecentGenerations = () => {
     const ITEMS_PER_PAGE = 12;
     const TOTAL_GENERATIONS = 64;
 
-    // Admin check
+    // Admin check - matching Admin.jsx pattern
     const adminUUIDs = ['991e17a6-c1a8-4496-8b28-cc83341c028a'];
     const isAdmin = user && (
         adminUUIDs.includes(user.id) ||
@@ -77,19 +78,43 @@ const RecentGenerations = () => {
         user.user_metadata?.email === 'jim@1busyguy.com'
     );
 
+    // Set auth loading to false after a short delay (matching Admin.jsx pattern)
     useEffect(() => {
+        const timer = setTimeout(() => {
+            setAuthLoading(false);
+        }, 1000);
+
+        return () => clearTimeout(timer);
+    }, []);
+
+    useEffect(() => {
+        console.log('?? RecentGenerations - checking auth...');
+        console.log('User:', user ? { id: user.id, email: user.email } : 'null');
+        console.log('Is Admin:', isAdmin);
+
+        // Wait for auth to finish loading
+        if (user === null && authLoading) {
+            console.log('? Still loading auth, waiting...');
+            return;
+        }
+
+        setAuthLoading(false);
+
         if (!user) {
+            console.log('? No user found, redirecting to login');
             navigate('/login');
             return;
         }
 
         if (!isAdmin) {
+            console.log('? User is not admin, redirecting to dashboard');
             navigate('/dashboard');
             return;
         }
 
+        console.log('? Admin user verified, fetching recent generations...');
         fetchRecentGenerations();
-    }, [user, isAdmin]);
+    }, [user, isAdmin, navigate, authLoading]);
 
     useEffect(() => {
         applyFilters();
@@ -500,12 +525,24 @@ const RecentGenerations = () => {
         });
     };
 
-    if (loading) {
+    if (authLoading || loading) {
         return (
             <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center">
                 <div className="text-white text-xl flex items-center space-x-3">
                     <RefreshCw className="w-6 h-6 animate-spin" />
-                    <span>Loading recent generations...</span>
+                    <span>{authLoading ? 'Authenticating...' : 'Loading recent generations...'}</span>
+                </div>
+            </div>
+        );
+    }
+
+    if (!isAdmin) {
+        return (
+            <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center">
+                <div className="text-center">
+                    <Activity className="w-16 h-16 text-red-400 mx-auto mb-4" />
+                    <h1 className="text-2xl font-bold text-white mb-2">Access Denied</h1>
+                    <p className="text-purple-200">You don't have permission to access this page.</p>
                 </div>
             </div>
         );
