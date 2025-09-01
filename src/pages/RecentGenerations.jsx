@@ -27,7 +27,7 @@ import {
     ChevronRight,
     Activity,
     Clock,
-    Tool
+    Wrench
 } from 'lucide-react';
 
 const RecentGenerations = () => {
@@ -578,7 +578,7 @@ const RecentGenerations = () => {
                     <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6">
                         <div className="flex items-center space-x-3">
                             <div className="w-12 h-12 bg-yellow-500 rounded-xl flex items-center justify-center">
-                                <Tool className="w-6 h-6 text-white" />
+                                <Wrench className="w-6 h-6 text-white" />
                             </div>
                             <div>
                                 <h3 className="text-lg font-semibold text-white">Tokens Used</h3>
