@@ -37,6 +37,7 @@ import QwenImage from './pages/fal-tools/QwenImage';
 import QwenImageToImage from './pages/fal-tools/QwenImageToImage';
 import WAN22S2V from './pages/fal-tools/WAN22S2V';
 import Admin from './pages/Admin';
+import RecentGenerations from './pages/RecentGenerations';
 import Showcase from './pages/Showcase';
 import About from './pages/About';
 import Contact from './pages/Contact';
@@ -436,6 +437,14 @@ function App() {
                   <Admin />
                 </ProtectedAdminRoute>
               } 
+            />
+            <Route
+                path="/admin/recent-generations"
+                element={
+                    <ProtectedAdminRoute>
+                        <RecentGenerations />
+                    </ProtectedAdminRoute>
+                }
             />
             <Route path="/about" element={<About />} />
             <Route path="/contact" element={<Contact />} />

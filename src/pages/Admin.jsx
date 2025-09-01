@@ -1892,13 +1892,22 @@ const formatConfigValue = (key, value) => {
                             </div>
                         </div>
 
-                        <button
-                            onClick={fetchUsers}
-                            className="flex items-center space-x-2 bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-lg transition-colors"
-                        >
-                            <RefreshCw className="w-4 h-4" />
-                            <span>Refresh</span>
-                        </button>
+                        <div className="flex items-center space-x-3">
+                            <button
+                                onClick={() => navigate('/admin/recent-generations')}
+                                className="flex items-center space-x-2 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white px-4 py-2 rounded-lg transition-colors"
+                            >
+                                <Activity className="w-4 h-4" />
+                                <span>Recent Generations</span>
+                            </button>
+                            <button
+                                onClick={fetchUsers}
+                                className="flex items-center space-x-2 bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-lg transition-colors"
+                            >
+                                <RefreshCw className="w-4 h-4" />
+                                <span>Refresh</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
             </header>
