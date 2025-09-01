@@ -167,27 +167,30 @@ const Contact = () => {
                                     </div>
                                 </div>
 
-                                <div>
-                                    <label htmlFor="subject" className="block text-sm font-medium text-purple-200 mb-2">
-                                        Subject *
-                                    </label>
-                                    <select
-                                        id="subject"
-                                        name="subject"
-                                        value={formData.subject}
-                                        onChange={handleChange}
-                                        required
-                                        className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                                    >
-                                        <option value="">Select a subject</option>
-                                        <option value="general">General Inquiry</option>
-                                        <option value="support">Technical Support</option>
-                                        <option value="billing">Billing Question</option>
-                                        <option value="feature">Feature Request</option>
-                                        <option value="partnership">Partnership</option>
-                                        <option value="press">Press Inquiry</option>
-                                    </select>
-                                </div>
+                                    <div>
+                                        <label htmlFor="subject" className="block text-sm font-medium text-purple-200 mb-2">
+                                            Subject *
+                                        </label>
+                                        <select
+                                            id="subject"
+                                            name="subject"
+                                            value={formData.subject}
+                                            onChange={handleChange}
+                                            required
+                                            className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent [&>option]:bg-purple-900 [&>option]:text-white"
+                                            style={{
+                                                colorScheme: 'dark'
+                                            }}
+                                        >
+                                            <option value="" className="bg-purple-900">Select a subject</option>
+                                            <option value="general" className="bg-purple-900">General Inquiry</option>
+                                            <option value="support" className="bg-purple-900">Technical Support</option>
+                                            <option value="billing" className="bg-purple-900">Billing Question</option>
+                                            <option value="feature" className="bg-purple-900">Feature Request</option>
+                                            <option value="partnership" className="bg-purple-900">Partnership</option>
+                                            <option value="press" className="bg-purple-900">Press Inquiry</option>
+                                        </select>
+                                    </div>
 
                                 <div>
                                     <label htmlFor="message" className="block text-sm font-medium text-purple-200 mb-2">
