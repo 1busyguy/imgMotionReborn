@@ -143,26 +143,105 @@ const AssetHistory = ({
         const processedGenerations = [];
 
         generationsData.forEach(gen => {
-            // Check if this generation has multiple outputs (array of URLs)
-            if (gen.output_file_url && Array.isArray(gen.output_file_url)) {
-                // Create separate asset for each output
-                gen.output_file_url.forEach((url, index) => {
+            if (!gen.output_file_url) return;
+
+            let outputs = [];
+
+            // Try to parse JSON if output_file_url is a string containing JSON
+            if (typeof gen.output_file_url === 'string') {
+                // Check if it looks like JSON (starts with { or [)
+                const trimmed = gen.output_file_url.trim();
+                if ((trimmed.startsWith('{') || trimmed.startsWith('[')) &&
+                    (trimmed.endsWith('}') || trimmed.endsWith(']'))) {
+                    try {
+                        const parsed = JSON.parse(gen.output_file_url);
+
+                        // Handle different JSON structures
+                        if (Array.isArray(parsed)) {
+                            // Direct array of URLs
+                            outputs = parsed;
+                        } else if (parsed.images && Array.isArray(parsed.images)) {
+                            // Object with images array
+                            outputs = parsed.images;
+                        } else if (parsed.outputs && Array.isArray(parsed.outputs)) {
+                            // Object with outputs array
+                            outputs = parsed.outputs;
+                        } else if (parsed.urls && Array.isArray(parsed.urls)) {
+                            // Object with urls array
+                            outputs = parsed.urls;
+                        } else if (parsed.url) {
+                            // Single URL in object
+                            outputs = [parsed.url];
+                        } else if (typeof parsed === 'object') {
+                            // Try to extract URLs from object values
+                            const urls = Object.values(parsed).filter(val =>
+                                typeof val === 'string' && (val.startsWith('http') || val.startsWith('/'))
+                            );
+                            if (urls.length > 0) {
+                                outputs = urls;
+                            } else {
+                                // Fallback to original string if can't extract URLs
+                                outputs = [gen.output_file_url];
+                            }
+                        } else {
+                            outputs = [gen.output_file_url];
+                        }
+                    } catch (e) {
+                        // Not valid JSON, treat as single URL
+                        outputs = [gen.output_file_url];
+                    }
+                } else {
+                    // Regular URL string
+                    outputs = [gen.output_file_url];
+                }
+            } else if (Array.isArray(gen.output_file_url)) {
+                // Already an array
+                outputs = gen.output_file_url;
+            } else if (typeof gen.output_file_url === 'object') {
+                // Handle object format
+                if (gen.output_file_url.images && Array.isArray(gen.output_file_url.images)) {
+                    outputs = gen.output_file_url.images;
+                } else if (gen.output_file_url.outputs && Array.isArray(gen.output_file_url.outputs)) {
+                    outputs = gen.output_file_url.outputs;
+                } else if (gen.output_file_url.urls && Array.isArray(gen.output_file_url.urls)) {
+                    outputs = gen.output_file_url.urls;
+                } else if (gen.output_file_url.url) {
+                    outputs = [gen.output_file_url.url];
+                } else {
+                    // Try to extract URLs from object values
+                    const urls = Object.values(gen.output_file_url).filter(val =>
+                        typeof val === 'string' && (val.startsWith('http') || val.startsWith('/'))
+                    );
+                    outputs = urls.length > 0 ? urls : [JSON.stringify(gen.output_file_url)];
+                }
+            } else {
+                // Fallback
+                outputs = [gen.output_file_url];
+            }
+
+            // Filter out any non-string or empty values
+            outputs = outputs.filter(url => url && typeof url === 'string');
+
+            // Create separate asset for each output
+            if (outputs.length > 1) {
+                outputs.forEach((url, index) => {
                     processedGenerations.push({
                         ...gen,
                         id: `${gen.id}_${index}`, // Unique ID for each output
                         output_file_url: url,
-                        generation_name: `${gen.generation_name} (${index + 1}/${gen.output_file_url.length})`,
+                        generation_name: `${gen.generation_name} (${index + 1}/${outputs.length})`,
                         is_generation: true,
                         type: IMAGE_TOOLS.includes(gen.tool_type) ? 'image' : 'video',
                         is_multi_output: true,
                         output_index: index,
-                        total_outputs: gen.output_file_url.length
+                        total_outputs: outputs.length
                     });
                 });
-            } else if (gen.output_file_url) {
+            } else if (outputs.length === 1) {
                 // Single output
                 processedGenerations.push({
                     ...gen,
+                    output_file_url: outputs[0],
                     is_generation: true,
                     type: IMAGE_TOOLS.includes(gen.tool_type) ? 'image' : 'video',
                     is_multi_output: false
