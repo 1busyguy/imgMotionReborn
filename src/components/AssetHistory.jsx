@@ -42,6 +42,7 @@ const AssetHistory = ({
     const [filterType, setFilterType] = useState(assetType); // Current filter
     const [page, setPage] = useState(1);
     const [hasMore, setHasMore] = useState(false);
+    const [filteredAssets, setFilteredAssets] = useState([]); // Add state for filtered assets
     const ITEMS_PER_PAGE = 20;
 
     // Asset type categories based on tool_type
@@ -253,7 +254,7 @@ const AssetHistory = ({
     };
 
     // Fetch user's generations and extract uploads
-    const fetchAssets = useCallback(async () => {
+    const fetchAssets = async (currentPage = 1) => {
         if (!user) return;
 
         setLoading(true);
@@ -286,7 +287,7 @@ const AssetHistory = ({
             // This ensures we have all data for proper filtering
 
             // Pagination for generations
-            const startRange = (page - 1) * ITEMS_PER_PAGE;
+            const startRange = (currentPage - 1) * ITEMS_PER_PAGE;
             const endRange = startRange + ITEMS_PER_PAGE;
             query = query.range(startRange, endRange);
 
@@ -303,7 +304,7 @@ const AssetHistory = ({
             // Only show ITEMS_PER_PAGE items
             const paginatedData = processedGenerations.slice(0, ITEMS_PER_PAGE);
 
-            if (page === 1) {
+            if (currentPage === 1) {
                 setGenerations(paginatedData);
             } else {
                 setGenerations(prev => [...prev, ...paginatedData]);
@@ -314,13 +315,25 @@ const AssetHistory = ({
         } finally {
             setLoading(false);
         }
-    }, [user, page]); // Removed assetType from dependencies
+    };
 
     useEffect(() => {
-        if (isOpen) {
-            fetchAssets();
+        if (isOpen && user) {
+            // Reset states when modal opens
+            setPage(1);
+            setSelectedAsset(null);
+            setSearchQuery('');
+            setActiveTab('generations');
+            fetchAssets(1);
         }
-    }, [isOpen, fetchAssets]);
+    }, [isOpen, user]); // Include user to ensure we have auth
+
+    // Fetch more when page changes
+    useEffect(() => {
+        if (isOpen && user && page > 1) {
+            fetchAssets(page);
+        }
+    }, [page, user]);
 
     // Get current assets based on active tab - FIXED
     const getCurrentAssets = useCallback(() => {
@@ -336,9 +349,22 @@ const AssetHistory = ({
         }
     }, [activeTab, generations, uploads]);
 
-    // Filter assets based on search and type - FIXED
-    const getFilteredAssets = useCallback(() => {
-        const currentAssets = getCurrentAssets();
+    // Update filtered assets whenever dependencies change
+    useEffect(() => {
+        let currentAssets = [];
+
+        // Get current assets based on active tab
+        if (activeTab === 'uploads') {
+            currentAssets = uploads;
+        } else if (activeTab === 'favorites') {
+            // Combine favorites from both generations and uploads
+            const favGenerations = generations.filter(g => g.is_favorite);
+            const favUploads = uploads.filter(u => u.is_favorite);
+            currentAssets = [...favGenerations, ...favUploads];
+        } else {
+            currentAssets = generations;
+        }
+
         let filtered = [...currentAssets];
 
         // Filter by search query
@@ -372,8 +398,8 @@ const AssetHistory = ({
             });
         }
 
-        return filtered;
-    }, [getCurrentAssets, searchQuery, filterType]);
+        setFilteredAssets(filtered);
+    }, [searchQuery, filterType, activeTab, generations, uploads]);
 
     // Handle asset selection - FIXED
     const handleSelect = () => {
@@ -391,12 +417,18 @@ const AssetHistory = ({
                 isGeneration: selectedAsset.is_generation || false
             };
             onSelect(assetData);
-            onClose();
-            // Reset state
-            setSelectedAsset(null);
-            setSearchQuery('');
-            setPage(1);
+            handleClose();
         }
+    };
+
+    // Handle modal close
+    const handleClose = () => {
+        // Reset all states when closing
+        setSelectedAsset(null);
+        setSearchQuery('');
+        setPage(1);
+        setActiveTab('generations'); // Reset to default tab
+        onClose();
     };
 
     // Toggle favorite status
@@ -515,9 +547,6 @@ const AssetHistory = ({
 
     if (!isOpen) return null;
 
-    // Get filtered assets
-    const filteredAssets = getFilteredAssets();
-
     return (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
             <div className="bg-gradient-to-br from-purple-900/95 via-blue-900/95 to-indigo-900/95 rounded-2xl w-full max-w-6xl max-h-[90vh] flex flex-col border border-white/20 shadow-2xl">
@@ -525,7 +554,7 @@ const AssetHistory = ({
                 <div className="flex items-center justify-between p-6 border-b border-white/20">
                     <h2 className="text-2xl font-bold text-white">{title}</h2>
                     <button
-                        onClick={onClose}
+                        onClick={handleClose}
                         className="text-purple-300 hover:text-white transition-colors"
                     >
                         <X className="w-6 h-6" />
@@ -539,6 +568,7 @@ const AssetHistory = ({
                             onClick={() => {
                                 setActiveTab('generations');
                                 setSelectedAsset(null); // Reset selection when switching tabs
+                                setSearchQuery(''); // Clear search when switching tabs
                             }}
                             className={`px-4 py-2 rounded-lg font-medium transition-all flex items-center space-x-2 ${activeTab === 'generations'
                                     ? 'bg-violet-500/30 text-white border border-violet-400'
@@ -553,6 +583,7 @@ const AssetHistory = ({
                                 onClick={() => {
                                     setActiveTab('uploads');
                                     setSelectedAsset(null); // Reset selection when switching tabs
+                                    setSearchQuery(''); // Clear search when switching tabs
                                 }}
                                 className={`px-4 py-2 rounded-lg font-medium transition-all flex items-center space-x-2 ${activeTab === 'uploads'
                                         ? 'bg-violet-500/30 text-white border border-violet-400'
@@ -567,6 +598,7 @@ const AssetHistory = ({
                             onClick={() => {
                                 setActiveTab('favorites');
                                 setSelectedAsset(null); // Reset selection when switching tabs
+                                setSearchQuery(''); // Clear search when switching tabs
                             }}
                             className={`px-4 py-2 rounded-lg font-medium transition-all flex items-center space-x-2 ${activeTab === 'favorites'
                                     ? 'bg-violet-500/30 text-white border border-violet-400'
@@ -630,7 +662,19 @@ const AssetHistory = ({
                         </div>
                     ) : filteredAssets.length === 0 ? (
                         <div className="flex flex-col items-center justify-center h-64 text-purple-300">
-                            {activeTab === 'generations' && filterType === 'video' ? (
+                            {activeTab === 'favorites' ? (
+                                <>
+                                    <Star className="w-16 h-16 mb-4 opacity-50" />
+                                    <p className="text-lg">No favorites yet</p>
+                                    <p className="text-sm mt-2">Star your favorite content to see it here</p>
+                                </>
+                            ) : activeTab === 'uploads' ? (
+                                <>
+                                    <Upload className="w-16 h-16 mb-4 opacity-50" />
+                                    <p className="text-lg">No uploads found</p>
+                                    <p className="text-sm mt-2">Upload files when creating content to see them here</p>
+                                </>
+                            ) : activeTab === 'generations' && filterType === 'video' ? (
                                 <>
                                     <Video className="w-16 h-16 mb-4 opacity-50" />
                                     <p className="text-lg">No video generations found</p>
@@ -642,23 +686,11 @@ const AssetHistory = ({
                                     <p className="text-lg">No image generations found</p>
                                     <p className="text-sm mt-2">Generate images to see them here</p>
                                 </>
-                            ) : activeTab === 'generations' ? (
+                            ) : (
                                 <>
                                     <Sparkles className="w-16 h-16 mb-4 opacity-50" />
                                     <p className="text-lg">No generations found</p>
                                     <p className="text-sm mt-2">Create some content to see it here</p>
-                                </>
-                            ) : activeTab === 'uploads' ? (
-                                <>
-                                    <Upload className="w-16 h-16 mb-4 opacity-50" />
-                                    <p className="text-lg">No uploads found</p>
-                                    <p className="text-sm mt-2">Upload files when creating content to see them here</p>
-                                </>
-                            ) : (
-                                <>
-                                    <Star className="w-16 h-16 mb-4 opacity-50" />
-                                    <p className="text-lg">No favorites found</p>
-                                    <p className="text-sm mt-2">Star your favorite content to see it here</p>
                                 </>
                             )}
                         </div>
@@ -801,7 +833,10 @@ const AssetHistory = ({
                             {activeTab === 'generations' && hasMore && (
                                 <div className="flex justify-center mt-6">
                                     <button
-                                        onClick={() => setPage(prev => prev + 1)}
+                                        onClick={() => {
+                                            const nextPage = page + 1;
+                                            setPage(nextPage);
+                                        }}
                                         disabled={loading}
                                         className="px-6 py-2 bg-violet-500 hover:bg-violet-600 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
                                     >
@@ -840,16 +875,16 @@ const AssetHistory = ({
                             </span>
                         ) : (
                             <span>
-                                {activeTab === 'generations' && `${filteredAssets.length} generations available`}
-                                {activeTab === 'uploads' && `${filteredAssets.length} uploads available`}
-                                {activeTab === 'favorites' && `${filteredAssets.length} favorites`}
+                                {activeTab === 'generations' && `${filteredAssets.length} generation${filteredAssets.length !== 1 ? 's' : ''} available`}
+                                {activeTab === 'uploads' && `${filteredAssets.length} upload${filteredAssets.length !== 1 ? 's' : ''} available`}
+                                {activeTab === 'favorites' && `${filteredAssets.length} favorite${filteredAssets.length !== 1 ? 's' : ''}`}
                             </span>
                         )}
                     </div>
 
                     <div className="flex space-x-3">
                         <button
-                            onClick={onClose}
+                            onClick={handleClose}
                             className="px-6 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg font-medium transition-colors"
                         >
                             Cancel
