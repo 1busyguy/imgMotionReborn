@@ -1904,7 +1904,7 @@ const formatConfigValue = (key, value) => {
                                 onClick={() => navigate('/admin/lora-manager')}
                                 className="flex items-center space-x-2 bg-gradient-to-r from-orange-500 to-green-500 hover:from-orange-600 hover:to-green-600 text-white px-4 py-2 rounded-lg transition-colors"
                             >
-                                <Activity className="w-4 h-4" />
+                                <Star className="w-4 h-4" />
                                 <span>WAN Loras</span>
                             </button>
                             <button
