@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../hooks/useAuth';
 import { toCdnUrl } from '../utils/cdnHelpers';
@@ -42,7 +42,6 @@ const AssetHistory = ({
     const [filterType, setFilterType] = useState(assetType); // Current filter
     const [page, setPage] = useState(1);
     const [hasMore, setHasMore] = useState(false);
-    const [filteredAssets, setFilteredAssets] = useState([]); // Add state for filtered assets
     const ITEMS_PER_PAGE = 20;
 
     // Asset type categories based on tool_type
@@ -283,9 +282,6 @@ const AssetHistory = ({
                 .is('deleted_at', null)
                 .order('created_at', { ascending: false });
 
-            // DON'T filter by asset type here - we'll filter in the display
-            // This ensures we have all data for proper filtering
-
             // Pagination for generations
             const startRange = (currentPage - 1) * ITEMS_PER_PAGE;
             const endRange = startRange + ITEMS_PER_PAGE;
@@ -317,60 +313,49 @@ const AssetHistory = ({
         }
     };
 
+    // Initialize when modal opens
     useEffect(() => {
         if (isOpen && user) {
-            // Reset states when modal opens
+            // Reset all states
             setPage(1);
             setSelectedAsset(null);
             setSearchQuery('');
             setActiveTab('generations');
+            setFilterType(assetType);
             fetchAssets(1);
         }
-    }, [isOpen, user]); // Include user to ensure we have auth
+    }, [isOpen, user, assetType]);
 
     // Fetch more when page changes
     useEffect(() => {
         if (isOpen && user && page > 1) {
             fetchAssets(page);
         }
-    }, [page, user]);
+    }, [page, isOpen, user]);
 
-    // Get current assets based on active tab - FIXED
-    const getCurrentAssets = useCallback(() => {
-        if (activeTab === 'uploads') {
-            return uploads;
-        } else if (activeTab === 'favorites') {
-            // Combine favorites from both generations and uploads
-            const favGenerations = generations.filter(g => g.is_favorite);
-            const favUploads = uploads.filter(u => u.is_favorite);
-            return [...favGenerations, ...favUploads];
-        } else {
-            return generations;
-        }
-    }, [activeTab, generations, uploads]);
-
-    // Update filtered assets whenever dependencies change
-    useEffect(() => {
+    // Get filtered assets based on current tab and filters
+    const filteredAssets = useMemo(() => {
         let currentAssets = [];
 
-        // Get current assets based on active tab
+        // Get assets based on active tab
         if (activeTab === 'uploads') {
             currentAssets = uploads;
         } else if (activeTab === 'favorites') {
             // Combine favorites from both generations and uploads
-            const favGenerations = generations.filter(g => g.is_favorite);
-            const favUploads = uploads.filter(u => u.is_favorite);
+            const favGenerations = generations.filter(g => g.is_favorite) || [];
+            const favUploads = uploads.filter(u => u.is_favorite) || [];
             currentAssets = [...favGenerations, ...favUploads];
         } else {
+            // generations tab
             currentAssets = generations;
         }
 
         let filtered = [...currentAssets];
 
         // Filter by search query
-        if (searchQuery) {
+        if (searchQuery && searchQuery.trim()) {
+            const searchLower = searchQuery.toLowerCase();
             filtered = filtered.filter(asset => {
-                const searchLower = searchQuery.toLowerCase();
                 return (
                     asset.generation_name?.toLowerCase().includes(searchLower) ||
                     asset.name?.toLowerCase().includes(searchLower) ||
@@ -394,14 +379,15 @@ const AssetHistory = ({
                     } else if (filterType === 'video') {
                         return VIDEO_TOOLS.includes(asset.tool_type);
                     }
+                    return false;
                 }
             });
         }
 
-        setFilteredAssets(filtered);
-    }, [searchQuery, filterType, activeTab, generations, uploads]);
+        return filtered;
+    }, [activeTab, generations, uploads, searchQuery, filterType]);
 
-    // Handle asset selection - FIXED
+    // Handle asset selection
     const handleSelect = () => {
         if (selectedAsset) {
             const assetUrl = selectedAsset.is_upload ? selectedAsset.url : selectedAsset.output_file_url;
@@ -427,7 +413,8 @@ const AssetHistory = ({
         setSelectedAsset(null);
         setSearchQuery('');
         setPage(1);
-        setActiveTab('generations'); // Reset to default tab
+        setActiveTab('generations');
+        setFilterType(assetType);
         onClose();
     };
 
@@ -545,6 +532,14 @@ const AssetHistory = ({
         }
     };
 
+    // Tab change handler
+    const handleTabChange = (newTab) => {
+        setActiveTab(newTab);
+        setSelectedAsset(null);
+        setSearchQuery('');
+        // Don't reset filter type when changing tabs
+    };
+
     if (!isOpen) return null;
 
     return (
@@ -565,11 +560,7 @@ const AssetHistory = ({
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 space-y-4 sm:space-y-0 border-b border-white/10">
                     <div className="flex space-x-1">
                         <button
-                            onClick={() => {
-                                setActiveTab('generations');
-                                setSelectedAsset(null); // Reset selection when switching tabs
-                                setSearchQuery(''); // Clear search when switching tabs
-                            }}
+                            onClick={() => handleTabChange('generations')}
                             className={`px-4 py-2 rounded-lg font-medium transition-all flex items-center space-x-2 ${activeTab === 'generations'
                                     ? 'bg-violet-500/30 text-white border border-violet-400'
                                     : 'text-purple-300 hover:text-white hover:bg-white/10'
@@ -580,11 +571,7 @@ const AssetHistory = ({
                         </button>
                         {allowUploads && (
                             <button
-                                onClick={() => {
-                                    setActiveTab('uploads');
-                                    setSelectedAsset(null); // Reset selection when switching tabs
-                                    setSearchQuery(''); // Clear search when switching tabs
-                                }}
+                                onClick={() => handleTabChange('uploads')}
                                 className={`px-4 py-2 rounded-lg font-medium transition-all flex items-center space-x-2 ${activeTab === 'uploads'
                                         ? 'bg-violet-500/30 text-white border border-violet-400'
                                         : 'text-purple-300 hover:text-white hover:bg-white/10'
@@ -595,11 +582,7 @@ const AssetHistory = ({
                             </button>
                         )}
                         <button
-                            onClick={() => {
-                                setActiveTab('favorites');
-                                setSelectedAsset(null); // Reset selection when switching tabs
-                                setSearchQuery(''); // Clear search when switching tabs
-                            }}
+                            onClick={() => handleTabChange('favorites')}
                             className={`px-4 py-2 rounded-lg font-medium transition-all flex items-center space-x-2 ${activeTab === 'favorites'
                                     ? 'bg-violet-500/30 text-white border border-violet-400'
                                     : 'text-purple-300 hover:text-white hover:bg-white/10'
@@ -739,7 +722,7 @@ const AssetHistory = ({
                                                 </div>
                                             </div>
 
-                                            {/* Selected indicator - FIXED: Only show on selected asset */}
+                                            {/* Selected indicator */}
                                             {selectedAsset?.id === asset.id && (
                                                 <div className="absolute top-2 right-2 bg-violet-500 rounded-full p-1">
                                                     <Check className="w-4 h-4 text-white" />
@@ -817,7 +800,6 @@ const AssetHistory = ({
                                                             }`}
                                                     />
                                                 </button>
-                                                {/* FIXED: Only show checkmark on selected asset */}
                                                 {selectedAsset?.id === asset.id && (
                                                     <div className="bg-violet-500 rounded-full p-1">
                                                         <Check className="w-4 h-4 text-white" />
@@ -833,10 +815,7 @@ const AssetHistory = ({
                             {activeTab === 'generations' && hasMore && (
                                 <div className="flex justify-center mt-6">
                                     <button
-                                        onClick={() => {
-                                            const nextPage = page + 1;
-                                            setPage(nextPage);
-                                        }}
+                                        onClick={() => setPage(prev => prev + 1)}
                                         disabled={loading}
                                         className="px-6 py-2 bg-violet-500 hover:bg-violet-600 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
                                     >
