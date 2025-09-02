@@ -8,7 +8,7 @@ export const falTools = [
         id: 39, // or next available ID
         name: "Compose an VIDEO, with images",
         description: "Generate videos from reference images - create dynamic videos from multiple photos",
-        image: toCdnUrl("https://xisxqackivlrakfszfop.supabase.co/storage/v1/object/public/user-files/img2img_v3.jpg?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1"),
+        image: toCdnUrl("https://xisxqackivlrakfszfop.supabase.co/storage/v1/object/public/user-files/seedance_imgs_2_vid.png?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1"),
         tokensRequired: "50+", // Varies by duration/resolution
         category: "video",
         toolType: "fal_seedance_reference_to_video",
