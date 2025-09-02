@@ -1871,28 +1871,58 @@ const formatConfigValue = (key, value) => {
             {/* Header */}
             <header className="bg-white/10 backdrop-blur-md border-b border-white/20">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-4">
-                            <button
-                                onClick={() => navigate('/dashboard')}
-                                className="flex items-center space-x-2 text-purple-200 hover:text-white transition-colors"
-                            >
-                                <ArrowLeft className="w-5 h-5" />
-                                <span>Back to Dashboard</span>
-                            </button>
-                            <div className="h-6 w-px bg-white/20"></div>
-                            <div className="flex items-center space-x-3">
-                                <div className="w-10 h-10 bg-gradient-to-r from-red-500 to-pink-500 rounded-xl flex items-center justify-center">
-                                    <Shield className="w-5 h-5 text-white" />
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                        {/* Left side - Back button and Admin title */}
+                        <div className="flex items-center w-full sm:w-auto justify-between sm:justify-start">
+                            <div className="flex items-center space-x-2 sm:space-x-4">
+                                <button
+                                    onClick={() => navigate('/dashboard')}
+                                    className="flex items-center space-x-1 sm:space-x-2 text-purple-200 hover:text-white transition-colors"
+                                >
+                                    <ArrowLeft className="w-5 h-5" />
+                                    <span className="hidden sm:inline">Back to Dashboard</span>
+                                    <span className="sm:hidden text-sm">Back</span>
+                                </button>
+                                <div className="hidden sm:block h-6 w-px bg-white/20"></div>
+                                <div className="flex items-center space-x-2 sm:space-x-3">
+                                    <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-red-500 to-pink-500 rounded-xl flex items-center justify-center flex-shrink-0">
+                                        <Shield className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                                    </div>
+                                    <div>
+                                        <h1 className="text-lg sm:text-xl font-bold text-white">Admin</h1>
+                                        <p className="hidden sm:block text-purple-200 text-sm">System management and user overview</p>
+                                    </div>
                                 </div>
-                                <div>
-                                    <h1 className="text-xl font-bold text-white">Admin Panel</h1>
-                                    <p className="text-purple-200 text-sm">System management and user overview</p>
-                                </div>
+                            </div>
+
+                            {/* Mobile menu - shown only on small screens */}
+                            <div className="flex sm:hidden items-center space-x-2">
+                                <button
+                                    onClick={() => navigate('/admin/recent-generations')}
+                                    className="p-2 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white rounded-lg transition-colors"
+                                    title="Recent Generations"
+                                >
+                                    <Activity className="w-4 h-4" />
+                                </button>
+                                <button
+                                    onClick={() => navigate('/admin/lora-manager')}
+                                    className="p-2 bg-gradient-to-r from-orange-500 to-green-500 hover:from-orange-600 hover:to-green-600 text-white rounded-lg transition-colors"
+                                    title="WAN Loras"
+                                >
+                                    <Star className="w-4 h-4" />
+                                </button>
+                                <button
+                                    onClick={fetchUsers}
+                                    className="p-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg transition-colors"
+                                    title="Refresh"
+                                >
+                                    <RefreshCw className="w-4 h-4" />
+                                </button>
                             </div>
                         </div>
 
-                        <div className="flex items-center space-x-3">
+                        {/* Desktop buttons - hidden on mobile */}
+                        <div className="hidden sm:flex items-center space-x-3">
                             <button
                                 onClick={() => navigate('/admin/recent-generations')}
                                 className="flex items-center space-x-2 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white px-4 py-2 rounded-lg transition-colors"
