@@ -34,7 +34,6 @@ const AssetHistory = ({
     const { user } = useAuth();
     const [generations, setGenerations] = useState([]);
     const [uploads, setUploads] = useState([]);
-    const [filteredAssets, setFilteredAssets] = useState([]);
     const [loading, setLoading] = useState(true);
     const [selectedAsset, setSelectedAsset] = useState(null);
     const [searchQuery, setSearchQuery] = useState('');
@@ -139,6 +138,41 @@ const AssetHistory = ({
         );
     };
 
+    // Process generations to handle multiple outputs
+    const processGenerations = (generationsData) => {
+        const processedGenerations = [];
+
+        generationsData.forEach(gen => {
+            // Check if this generation has multiple outputs (array of URLs)
+            if (gen.output_file_url && Array.isArray(gen.output_file_url)) {
+                // Create separate asset for each output
+                gen.output_file_url.forEach((url, index) => {
+                    processedGenerations.push({
+                        ...gen,
+                        id: `${gen.id}_${index}`, // Unique ID for each output
+                        output_file_url: url,
+                        generation_name: `${gen.generation_name} (${index + 1}/${gen.output_file_url.length})`,
+                        is_generation: true,
+                        type: IMAGE_TOOLS.includes(gen.tool_type) ? 'image' : 'video',
+                        is_multi_output: true,
+                        output_index: index,
+                        total_outputs: gen.output_file_url.length
+                    });
+                });
+            } else if (gen.output_file_url) {
+                // Single output
+                processedGenerations.push({
+                    ...gen,
+                    is_generation: true,
+                    type: IMAGE_TOOLS.includes(gen.tool_type) ? 'image' : 'video',
+                    is_multi_output: false
+                });
+            }
+        });
+
+        return processedGenerations;
+    };
+
     // Fetch user's generations and extract uploads
     const fetchAssets = useCallback(async () => {
         if (!user) return;
@@ -169,12 +203,8 @@ const AssetHistory = ({
                 .is('deleted_at', null)
                 .order('created_at', { ascending: false });
 
-            // Filter by asset type if specified
-            if (assetType === 'image') {
-                query = query.in('tool_type', IMAGE_TOOLS);
-            } else if (assetType === 'video') {
-                query = query.in('tool_type', VIDEO_TOOLS);
-            }
+            // DON'T filter by asset type here - we'll filter in the display
+            // This ensures we have all data for proper filtering
 
             // Pagination for generations
             const startRange = (page - 1) * ITEMS_PER_PAGE;
@@ -185,12 +215,8 @@ const AssetHistory = ({
 
             if (error) throw error;
 
-            // Process generations
-            const processedGenerations = (data || []).map(gen => ({
-                ...gen,
-                is_generation: true,
-                type: IMAGE_TOOLS.includes(gen.tool_type) ? 'image' : 'video'
-            }));
+            // Process generations to handle multiple outputs
+            const processedGenerations = processGenerations(data || []);
 
             // Check if there are more items
             setHasMore(data.length > ITEMS_PER_PAGE);
@@ -209,7 +235,7 @@ const AssetHistory = ({
         } finally {
             setLoading(false);
         }
-    }, [user, assetType, page]);
+    }, [user, page]); // Removed assetType from dependencies
 
     useEffect(() => {
         if (isOpen) {
@@ -217,19 +243,22 @@ const AssetHistory = ({
         }
     }, [isOpen, fetchAssets]);
 
-    // Get current assets based on active tab
-    const getCurrentAssets = () => {
+    // Get current assets based on active tab - FIXED
+    const getCurrentAssets = useCallback(() => {
         if (activeTab === 'uploads') {
             return uploads;
         } else if (activeTab === 'favorites') {
-            return [...generations.filter(g => g.is_favorite), ...uploads.filter(u => u.is_favorite)];
+            // Combine favorites from both generations and uploads
+            const favGenerations = generations.filter(g => g.is_favorite);
+            const favUploads = uploads.filter(u => u.is_favorite);
+            return [...favGenerations, ...favUploads];
         } else {
             return generations;
         }
-    };
+    }, [activeTab, generations, uploads]);
 
-    // Filter assets based on search and type
-    useEffect(() => {
+    // Filter assets based on search and type - FIXED
+    const getFilteredAssets = useCallback(() => {
         const currentAssets = getCurrentAssets();
         let filtered = [...currentAssets];
 
@@ -254,6 +283,7 @@ const AssetHistory = ({
                 if (asset.is_upload) {
                     return asset.type === filterType;
                 } else {
+                    // For generations, check the tool type
                     if (filterType === 'image') {
                         return IMAGE_TOOLS.includes(asset.tool_type);
                     } else if (filterType === 'video') {
@@ -263,10 +293,10 @@ const AssetHistory = ({
             });
         }
 
-        setFilteredAssets(filtered);
-    }, [searchQuery, filterType, activeTab, generations, uploads]);
+        return filtered;
+    }, [getCurrentAssets, searchQuery, filterType]);
 
-    // Handle asset selection
+    // Handle asset selection - FIXED
     const handleSelect = () => {
         if (selectedAsset) {
             const assetUrl = selectedAsset.is_upload ? selectedAsset.url : selectedAsset.output_file_url;
@@ -299,15 +329,18 @@ const AssetHistory = ({
                 upload.id === assetId ? { ...upload, is_favorite: !currentStatus } : upload
             ));
         } else {
+            // Extract the original generation ID if it's a multi-output
+            const originalId = assetId.includes('_') ? assetId.split('_')[0] : assetId;
+
             try {
                 const { error } = await supabase
                     .from('ai_generations')
                     .update({ is_favorite: !currentStatus })
-                    .eq('id', assetId);
+                    .eq('id', originalId);
 
                 if (!error) {
                     setGenerations(prev => prev.map(gen =>
-                        gen.id === assetId ? { ...gen, is_favorite: !currentStatus } : gen
+                        gen.id === assetId || gen.id === originalId ? { ...gen, is_favorite: !currentStatus } : gen
                     ));
                 }
             } catch (error) {
@@ -403,6 +436,9 @@ const AssetHistory = ({
 
     if (!isOpen) return null;
 
+    // Get filtered assets
+    const filteredAssets = getFilteredAssets();
+
     return (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
             <div className="bg-gradient-to-br from-purple-900/95 via-blue-900/95 to-indigo-900/95 rounded-2xl w-full max-w-6xl max-h-[90vh] flex flex-col border border-white/20 shadow-2xl">
@@ -421,7 +457,10 @@ const AssetHistory = ({
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 space-y-4 sm:space-y-0 border-b border-white/10">
                     <div className="flex space-x-1">
                         <button
-                            onClick={() => setActiveTab('generations')}
+                            onClick={() => {
+                                setActiveTab('generations');
+                                setSelectedAsset(null); // Reset selection when switching tabs
+                            }}
                             className={`px-4 py-2 rounded-lg font-medium transition-all flex items-center space-x-2 ${activeTab === 'generations'
                                     ? 'bg-violet-500/30 text-white border border-violet-400'
                                     : 'text-purple-300 hover:text-white hover:bg-white/10'
@@ -432,7 +471,10 @@ const AssetHistory = ({
                         </button>
                         {allowUploads && (
                             <button
-                                onClick={() => setActiveTab('uploads')}
+                                onClick={() => {
+                                    setActiveTab('uploads');
+                                    setSelectedAsset(null); // Reset selection when switching tabs
+                                }}
                                 className={`px-4 py-2 rounded-lg font-medium transition-all flex items-center space-x-2 ${activeTab === 'uploads'
                                         ? 'bg-violet-500/30 text-white border border-violet-400'
                                         : 'text-purple-300 hover:text-white hover:bg-white/10'
@@ -443,7 +485,10 @@ const AssetHistory = ({
                             </button>
                         )}
                         <button
-                            onClick={() => setActiveTab('favorites')}
+                            onClick={() => {
+                                setActiveTab('favorites');
+                                setSelectedAsset(null); // Reset selection when switching tabs
+                            }}
                             className={`px-4 py-2 rounded-lg font-medium transition-all flex items-center space-x-2 ${activeTab === 'favorites'
                                     ? 'bg-violet-500/30 text-white border border-violet-400'
                                     : 'text-purple-300 hover:text-white hover:bg-white/10'
@@ -506,7 +551,19 @@ const AssetHistory = ({
                         </div>
                     ) : filteredAssets.length === 0 ? (
                         <div className="flex flex-col items-center justify-center h-64 text-purple-300">
-                            {activeTab === 'generations' ? (
+                            {activeTab === 'generations' && filterType === 'video' ? (
+                                <>
+                                    <Video className="w-16 h-16 mb-4 opacity-50" />
+                                    <p className="text-lg">No video generations found</p>
+                                    <p className="text-sm mt-2">Generate videos to see them here</p>
+                                </>
+                            ) : activeTab === 'generations' && filterType === 'image' ? (
+                                <>
+                                    <ImageIcon className="w-16 h-16 mb-4 opacity-50" />
+                                    <p className="text-lg">No image generations found</p>
+                                    <p className="text-sm mt-2">Generate images to see them here</p>
+                                </>
+                            ) : activeTab === 'generations' ? (
                                 <>
                                     <Sparkles className="w-16 h-16 mb-4 opacity-50" />
                                     <p className="text-lg">No generations found</p>
@@ -540,7 +597,9 @@ const AssetHistory = ({
                                                     : 'border-white/20 hover:border-violet-400/50'
                                                 }`}
                                         >
-                                            <div className="aspect-square bg-black/50">
+                                            {/* Darken effect for non-selected items when one is selected */}
+                                            <div className={`aspect-square bg-black/50 ${selectedAsset && selectedAsset.id !== asset.id ? 'opacity-50' : ''
+                                                }`}>
                                                 {renderThumbnail(asset)}
                                             </div>
 
@@ -549,11 +608,11 @@ const AssetHistory = ({
                                                     ? 'bg-blue-500/80 text-white'
                                                     : 'bg-violet-500/80 text-white'
                                                 }`}>
-                                                {asset.is_upload ? 'Upload' : 'Generated'}
+                                                {asset.is_upload ? 'Upload' : asset.is_multi_output ? `Gen ${asset.output_index + 1}/${asset.total_outputs}` : 'Generated'}
                                             </div>
 
                                             {/* Overlay */}
-                                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
                                                 <div className="absolute bottom-0 left-0 right-0 p-2">
                                                     <p className="text-white text-xs font-medium truncate">
                                                         {asset.is_upload ? asset.name : asset.generation_name}
@@ -569,7 +628,7 @@ const AssetHistory = ({
                                                 </div>
                                             </div>
 
-                                            {/* Selected indicator */}
+                                            {/* Selected indicator - FIXED: Only show on selected asset */}
                                             {selectedAsset?.id === asset.id && (
                                                 <div className="absolute top-2 right-2 bg-violet-500 rounded-full p-1">
                                                     <Check className="w-4 h-4 text-white" />
@@ -582,7 +641,7 @@ const AssetHistory = ({
                                                     e.stopPropagation();
                                                     toggleFavorite(asset.id, asset.is_favorite, asset.is_upload);
                                                 }}
-                                                className="absolute top-12 left-2 p-1.5 bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/70"
+                                                className="absolute top-12 left-2 p-1.5 bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/70 pointer-events-auto"
                                             >
                                                 <Star
                                                     className={`w-4 h-4 ${asset.is_favorite ? 'text-yellow-400 fill-yellow-400' : 'text-white'
@@ -604,7 +663,7 @@ const AssetHistory = ({
                                             className={`flex items-center space-x-4 p-3 rounded-lg cursor-pointer transition-all ${selectedAsset?.id === asset.id
                                                     ? 'bg-violet-500/30 border border-violet-400'
                                                     : 'bg-white/5 hover:bg-white/10 border border-transparent'
-                                                }`}
+                                                } ${selectedAsset && selectedAsset.id !== asset.id ? 'opacity-50' : ''}`}
                                         >
                                             <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0">
                                                 {renderThumbnail(asset)}
@@ -620,7 +679,7 @@ const AssetHistory = ({
                                                             ? 'bg-blue-500/30 text-blue-300'
                                                             : 'bg-violet-500/30 text-violet-300'
                                                         }`}>
-                                                        {asset.is_upload ? 'Upload' : 'Generated'}
+                                                        {asset.is_upload ? 'Upload' : asset.is_multi_output ? `${asset.output_index + 1}/${asset.total_outputs}` : 'Generated'}
                                                     </span>
                                                 </div>
                                                 <p className="text-purple-300 text-sm truncate mt-1">
@@ -647,6 +706,7 @@ const AssetHistory = ({
                                                             }`}
                                                     />
                                                 </button>
+                                                {/* FIXED: Only show checkmark on selected asset */}
                                                 {selectedAsset?.id === asset.id && (
                                                     <div className="bg-violet-500 rounded-full p-1">
                                                         <Check className="w-4 h-4 text-white" />
