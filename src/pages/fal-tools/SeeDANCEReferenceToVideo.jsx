@@ -266,6 +266,35 @@ const SeeDANCEReferenceToVideo = () => {
             return;
         }
 
+        // Check image dimensions
+        const img = new Image();
+        const objectUrl = URL.createObjectURL(file);
+
+        await new Promise((resolve, reject) => {
+            img.onload = () => {
+                URL.revokeObjectURL(objectUrl); // Clean up
+
+                // Check minimum dimensions (300x300)
+                if (img.width < 300 || img.height < 300) {
+                    showAlert('error', 'Image Too Small', `Your image is ${img.width}x${img.height}px. Please upload images at least 300x300px for better video quality.`);
+                    reject(new Error('Image dimensions too small'));
+                } else {
+                    resolve();
+                }
+            };
+
+            img.onerror = () => {
+                URL.revokeObjectURL(objectUrl);
+                showAlert('error', 'Invalid Image', 'Could not load the image. Please try a different file.');
+                reject(new Error('Failed to load image'));
+            };
+
+            img.src = objectUrl;
+        }).catch(error => {
+            console.error('Image validation failed:', error);
+            return; // Exit the function if validation fails
+        });
+
         // Set uploading state for this specific image slot
         setUploadingImages(prev => {
             const newState = [...prev];
@@ -684,7 +713,7 @@ const SeeDANCEReferenceToVideo = () => {
                                         )}
                                     </div>
                                     <p className="text-purple-300 text-xs mt-1">
-                                        JPG and PNG only • Max 10MB • Drag & drop supported
+                                        JPG and PNG only • Min 300x300px • Max 10MB • Drag & drop supported
                                     </p>
                                 </div>
 
