@@ -207,11 +207,11 @@ const AdminLoraManager = () => {
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <button
-                onClick={() => navigate('/dashboard')}
+                onClick={() => navigate('/admin')}
                 className="flex items-center space-x-2 text-purple-200 hover:text-white transition-colors"
               >
                 <ArrowLeft className="w-5 h-5" />
-                <span>Back to Dashboard</span>
+                <span>Back to Admin</span>
               </button>
               <div className="h-6 w-px bg-white/20" />
               <h1 className="text-xl font-bold text-white">Preset LoRA Manager</h1>
