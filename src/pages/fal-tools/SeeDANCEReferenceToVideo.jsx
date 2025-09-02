@@ -297,13 +297,13 @@ const SeeDANCEReferenceToVideo = () => {
 
     const addImageSlot = () => {
         const validImageCount = config.referenceImageUrls.filter(url => url.trim()).length;
-        if (validImageCount < 5 && config.referenceImageUrls.length < 5) {
+        if (validImageCount < 4 && config.referenceImageUrls.length < 4) {
             setConfig(prev => ({
                 ...prev,
                 referenceImageUrls: [...prev.referenceImageUrls, '']
             }));
-        } else if (validImageCount >= 5) {
-            showAlert('warning', 'Image Limit Reached', 'Maximum 5 reference images allowed for SeeDANCE');
+        } else if (validImageCount >= 4) {
+            showAlert('warning', 'Image Limit Reached', 'Maximum 4 reference images allowed for SeeDANCE');
         }
     };
 
@@ -604,11 +604,11 @@ const SeeDANCEReferenceToVideo = () => {
                                 <div>
                                     <label className="block text-sm font-medium text-purple-200 mb-2">
                                         <ImageIcon className="w-4 h-4 inline mr-1" />
-                                        Reference Images * (Max 5)
+                                        Reference Images * (Max 4)
                                     </label>
 
                                     <div className="space-y-3">
-                                        {Array.from({ length: Math.max(1, Math.min(5, config.referenceImageUrls.length + 1)) }).map((_, index) => (
+                                        {Array.from({ length: Math.max(1, Math.min(4, config.referenceImageUrls.length + 1)) }).map((_, index) => (
                                             <div key={index} className="relative">
                                                 <div
                                                     className="border-2 border-dashed border-white/30 rounded-lg p-3 text-center transition-colors hover:border-white/50"
@@ -673,7 +673,7 @@ const SeeDANCEReferenceToVideo = () => {
                                         ))}
 
                                         {/* Add Image Button */}
-                                        {config.referenceImageUrls.length < 5 && config.referenceImageUrls.filter(url => url.trim()).length < 5 && (
+                                        {config.referenceImageUrls.length < 4 && config.referenceImageUrls.filter(url => url.trim()).length < 4 && (
                                             <button
                                                 onClick={addImageSlot}
                                                 className="w-full border-2 border-dashed border-purple-400/50 rounded-lg p-3 text-center hover:border-purple-400 hover:bg-purple-500/10 transition-colors"

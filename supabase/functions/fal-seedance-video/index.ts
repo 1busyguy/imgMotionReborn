@@ -119,8 +119,8 @@ serve(async (req) => {
             throw new Error('Missing required parameters: generationId, prompt, and referenceImageUrls are required');
         }
 
-        if (referenceImageUrls.length > 5) {
-            throw new Error('Maximum 5 reference images allowed');
+        if (referenceImageUrls.length > 4) {
+            throw new Error('Maximum 4 reference images allowed');
         }
 
         // Validate resolution
