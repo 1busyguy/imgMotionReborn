@@ -6,9 +6,9 @@ export const falTools = [
     // SeeDance lite - NEW TOOL
     {
         id: 39, // or next available ID
-        name: "SeeDANCE Reference-to-Video",
-        description: "Generate videos from reference images - create dynamic animations from multiple photos",
-        image: toCdnUrl("https://xisxqackivlrakfszfop.supabase.co/storage/v1/object/public/user-files/seedance_ref_vid.jpg?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1"),
+        name: "Compose an VIDEO, with images",
+        description: "Generate videos from reference images - create dynamic videos from multiple photos",
+        image: toCdnUrl("https://xisxqackivlrakfszfop.supabase.co/storage/v1/object/public/user-files/img2img_v3.jpg?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1"),
         tokensRequired: "50+", // Varies by duration/resolution
         category: "video",
         toolType: "fal_seedance_reference_to_video",
@@ -114,7 +114,7 @@ export const falTools = [
     // FLUX KONTEXT MAX MULTI - NEW MULTI-IMAGE TOOL
     {
         id: 32,
-        name: "Compose an image, with iamges",
+        name: "Compose an image, with images",
         description: "Smartly mix many pictures together into one image, composed by your words",
         image: toCdnUrl("https://xisxqackivlrakfszfop.supabase.co/storage/v1/object/public/user-files/img2img_v3.jpg?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1"),
         tokensRequired: "15+",
