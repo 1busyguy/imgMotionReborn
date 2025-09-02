@@ -13,7 +13,7 @@ export const falTools = [
         category: "video",
         toolType: "fal_seedance_reference_to_video",
         route: "/seedance-reference-video"
-    }
+    },
     // GEMINI 2.5 FLASH IMAGE EDIT - NEW TOOL
     {
         id: 35,
