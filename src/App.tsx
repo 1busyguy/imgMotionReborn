@@ -47,6 +47,7 @@ import FAQ from './pages/FAQ';
 import Careers from './pages/Careers';
 import Pricing from './pages/Pricing';
 import ImgMotionApp from './pages/ImgMotionApp';
+import SeeDANCEReferenceToVideo from './pages/fal-tools/SeeDANCEReferenceToVideo';
 
 // Protected Route Component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -413,6 +414,14 @@ function App() {
                   <WAN22S2V />
                 </ProtectedRoute>
               } 
+            />
+            <Route
+                path="/seedance-reference-video"
+                element={
+                    <ProtectedRoute>
+                        <SeeDANCEReferenceToVideo />
+                    </ProtectedRoute>
+                }
             />
             <Route 
               path="/admin/lora-manager" 

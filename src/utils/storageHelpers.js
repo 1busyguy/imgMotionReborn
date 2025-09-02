@@ -270,6 +270,12 @@ export const AI_TOOLS = {
     tokensRequired: 10, // Base cost per image generated
     category: 'image'
   },
+  fal_seedance_reference_to_video: {
+    name: 'SeeDANCE Reference-to-Video',
+    description: 'Generate videos from reference images with AI-powered motion',
+    tokensRequired: 50, // Base cost, varies by settings
+    category: 'video'
+  },
   fal_wan22_s2v: {
     name: 'WAN 22 S2V',
     description: 'Speech-to-Video: Transform speech audio into dynamic videos',
