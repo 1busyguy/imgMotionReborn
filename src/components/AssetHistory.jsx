@@ -692,7 +692,7 @@ const AssetHistory = ({
                 </div>
 
                 {/* Content */}
-                <div className="flex-1 overflow-y-auto p-4">
+                <div className="flex-1 overflow-y-auto p-4" key={`content-${activeTab}`}>
                     {loading && page === 1 ? (
                         <div className="flex items-center justify-center h-64">
                             <Loader2 className="w-8 h-8 text-violet-400 animate-spin" />
@@ -733,221 +733,524 @@ const AssetHistory = ({
                         </div>
                     ) : (
                         <>
-                            {/* Grid View */}
-                            {viewMode === 'grid' && (
-                                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                                    {filteredAssets.map((asset) => (
-                                        <div
-                                            key={asset.id}
-                                            onClick={() => setSelectedAsset(asset)}
-                                            className={`relative group cursor-pointer rounded-lg overflow-hidden border-2 transition-all ${selectedAsset?.id === asset.id
-                                                    ? 'border-violet-400 ring-2 ring-violet-400/50'
-                                                    : 'border-white/20 hover:border-violet-400/50'
-                                                }`}
-                                        >
-                                            {/* Darken effect for non-selected items when one is selected */}
-                                            <div className={`aspect-square bg-black/50 ${selectedAsset && selectedAsset.id !== asset.id ? 'opacity-50' : ''
-                                                }`}>
-                                                {renderThumbnail(asset)}
-                                            </div>
+                            {/* Explicitly render based on active tab to force clean separation */}
+                            {activeTab === 'generations' && (
+                                <>
+                                    {/* Grid View for Generations */}
+                                    {viewMode === 'grid' && (
+                                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                                            {filteredAssets.map((asset) => (
+                                                <div
+                                                    key={asset.id}
+                                                    onClick={() => setSelectedAsset(asset)}
+                                                    className={`relative group cursor-pointer rounded-lg overflow-hidden border-2 transition-all ${selectedAsset?.id === asset.id
+                                                            ? 'border-violet-400 ring-2 ring-violet-400/50'
+                                                            : 'border-white/20 hover:border-violet-400/50'
+                                                        }`}
+                                                >
+                                                    {/* Darken effect for non-selected items when one is selected */}
+                                                    <div className={`aspect-square bg-black/50 ${selectedAsset && selectedAsset.id !== asset.id ? 'opacity-50' : ''
+                                                        }`}>
+                                                        {renderThumbnail(asset)}
+                                                    </div>
 
-                                            {/* Type Badge */}
-                                            <div className={`absolute top-2 left-2 px-2 py-1 rounded-full text-xs font-medium ${asset.is_upload
-                                                    ? 'bg-blue-500/80 text-white'
-                                                    : 'bg-violet-500/80 text-white'
-                                                }`}>
-                                                {asset.is_upload ? 'Upload' : asset.is_multi_output ? `Gen ${asset.output_index + 1}/${asset.total_outputs}` : 'Generated'}
-                                            </div>
+                                                    {/* Type Badge */}
+                                                    <div className={`absolute top-2 left-2 px-2 py-1 rounded-full text-xs font-medium ${asset.is_upload
+                                                            ? 'bg-blue-500/80 text-white'
+                                                            : 'bg-violet-500/80 text-white'
+                                                        }`}>
+                                                        {asset.is_upload ? 'Upload' : asset.is_multi_output ? `Gen ${asset.output_index + 1}/${asset.total_outputs}` : 'Generated'}
+                                                    </div>
 
-                                            {/* Overlay */}
-                                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                                                <div className="absolute bottom-0 left-0 right-0 p-2">
-                                                    <p className="text-white text-xs font-medium truncate">
-                                                        {asset.is_upload ? asset.name : asset.generation_name}
-                                                    </p>
-                                                    <div className="flex items-center justify-between mt-1">
-                                                        <span className="text-purple-300 text-xs flex items-center">
+                                                    {/* Overlay */}
+                                                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                                                        <div className="absolute bottom-0 left-0 right-0 p-2">
+                                                            <p className="text-white text-xs font-medium truncate">
+                                                                {asset.is_upload ? asset.name : asset.generation_name}
+                                                            </p>
+                                                            <div className="flex items-center justify-between mt-1">
+                                                                <span className="text-purple-300 text-xs flex items-center">
+                                                                    {getAssetIcon(asset)}
+                                                                </span>
+                                                                <span className="text-purple-300 text-xs">
+                                                                    {formatDate(asset.created_at)}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Selected indicator */}
+                                                    {selectedAsset?.id === asset.id && (
+                                                        <div className="absolute top-2 right-2 bg-violet-500 rounded-full p-1">
+                                                            <Check className="w-4 h-4 text-white" />
+                                                        </div>
+                                                    )}
+
+                                                    {/* Favorite button */}
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            toggleFavorite(asset.id, asset.is_favorite, asset.is_upload);
+                                                        }}
+                                                        className="absolute top-12 left-2 p-1.5 bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/70 pointer-events-auto"
+                                                    >
+                                                        <Star
+                                                            className={`w-4 h-4 ${asset.is_favorite ? 'text-yellow-400 fill-yellow-400' : 'text-white'
+                                                                }`}
+                                                        />
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+
+                                    {/* List View for Generations */}
+                                    {viewMode === 'list' && (
+                                        <div className="space-y-2">
+                                            {filteredAssets.map((asset) => (
+                                                <div
+                                                    key={asset.id}
+                                                    onClick={() => setSelectedAsset(asset)}
+                                                    className={`flex items-center space-x-4 p-3 rounded-lg cursor-pointer transition-all ${selectedAsset?.id === asset.id
+                                                            ? 'bg-violet-500/30 border border-violet-400'
+                                                            : 'bg-white/5 hover:bg-white/10 border border-transparent'
+                                                        } ${selectedAsset && selectedAsset.id !== asset.id ? 'opacity-50' : ''}`}
+                                                >
+                                                    <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0">
+                                                        {renderThumbnail(asset)}
+                                                    </div>
+
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="flex items-center space-x-2">
                                                             {getAssetIcon(asset)}
-                                                        </span>
-                                                        <span className="text-purple-300 text-xs">
+                                                            <p className="text-white font-medium truncate">
+                                                                {asset.is_upload ? asset.name : asset.generation_name}
+                                                            </p>
+                                                            <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${asset.is_upload
+                                                                    ? 'bg-blue-500/30 text-blue-300'
+                                                                    : 'bg-violet-500/30 text-violet-300'
+                                                                }`}>
+                                                                {asset.is_upload ? 'Upload' : asset.is_multi_output ? `${asset.output_index + 1}/${asset.total_outputs}` : 'Generated'}
+                                                            </span>
+                                                        </div>
+                                                        <p className="text-purple-300 text-sm truncate mt-1">
+                                                            {asset.is_upload
+                                                                ? `Used in: ${asset.used_in || 'N/A'}`
+                                                                : (asset.input_data?.prompt || asset.tool_name)
+                                                            }
+                                                        </p>
+                                                        <p className="text-purple-400 text-xs mt-1">
                                                             {formatDate(asset.created_at)}
-                                                        </span>
+                                                        </p>
+                                                    </div>
+
+                                                    <div className="flex items-center space-x-2">
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                toggleFavorite(asset.id, asset.is_favorite, asset.is_upload);
+                                                            }}
+                                                            className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+                                                        >
+                                                            <Star
+                                                                className={`w-4 h-4 ${asset.is_favorite ? 'text-yellow-400 fill-yellow-400' : 'text-purple-400'
+                                                                    }`}
+                                                            />
+                                                        </button>
+                                                        {selectedAsset?.id === asset.id && (
+                                                            <div className="bg-violet-500 rounded-full p-1">
+                                                                <Check className="w-4 h-4 text-white" />
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 </div>
-                                            </div>
+                                            ))}
+                                        </div>
+                                    )}
 
-                                            {/* Selected indicator */}
-                                            {selectedAsset?.id === asset.id && (
-                                                <div className="absolute top-2 right-2 bg-violet-500 rounded-full p-1">
-                                                    <Check className="w-4 h-4 text-white" />
-                                                </div>
-                                            )}
-
-                                            {/* Favorite button */}
+                                    {/* Load More for Generations */}
+                                    {hasMore && (
+                                        <div className="flex justify-center mt-6">
                                             <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    toggleFavorite(asset.id, asset.is_favorite, asset.is_upload);
-                                                }}
-                                                className="absolute top-12 left-2 p-1.5 bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/70 pointer-events-auto"
+                                                onClick={() => setPage(prev => prev + 1)}
+                                                disabled={loading}
+                                                className="px-6 py-2 bg-violet-500 hover:bg-violet-600 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
                                             >
-                                                <Star
-                                                    className={`w-4 h-4 ${asset.is_favorite ? 'text-yellow-400 fill-yellow-400' : 'text-white'
-                                                        }`}
-                                                />
+                                                {loading ? (
+                                                    <>
+                                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                                        <span>Loading...</span>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <span>Load More Generations</span>
+                                                        <ChevronRight className="w-4 h-4" />
+                                                    </>
+                                                )}
                                             </button>
                                         </div>
-                                    ))}
-                                </div>
+                                    )}
+                                </>
                             )}
 
-                            {/* List View */}
-                            {viewMode === 'list' && (
-                                <div className="space-y-2">
-                                    {filteredAssets.map((asset) => (
-                                        <div
-                                            key={asset.id}
-                                            onClick={() => setSelectedAsset(asset)}
-                                            className={`flex items-center space-x-4 p-3 rounded-lg cursor-pointer transition-all ${selectedAsset?.id === asset.id
-                                                    ? 'bg-violet-500/30 border border-violet-400'
-                                                    : 'bg-white/5 hover:bg-white/10 border border-transparent'
-                                                } ${selectedAsset && selectedAsset.id !== asset.id ? 'opacity-50' : ''}`}
-                                        >
-                                            <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0">
-                                                {renderThumbnail(asset)}
-                                            </div>
-
-                                            <div className="flex-1 min-w-0">
-                                                <div className="flex items-center space-x-2">
-                                                    {getAssetIcon(asset)}
-                                                    <p className="text-white font-medium truncate">
-                                                        {asset.is_upload ? asset.name : asset.generation_name}
-                                                    </p>
-                                                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${asset.is_upload
-                                                            ? 'bg-blue-500/30 text-blue-300'
-                                                            : 'bg-violet-500/30 text-violet-300'
-                                                        }`}>
-                                                        {asset.is_upload ? 'Upload' : asset.is_multi_output ? `${asset.output_index + 1}/${asset.total_outputs}` : 'Generated'}
-                                                    </span>
-                                                </div>
-                                                <p className="text-purple-300 text-sm truncate mt-1">
-                                                    {asset.is_upload
-                                                        ? `Used in: ${asset.used_in || 'N/A'}`
-                                                        : (asset.input_data?.prompt || asset.tool_name)
-                                                    }
-                                                </p>
-                                                <p className="text-purple-400 text-xs mt-1">
-                                                    {formatDate(asset.created_at)}
-                                                </p>
-                                            </div>
-
-                                            <div className="flex items-center space-x-2">
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        toggleFavorite(asset.id, asset.is_favorite, asset.is_upload);
-                                                    }}
-                                                    className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+                            {activeTab === 'uploads' && (
+                                <>
+                                    {/* Grid View for Uploads */}
+                                    {viewMode === 'grid' && (
+                                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                                            {filteredAssets.map((asset) => (
+                                                <div
+                                                    key={asset.id}
+                                                    onClick={() => setSelectedAsset(asset)}
+                                                    className={`relative group cursor-pointer rounded-lg overflow-hidden border-2 transition-all ${selectedAsset?.id === asset.id
+                                                            ? 'border-violet-400 ring-2 ring-violet-400/50'
+                                                            : 'border-white/20 hover:border-violet-400/50'
+                                                        }`}
                                                 >
-                                                    <Star
-                                                        className={`w-4 h-4 ${asset.is_favorite ? 'text-yellow-400 fill-yellow-400' : 'text-purple-400'
-                                                            }`}
-                                                    />
-                                                </button>
-                                                {selectedAsset?.id === asset.id && (
-                                                    <div className="bg-violet-500 rounded-full p-1">
-                                                        <Check className="w-4 h-4 text-white" />
+                                                    {/* Darken effect for non-selected items when one is selected */}
+                                                    <div className={`aspect-square bg-black/50 ${selectedAsset && selectedAsset.id !== asset.id ? 'opacity-50' : ''
+                                                        }`}>
+                                                        {renderThumbnail(asset)}
                                                     </div>
-                                                )}
-                                            </div>
+
+                                                    {/* Type Badge */}
+                                                    <div className={`absolute top-2 left-2 px-2 py-1 rounded-full text-xs font-medium bg-blue-500/80 text-white`}>
+                                                        Upload
+                                                    </div>
+
+                                                    {/* Overlay */}
+                                                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                                                        <div className="absolute bottom-0 left-0 right-0 p-2">
+                                                            <p className="text-white text-xs font-medium truncate">
+                                                                {asset.name}
+                                                            </p>
+                                                            <div className="flex items-center justify-between mt-1">
+                                                                <span className="text-purple-300 text-xs flex items-center">
+                                                                    {getAssetIcon(asset)}
+                                                                </span>
+                                                                <span className="text-purple-300 text-xs">
+                                                                    {formatDate(asset.created_at)}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Selected indicator */}
+                                                    {selectedAsset?.id === asset.id && (
+                                                        <div className="absolute top-2 right-2 bg-violet-500 rounded-full p-1">
+                                                            <Check className="w-4 h-4 text-white" />
+                                                        </div>
+                                                    )}
+
+                                                    {/* Favorite button */}
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            toggleFavorite(asset.id, asset.is_favorite, true);
+                                                        }}
+                                                        className="absolute top-12 left-2 p-1.5 bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/70 pointer-events-auto"
+                                                    >
+                                                        <Star
+                                                            className={`w-4 h-4 ${asset.is_favorite ? 'text-yellow-400 fill-yellow-400' : 'text-white'
+                                                                }`}
+                                                        />
+                                                    </button>
+                                                </div>
+                                            ))}
                                         </div>
-                                    ))}
-                                </div>
-                            )}
+                                    )}
 
-                            {/* Load More buttons */}
-                            {activeTab === 'generations' && hasMore && (
-                                <div className="flex justify-center mt-6">
-                                    <button
-                                        onClick={() => setPage(prev => prev + 1)}
-                                        disabled={loading}
-                                        className="px-6 py-2 bg-violet-500 hover:bg-violet-600 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
-                                    >
-                                        {loading ? (
-                                            <>
-                                                <Loader2 className="w-4 h-4 animate-spin" />
-                                                <span>Loading...</span>
-                                            </>
-                                        ) : (
-                                            <>
-                                                <span>Load More Generations</span>
+                                    {/* List View for Uploads */}
+                                    {viewMode === 'list' && (
+                                        <div className="space-y-2">
+                                            {filteredAssets.map((asset) => (
+                                                <div
+                                                    key={asset.id}
+                                                    onClick={() => setSelectedAsset(asset)}
+                                                    className={`flex items-center space-x-4 p-3 rounded-lg cursor-pointer transition-all ${selectedAsset?.id === asset.id
+                                                            ? 'bg-violet-500/30 border border-violet-400'
+                                                            : 'bg-white/5 hover:bg-white/10 border border-transparent'
+                                                        } ${selectedAsset && selectedAsset.id !== asset.id ? 'opacity-50' : ''}`}
+                                                >
+                                                    <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0">
+                                                        {renderThumbnail(asset)}
+                                                    </div>
+
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="flex items-center space-x-2">
+                                                            {getAssetIcon(asset)}
+                                                            <p className="text-white font-medium truncate">
+                                                                {asset.name}
+                                                            </p>
+                                                            <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-blue-500/30 text-blue-300">
+                                                                Upload
+                                                            </span>
+                                                        </div>
+                                                        <p className="text-purple-300 text-sm truncate mt-1">
+                                                            Used in: {asset.used_in || 'N/A'}
+                                                        </p>
+                                                        <p className="text-purple-400 text-xs mt-1">
+                                                            {formatDate(asset.created_at)}
+                                                        </p>
+                                                    </div>
+
+                                                    <div className="flex items-center space-x-2">
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                toggleFavorite(asset.id, asset.is_favorite, true);
+                                                            }}
+                                                            className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+                                                        >
+                                                            <Star
+                                                                className={`w-4 h-4 ${asset.is_favorite ? 'text-yellow-400 fill-yellow-400' : 'text-purple-400'
+                                                                    }`}
+                                                            />
+                                                        </button>
+                                                        {selectedAsset?.id === asset.id && (
+                                                            <div className="bg-violet-500 rounded-full p-1">
+                                                                <Check className="w-4 h-4 text-white" />
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+
+                                    {/* Load More for Uploads */}
+                                    {hasMoreUploads && (
+                                        <div className="flex justify-center mt-6">
+                                            <button
+                                                onClick={loadMoreUploads}
+                                                disabled={loading}
+                                                className="px-6 py-2 bg-violet-500 hover:bg-violet-600 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+                                            >
+                                                <span>Load More Uploads</span>
                                                 <ChevronRight className="w-4 h-4" />
-                                            </>
-                                        )}
-                                    </button>
-                                </div>
+                                            </button>
+                                        </div>
+                                    )}
+                                </>
                             )}
 
-                            {activeTab === 'uploads' && hasMoreUploads && (
-                                <div className="flex justify-center mt-6">
-                                    <button
-                                        onClick={loadMoreUploads}
-                                        disabled={loading}
-                                        className="px-6 py-2 bg-violet-500 hover:bg-violet-600 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
-                                    >
-                                        <span>Load More Uploads</span>
-                                        <ChevronRight className="w-4 h-4" />
-                                    </button>
-                                </div>
-                            )}
-                        </>
-                    )}
-                </div>
+                            {activeTab === 'favorites' && (
+                                <>
+                                    {/* Grid View for Favorites */}
+                                    {viewMode === 'grid' && (
+                                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4" key={`grid-${activeTab}`}>
+                                            {filteredAssets.map((asset) => (
+                                                <div
+                                                    key={`${activeTab}-${asset.id}`}
+                                                    onClick={() => setSelectedAsset(asset)}
+                                                    className={`relative group cursor-pointer rounded-lg overflow-hidden border-2 transition-all ${selectedAsset?.id === asset.id
+                                                            ? 'border-violet-400 ring-2 ring-violet-400/50'
+                                                            : 'border-white/20 hover:border-violet-400/50'
+                                                        }`}
+                                                >
+                                                    {/* Darken effect for non-selected items when one is selected */}
+                                                    <div className={`aspect-square bg-black/50 ${selectedAsset && selectedAsset.id !== asset.id ? 'opacity-50' : ''
+                                                        }`}>
+                                                        {renderThumbnail(asset)}
+                                                    </div>
 
-                {/* Footer */}
-                <div className="flex items-center justify-between p-4 border-t border-white/20">
-                    <div className="text-purple-300 text-sm">
-                        {selectedAsset ? (
-                            <span className="flex items-center space-x-2">
-                                <span>Selected:</span>
-                                <span className="font-medium text-white">
-                                    {selectedAsset.is_upload ? selectedAsset.name : selectedAsset.generation_name}
-                                </span>
-                                {selectedAsset.is_upload && (
-                                    <span className="px-2 py-0.5 bg-blue-500/30 text-blue-300 rounded-full text-xs">
-                                        Upload
+                                                    {/* Type Badge */}
+                                                    <div className={`absolute top-2 left-2 px-2 py-1 rounded-full text-xs font-medium ${asset.is_upload
+                                                            ? 'bg-blue-500/80 text-white'
+                                                            : 'bg-violet-500/80 text-white'
+                                                        }`}>
+                                                        {asset.is_upload ? 'Upload' : asset.is_multi_output ? `Gen ${asset.output_index + 1}/${asset.total_outputs}` : 'Generated'}
+                                                    </div>
+
+                                                    {/* Overlay */}
+                                                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                                                        <div className="absolute bottom-0 left-0 right-0 p-2">
+                                                            <p className="text-white text-xs font-medium truncate">
+                                                                {asset.is_upload ? asset.name : asset.generation_name}
+                                                            </p>
+                                                            <div className="flex items-center justify-between mt-1">
+                                                                <span className="text-purple-300 text-xs flex items-center">
+                                                                    {getAssetIcon(asset)}
+                                                                </span>
+                                                                <span className="text-purple-300 text-xs">
+                                                                    {formatDate(asset.created_at)}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Selected indicator */}
+                                                    {selectedAsset?.id === asset.id && (
+                                                        <div className="absolute top-2 right-2 bg-violet-500 rounded-full p-1">
+                                                            <Check className="w-4 h-4 text-white" />
+                                                        </div>
+                                                    )}
+
+                                                    {/* Favorite button */}
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            toggleFavorite(asset.id, asset.is_favorite, asset.is_upload);
+                                                        }}
+                                                        className="absolute top-12 left-2 p-1.5 bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/70 pointer-events-auto"
+                                                    >
+                                                        <Star
+                                                            className={`w-4 h-4 ${asset.is_favorite ? 'text-yellow-400 fill-yellow-400' : 'text-white'
+                                                                }`}
+                                                        />
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+
+                                    {/* List View */}
+                                    {viewMode === 'list' && (
+                                        <div className="space-y-2" key={`list-${activeTab}`}>
+                                            {filteredAssets.map((asset) => (
+                                                <div
+                                                    key={`${activeTab}-${asset.id}`}
+                                                    onClick={() => setSelectedAsset(asset)}
+                                                    className={`flex items-center space-x-4 p-3 rounded-lg cursor-pointer transition-all ${selectedAsset?.id === asset.id
+                                                            ? 'bg-violet-500/30 border border-violet-400'
+                                                            : 'bg-white/5 hover:bg-white/10 border border-transparent'
+                                                        } ${selectedAsset && selectedAsset.id !== asset.id ? 'opacity-50' : ''}`}
+                                                >
+                                                    <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0">
+                                                        {renderThumbnail(asset)}
+                                                    </div>
+
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="flex items-center space-x-2">
+                                                            {getAssetIcon(asset)}
+                                                            <p className="text-white font-medium truncate">
+                                                                {asset.is_upload ? asset.name : asset.generation_name}
+                                                            </p>
+                                                            <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${asset.is_upload
+                                                                    ? 'bg-blue-500/30 text-blue-300'
+                                                                    : 'bg-violet-500/30 text-violet-300'
+                                                                }`}>
+                                                                {asset.is_upload ? 'Upload' : asset.is_multi_output ? `${asset.output_index + 1}/${asset.total_outputs}` : 'Generated'}
+                                                            </span>
+                                                        </div>
+                                                        <p className="text-purple-300 text-sm truncate mt-1">
+                                                            {asset.is_upload
+                                                                ? `Used in: ${asset.used_in || 'N/A'}`
+                                                                : (asset.input_data?.prompt || asset.tool_name)
+                                                            }
+                                                        </p>
+                                                        <p className="text-purple-400 text-xs mt-1">
+                                                            {formatDate(asset.created_at)}
+                                                        </p>
+                                                    </div>
+
+                                                    <div className="flex items-center space-x-2">
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                toggleFavorite(asset.id, asset.is_favorite, asset.is_upload);
+                                                            }}
+                                                            className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+                                                        >
+                                                            <Star
+                                                                className={`w-4 h-4 ${asset.is_favorite ? 'text-yellow-400 fill-yellow-400' : 'text-purple-400'
+                                                                    }`}
+                                                            />
+                                                        </button>
+                                                        {selectedAsset?.id === asset.id && (
+                                                            <div className="bg-violet-500 rounded-full p-1">
+                                                                <Check className="w-4 h-4 text-white" />
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+
+                                    {/* Load More buttons */}
+                                    {activeTab === 'generations' && hasMore && (
+                                        <div className="flex justify-center mt-6">
+                                            <button
+                                                onClick={() => setPage(prev => prev + 1)}
+                                                disabled={loading}
+                                                className="px-6 py-2 bg-violet-500 hover:bg-violet-600 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+                                            >
+                                                {loading ? (
+                                                    <>
+                                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                                        <span>Loading...</span>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <span>Load More Generations</span>
+                                                        <ChevronRight className="w-4 h-4" />
+                                                    </>
+                                                )}
+                                            </button>
+                                        </div>
+                                    )}
+
+                                    {activeTab === 'uploads' && hasMoreUploads && (
+                                        <div className="flex justify-center mt-6">
+                                            <button
+                                                onClick={loadMoreUploads}
+                                                disabled={loading}
+                                                className="px-6 py-2 bg-violet-500 hover:bg-violet-600 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+                                            >
+                                                <span>Load More Uploads</span>
+                                                <ChevronRight className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                    )}
+                                </>
+                            )}
+                        </div>
+
+                    {/* Footer */}
+                    <div className="flex items-center justify-between p-4 border-t border-white/20">
+                        <div className="text-purple-300 text-sm">
+                            {selectedAsset ? (
+                                <span className="flex items-center space-x-2">
+                                    <span>Selected:</span>
+                                    <span className="font-medium text-white">
+                                        {selectedAsset.is_upload ? selectedAsset.name : selectedAsset.generation_name}
                                     </span>
-                                )}
-                            </span>
-                        ) : (
-                            <span>
-                                {activeTab === 'generations' && `${filteredAssets.length} generation${filteredAssets.length !== 1 ? 's' : ''} available`}
-                                {activeTab === 'uploads' && `${filteredAssets.length} upload${filteredAssets.length !== 1 ? 's' : ''} available`}
-                                {activeTab === 'favorites' && `${filteredAssets.length} favorite${filteredAssets.length !== 1 ? 's' : ''}`}
-                            </span>
-                        )}
-                    </div>
+                                    {selectedAsset.is_upload && (
+                                        <span className="px-2 py-0.5 bg-blue-500/30 text-blue-300 rounded-full text-xs">
+                                            Upload
+                                        </span>
+                                    )}
+                                </span>
+                            ) : (
+                                <span>
+                                    {activeTab === 'generations' && `${filteredAssets.length} generation${filteredAssets.length !== 1 ? 's' : ''} available`}
+                                    {activeTab === 'uploads' && `${filteredAssets.length} upload${filteredAssets.length !== 1 ? 's' : ''} available`}
+                                    {activeTab === 'favorites' && `${filteredAssets.length} favorite${filteredAssets.length !== 1 ? 's' : ''}`}
+                                </span>
+                            )}
+                        </div>
 
-                    <div className="flex space-x-3">
-                        <button
-                            onClick={handleClose}
-                            className="px-6 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg font-medium transition-colors"
-                        >
-                            Cancel
-                        </button>
-                        <button
-                            onClick={handleSelect}
-                            disabled={!selectedAsset}
-                            className="px-6 py-2 bg-violet-500 hover:bg-violet-600 disabled:bg-violet-500/50 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors flex items-center space-x-2"
-                        >
-                            <Check className="w-4 h-4" />
-                            <span>Use Selected</span>
-                        </button>
+                        <div className="flex space-x-3">
+                            <button
+                                onClick={handleClose}
+                                className="px-6 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg font-medium transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleSelect}
+                                disabled={!selectedAsset}
+                                className="px-6 py-2 bg-violet-500 hover:bg-violet-600 disabled:bg-violet-500/50 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors flex items-center space-x-2"
+                            >
+                                <Check className="w-4 h-4" />
+                                <span>Use Selected</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
-    );
+            );
 };
 
-export default AssetHistory;
+            export default AssetHistory;
