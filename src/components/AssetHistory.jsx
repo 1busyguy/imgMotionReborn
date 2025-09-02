@@ -32,8 +32,8 @@ const AssetHistory = ({
     allowUploads = true // Whether to show uploads tab
 }) => {
     const { user } = useAuth();
-    const [generations, setGenerations] = useState([]);
-    const [uploads, setUploads] = useState([]);
+    const [generations, setGenerations] = useState([]); // Only AI generations
+    const [uploads, setUploads] = useState([]); // Only user uploads
     const [loading, setLoading] = useState(true);
     const [selectedAsset, setSelectedAsset] = useState(null);
     const [searchQuery, setSearchQuery] = useState('');
@@ -231,6 +231,7 @@ const AssetHistory = ({
                         output_file_url: url,
                         generation_name: `${gen.generation_name} (${index + 1}/${outputs.length})`,
                         is_generation: true,
+                        is_upload: false, // Explicitly set to false
                         type: IMAGE_TOOLS.includes(gen.tool_type) ? 'image' : 'video',
                         is_multi_output: true,
                         output_index: index,
@@ -243,6 +244,7 @@ const AssetHistory = ({
                     ...gen,
                     output_file_url: outputs[0],
                     is_generation: true,
+                    is_upload: false, // Explicitly set to false
                     type: IMAGE_TOOLS.includes(gen.tool_type) ? 'image' : 'video',
                     is_multi_output: false
                 });
@@ -258,21 +260,7 @@ const AssetHistory = ({
 
         setLoading(true);
         try {
-            // Fetch all generations to extract uploads
-            const { data: allGenerations, error: allError } = await supabase
-                .from('ai_generations')
-                .select('*')
-                .eq('user_id', user.id)
-                .is('deleted_at', null)
-                .order('created_at', { ascending: false });
-
-            if (allError) throw allError;
-
-            // Extract uploads from all generations
-            const extractedUploads = extractUploadsFromGenerations(allGenerations || []);
-            setUploads(extractedUploads);
-
-            // Now fetch completed generations for the generations tab
+            // First, fetch completed generations for display
             let query = supabase
                 .from('ai_generations')
                 .select('*')
@@ -287,22 +275,37 @@ const AssetHistory = ({
             const endRange = startRange + ITEMS_PER_PAGE;
             query = query.range(startRange, endRange);
 
-            const { data, error } = await query;
+            const { data: generationsData, error } = await query;
 
             if (error) throw error;
 
             // Process generations to handle multiple outputs
-            const processedGenerations = processGenerations(data || []);
+            const processedGenerations = processGenerations(generationsData || []);
 
             // Check if there are more items
-            setHasMore(data.length > ITEMS_PER_PAGE);
+            setHasMore(generationsData.length > ITEMS_PER_PAGE);
 
             // Only show ITEMS_PER_PAGE items
             const paginatedData = processedGenerations.slice(0, ITEMS_PER_PAGE);
 
             if (currentPage === 1) {
                 setGenerations(paginatedData);
+
+                // Now fetch ALL generations to extract uploads (only on first page)
+                const { data: allGenerations, error: allError } = await supabase
+                    .from('ai_generations')
+                    .select('*')
+                    .eq('user_id', user.id)
+                    .is('deleted_at', null)
+                    .order('created_at', { ascending: false });
+
+                if (!allError && allGenerations) {
+                    // Extract uploads from all generations
+                    const extractedUploads = extractUploadsFromGenerations(allGenerations);
+                    setUploads(extractedUploads);
+                }
             } else {
+                // For subsequent pages, just add to generations
                 setGenerations(prev => [...prev, ...paginatedData]);
             }
 
@@ -337,18 +340,44 @@ const AssetHistory = ({
     const filteredAssets = useMemo(() => {
         let currentAssets = [];
 
-        // Get assets based on active tab
+        // Debug: Log what we're working with
+        console.log('Computing filtered assets for tab:', activeTab);
+        console.log('Generations in state:', generations.map(g => ({
+            id: g.id,
+            is_upload: g.is_upload,
+            is_generation: g.is_generation,
+            name: g.generation_name || g.name
+        })));
+        console.log('Uploads in state:', uploads.map(u => ({
+            id: u.id,
+            is_upload: u.is_upload,
+            name: u.name
+        })));
+
+        // Get assets based on active tab - COMPLETELY SEPARATE
         if (activeTab === 'uploads') {
-            currentAssets = uploads;
+            // Only show items from uploads array
+            currentAssets = uploads || [];
         } else if (activeTab === 'favorites') {
-            // Combine favorites from both generations and uploads
-            const favGenerations = generations.filter(g => g.is_favorite) || [];
-            const favUploads = uploads.filter(u => u.is_favorite) || [];
+            // Combine favorites from both arrays
+            const favGenerations = (generations || []).filter(g => g.is_favorite);
+            const favUploads = (uploads || []).filter(u => u.is_favorite);
             currentAssets = [...favGenerations, ...favUploads];
-        } else {
-            // generations tab
-            currentAssets = generations;
+        } else if (activeTab === 'generations') {
+            // Only show items from generations array
+            currentAssets = generations || [];
         }
+
+        // Make sure we don't have any cross-contamination
+        if (activeTab === 'generations') {
+            // Double-check: filter out anything that's marked as upload
+            currentAssets = currentAssets.filter(item => !item.is_upload);
+        } else if (activeTab === 'uploads') {
+            // Double-check: filter out anything that's NOT marked as upload
+            currentAssets = currentAssets.filter(item => item.is_upload === true);
+        }
+
+        console.log('Current assets after tab filter:', currentAssets.length, 'items');
 
         let filtered = [...currentAssets];
 
@@ -384,6 +413,7 @@ const AssetHistory = ({
             });
         }
 
+        console.log('Final filtered assets:', filtered.length, 'items');
         return filtered;
     }, [activeTab, generations, uploads, searchQuery, filterType]);
 
@@ -534,6 +564,10 @@ const AssetHistory = ({
 
     // Tab change handler
     const handleTabChange = (newTab) => {
+        console.log('Switching to tab:', newTab);
+        console.log('Generations array has:', generations.length, 'items');
+        console.log('Uploads array has:', uploads.length, 'items');
+
         setActiveTab(newTab);
         setSelectedAsset(null);
         setSearchQuery('');
