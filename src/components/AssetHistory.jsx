@@ -77,6 +77,7 @@ const AssetHistory = ({
     // Extract uploads from generation input data
     const extractUploadsFromGenerations = (generationsData) => {
         const uploadsMap = new Map();
+        let uploadCounter = 0; // Add a counter for unique IDs
 
         generationsData.forEach(gen => {
             if (!gen.input_data) return;
@@ -85,8 +86,9 @@ const AssetHistory = ({
             if (gen.input_data.imageUrl) {
                 const url = gen.input_data.imageUrl;
                 if (!uploadsMap.has(url)) {
+                    uploadCounter++;
                     uploadsMap.set(url, {
-                        id: `upload_${btoa(url).substring(0, 10)}`,
+                        id: `upload_img_${uploadCounter}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`, // Guaranteed unique ID
                         url: url,
                         type: 'image',
                         name: `Upload from ${gen.generation_name || gen.tool_name}`,
@@ -103,8 +105,9 @@ const AssetHistory = ({
             if (gen.input_data.videoUrl) {
                 const url = gen.input_data.videoUrl;
                 if (!uploadsMap.has(url)) {
+                    uploadCounter++;
                     uploadsMap.set(url, {
-                        id: `upload_${btoa(url).substring(0, 10)}`,
+                        id: `upload_vid_${uploadCounter}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`, // Guaranteed unique ID
                         url: url,
                         type: 'video',
                         name: `Upload from ${gen.generation_name || gen.tool_name}`,
@@ -121,8 +124,9 @@ const AssetHistory = ({
             if (gen.input_data.referenceImageUrl) {
                 const url = gen.input_data.referenceImageUrl;
                 if (!uploadsMap.has(url)) {
+                    uploadCounter++;
                     uploadsMap.set(url, {
-                        id: `upload_${btoa(url).substring(0, 10)}`,
+                        id: `upload_ref_${uploadCounter}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`, // Guaranteed unique ID
                         url: url,
                         type: 'image',
                         name: `Reference from ${gen.generation_name || gen.tool_name}`,
