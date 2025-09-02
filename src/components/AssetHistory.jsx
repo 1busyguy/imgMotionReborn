@@ -33,7 +33,8 @@ const AssetHistory = ({
 }) => {
     const { user } = useAuth();
     const [generations, setGenerations] = useState([]); // Only AI generations
-    const [uploads, setUploads] = useState([]); // Only user uploads
+    const [uploads, setUploads] = useState([]); // Only user uploads  
+    const [allUploads, setAllUploads] = useState([]); // Store all uploads for pagination
     const [loading, setLoading] = useState(true);
     const [selectedAsset, setSelectedAsset] = useState(null);
     const [searchQuery, setSearchQuery] = useState('');
@@ -41,7 +42,9 @@ const AssetHistory = ({
     const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
     const [filterType, setFilterType] = useState(assetType); // Current filter
     const [page, setPage] = useState(1);
+    const [uploadsPage, setUploadsPage] = useState(1); // Separate pagination for uploads
     const [hasMore, setHasMore] = useState(false);
+    const [hasMoreUploads, setHasMoreUploads] = useState(false);
     const ITEMS_PER_PAGE = 20;
 
     // Asset type categories based on tool_type
@@ -302,7 +305,12 @@ const AssetHistory = ({
                 if (!allError && allGenerations) {
                     // Extract uploads from all generations
                     const extractedUploads = extractUploadsFromGenerations(allGenerations);
-                    setUploads(extractedUploads);
+                    setAllUploads(extractedUploads); // Store all uploads
+
+                    // Paginate uploads for display
+                    const paginatedUploads = extractedUploads.slice(0, ITEMS_PER_PAGE);
+                    setUploads(paginatedUploads);
+                    setHasMoreUploads(extractedUploads.length > ITEMS_PER_PAGE);
                 }
             } else {
                 // For subsequent pages, just add to generations
@@ -316,11 +324,24 @@ const AssetHistory = ({
         }
     };
 
+    // Load more uploads
+    const loadMoreUploads = () => {
+        const nextPage = uploadsPage + 1;
+        const startIndex = (nextPage - 1) * ITEMS_PER_PAGE;
+        const endIndex = startIndex + ITEMS_PER_PAGE;
+        const moreUploads = allUploads.slice(startIndex, endIndex);
+
+        setUploads(prev => [...prev, ...moreUploads]);
+        setUploadsPage(nextPage);
+        setHasMoreUploads(endIndex < allUploads.length);
+    };
+
     // Initialize when modal opens
     useEffect(() => {
         if (isOpen && user) {
             // Reset all states
             setPage(1);
+            setUploadsPage(1);
             setSelectedAsset(null);
             setSearchQuery('');
             setActiveTab('generations');
@@ -336,32 +357,25 @@ const AssetHistory = ({
         }
     }, [page, isOpen, user]);
 
+    // Check if there are any favorites
+    const hasFavorites = useMemo(() => {
+        const favGenerations = generations.filter(g => g.is_favorite);
+        const favUploads = allUploads.filter(u => u.is_favorite); // Check all uploads, not just paginated
+        return favGenerations.length > 0 || favUploads.length > 0;
+    }, [generations, allUploads]);
+
     // Get filtered assets based on current tab and filters
     const filteredAssets = useMemo(() => {
         let currentAssets = [];
 
-        // Debug: Log what we're working with
-        console.log('Computing filtered assets for tab:', activeTab);
-        console.log('Generations in state:', generations.map(g => ({
-            id: g.id,
-            is_upload: g.is_upload,
-            is_generation: g.is_generation,
-            name: g.generation_name || g.name
-        })));
-        console.log('Uploads in state:', uploads.map(u => ({
-            id: u.id,
-            is_upload: u.is_upload,
-            name: u.name
-        })));
-
         // Get assets based on active tab - COMPLETELY SEPARATE
         if (activeTab === 'uploads') {
-            // Only show items from uploads array
+            // Only show items from uploads array (already paginated)
             currentAssets = uploads || [];
         } else if (activeTab === 'favorites') {
-            // Combine favorites from both arrays
+            // Combine favorites from both arrays - use allUploads for favorites
             const favGenerations = (generations || []).filter(g => g.is_favorite);
-            const favUploads = (uploads || []).filter(u => u.is_favorite);
+            const favUploads = (allUploads || []).filter(u => u.is_favorite); // Use allUploads for complete favorites
             currentAssets = [...favGenerations, ...favUploads];
         } else if (activeTab === 'generations') {
             // Only show items from generations array
@@ -376,8 +390,6 @@ const AssetHistory = ({
             // Double-check: filter out anything that's NOT marked as upload
             currentAssets = currentAssets.filter(item => item.is_upload === true);
         }
-
-        console.log('Current assets after tab filter:', currentAssets.length, 'items');
 
         let filtered = [...currentAssets];
 
@@ -413,9 +425,8 @@ const AssetHistory = ({
             });
         }
 
-        console.log('Final filtered assets:', filtered.length, 'items');
         return filtered;
-    }, [activeTab, generations, uploads, searchQuery, filterType]);
+    }, [activeTab, generations, uploads, allUploads, searchQuery, filterType]);
 
     // Handle asset selection
     const handleSelect = () => {
@@ -443,6 +454,7 @@ const AssetHistory = ({
         setSelectedAsset(null);
         setSearchQuery('');
         setPage(1);
+        setUploadsPage(1);
         setActiveTab('generations');
         setFilterType(assetType);
         onClose();
@@ -451,9 +463,11 @@ const AssetHistory = ({
     // Toggle favorite status
     const toggleFavorite = async (assetId, currentStatus, isUpload = false) => {
         if (isUpload) {
-            // For uploads, we store favorites in localStorage or a separate table
-            // For now, just update local state
+            // For uploads, update both the paginated and full arrays
             setUploads(prev => prev.map(upload =>
+                upload.id === assetId ? { ...upload, is_favorite: !currentStatus } : upload
+            ));
+            setAllUploads(prev => prev.map(upload =>
                 upload.id === assetId ? { ...upload, is_favorite: !currentStatus } : upload
             ));
         } else {
@@ -564,9 +578,10 @@ const AssetHistory = ({
 
     // Tab change handler
     const handleTabChange = (newTab) => {
-        console.log('Switching to tab:', newTab);
-        console.log('Generations array has:', generations.length, 'items');
-        console.log('Uploads array has:', uploads.length, 'items');
+        // Don't allow switching to favorites if there are none
+        if (newTab === 'favorites' && !hasFavorites) {
+            return;
+        }
 
         setActiveTab(newTab);
         setSelectedAsset(null);
@@ -617,13 +632,18 @@ const AssetHistory = ({
                         )}
                         <button
                             onClick={() => handleTabChange('favorites')}
-                            className={`px-4 py-2 rounded-lg font-medium transition-all flex items-center space-x-2 ${activeTab === 'favorites'
-                                    ? 'bg-violet-500/30 text-white border border-violet-400'
-                                    : 'text-purple-300 hover:text-white hover:bg-white/10'
+                            disabled={!hasFavorites}
+                            className={`px-4 py-2 rounded-lg font-medium transition-all flex items-center space-x-2 ${!hasFavorites
+                                    ? 'text-gray-500 cursor-not-allowed opacity-50'
+                                    : activeTab === 'favorites'
+                                        ? 'bg-violet-500/30 text-white border border-violet-400'
+                                        : 'text-purple-300 hover:text-white hover:bg-white/10'
                                 }`}
+                            title={!hasFavorites ? 'No favorites yet. Star some content to see it here.' : 'View favorites'}
                         >
                             <Star className="w-4 h-4" />
                             <span>Favorites</span>
+                            {!hasFavorites && <span className="text-xs">(0)</span>}
                         </button>
                     </div>
 
@@ -845,7 +865,7 @@ const AssetHistory = ({
                                 </div>
                             )}
 
-                            {/* Load More - Only for generations tab */}
+                            {/* Load More buttons */}
                             {activeTab === 'generations' && hasMore && (
                                 <div className="flex justify-center mt-6">
                                     <button
@@ -860,10 +880,23 @@ const AssetHistory = ({
                                             </>
                                         ) : (
                                             <>
-                                                <span>Load More</span>
+                                                <span>Load More Generations</span>
                                                 <ChevronRight className="w-4 h-4" />
                                             </>
                                         )}
+                                    </button>
+                                </div>
+                            )}
+
+                            {activeTab === 'uploads' && hasMoreUploads && (
+                                <div className="flex justify-center mt-6">
+                                    <button
+                                        onClick={loadMoreUploads}
+                                        disabled={loading}
+                                        className="px-6 py-2 bg-violet-500 hover:bg-violet-600 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+                                    >
+                                        <span>Load More Uploads</span>
+                                        <ChevronRight className="w-4 h-4" />
                                     </button>
                                 </div>
                             )}
