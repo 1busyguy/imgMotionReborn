@@ -154,7 +154,7 @@ export const AI_TOOLS = {
     name: 'AI Video Upscaler',
     description: 'Enhance video quality with AI-powered upscaling',
     tokensRequired: 39,
-    category: 'enhancement'
+    category: 'video'
   },
   fal_ltxv: {
     name: 'LTXV Video Creator',
@@ -208,7 +208,7 @@ export const AI_TOOLS = {
     name: 'MMAudio Video2Audio',
     description: 'Generate synchronized audio for videos - perfect soundtracks that match your content',
     tokensRequired: 5, // Base cost, 0.625 tokens per second
-    category: 'audio'
+    category: 'video'
   },
   fal_flux_kontext_max_multi: {
     name: 'FLUX Kontext Max Multi',

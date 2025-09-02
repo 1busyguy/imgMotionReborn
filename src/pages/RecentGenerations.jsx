@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../hooks/useAuth';
@@ -88,31 +88,31 @@ const RecentGenerations = () => {
     }, []);
 
     useEffect(() => {
-        console.log('?? RecentGenerations - checking auth...');
+        console.log('🔎 RecentGenerations - checking auth...');
         console.log('User:', user ? { id: user.id, email: user.email } : 'null');
         console.log('Is Admin:', isAdmin);
 
         // Wait for auth to finish loading
         if (user === null && authLoading) {
-            console.log('? Still loading auth, waiting...');
+            console.log('⏳ Still loading auth, waiting...');
             return;
         }
 
         setAuthLoading(false);
 
         if (!user) {
-            console.log('? No user found, redirecting to login');
+            console.log('❌ No user found, redirecting to login');
             navigate('/login');
             return;
         }
 
         if (!isAdmin) {
-            console.log('? User is not admin, redirecting to dashboard');
+            console.log('❌ User is not admin, redirecting to dashboard');
             navigate('/dashboard');
             return;
         }
 
-        console.log('? Admin user verified, fetching recent generations...');
+        console.log('✅ Admin user verified, fetching recent generations...');
         fetchRecentGenerations();
     }, [user, isAdmin, navigate, authLoading]);
 
