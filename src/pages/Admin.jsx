@@ -1113,13 +1113,13 @@ const formatConfigValue = (key, value) => {
         if (activeSub) {
             return {
                 status: 'active',
-                plan: user.subscription_status || 'unknown',
+                plan: user.subscription_tier || user.subscription_status || 'unknown',
                 nextBilling: activeSub.current_period_end
             };
         }
         return {
-            status: user.subscription_status || 'free',
-            plan: 'free',
+            status: user.subscription_tier || user.subscription_status || 'free',
+            plan: user.subscription_tier || user.subscription_status || 'free',
             nextBilling: null
         };
     };
