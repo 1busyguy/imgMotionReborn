@@ -1109,17 +1109,23 @@ const formatConfigValue = (key, value) => {
     };
 
     const getSubscriptionStatus = (user) => {
+        // Check for active subscription first
         const activeSub = user.subscriptions?.find(sub => sub.status === 'active');
+
+        // Use subscription_tier from the profiles table
+        const tier = user.subscription_tier || 'free';
+
         if (activeSub) {
             return {
                 status: 'active',
-                plan: user.subscription_tier || user.subscription_status || 'unknown',
+                plan: tier, // Use subscription_tier here
                 nextBilling: activeSub.current_period_end
             };
         }
+
         return {
-            status: user.subscription_tier || user.subscription_status || 'free',
-            plan: user.subscription_tier || user.subscription_status || 'free',
+            status: tier === 'pro' ? 'active' : 'free',
+            plan: tier,
             nextBilling: null
         };
     };
