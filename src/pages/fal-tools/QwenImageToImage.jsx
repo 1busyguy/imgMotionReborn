@@ -855,8 +855,8 @@ const QwenImageToImage = () => {
                   </label>
                   <input
                     type="range"
-                    min="20"
-                    max="100"
+                    min="2"
+                    max="50"
                     value={config.num_inference_steps}
                     onChange={(e) => setConfig(prev => ({ ...prev, num_inference_steps: parseInt(e.target.value) }))}
                     className="w-full h-2 bg-white/20 rounded-lg appearance-none cursor-pointer slider"
