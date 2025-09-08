@@ -24,7 +24,8 @@ import {
   Minus,
   Wand2,
   Sparkles,
-  Brain
+  Brain,
+  ZoomIn
 } from 'lucide-react';
 
 const GeminFlashImageEdit = () => {
@@ -45,9 +46,6 @@ const GeminFlashImageEdit = () => {
   const [activeGenerations, setActiveGenerations] = useState([]);
   const [selectedGeneration, setSelectedGeneration] = useState(null);
   const [generating, setGenerating] = useState(false);
-  // Fullscreen image viewer states
-  const [expandedImageIndex, setExpandedImageIndex] = useState(null);
-  const [showExpandedImage, setShowExpandedImage] = useState(false);
   const [uploadingImages, setUploadingImages] = useState([]);
   const [showNSFWAlert, setShowNSFWAlert] = useState(false);
   const [nsfwError, setNsfwError] = useState(null);
@@ -61,12 +59,12 @@ const GeminFlashImageEdit = () => {
     message: ''
   });
 
-  // ============ NEW STATE FOR DESKTOP LIMIT & DETAIL MODAL ============
-  // Track if we're on desktop to limit generations display
+  // ============ STATE FOR DESKTOP LIMIT & MODALS ============
   const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 1024);
-  // State for showing generation detail modal
   const [showDetailModal, setShowDetailModal] = useState(false);
-  // ======================================================================
+  const [expandedImageIndex, setExpandedImageIndex] = useState(null);
+  const [showExpandedImage, setShowExpandedImage] = useState(false);
+  // ===========================================================
 
   // Edit suggestions for different types of edits
   const editSuggestions = [
@@ -129,10 +127,9 @@ const GeminFlashImageEdit = () => {
       console.log('✅ Real-time subscription set up for Gemini Flash Image Edit');
       return () => subscription.unsubscribe();
     }
-  }, [user, isDesktop]); // ============ ADDED isDesktop TO DEPENDENCIES ============
+  }, [user, isDesktop]); // Added isDesktop to dependencies
 
-  // ============ NEW USEEFFECT FOR WINDOW RESIZE ============
-  // Handle window resize to detect desktop/mobile changes
+  // ============ HANDLE WINDOW RESIZE ============
   useEffect(() => {
     const handleResize = () => {
       setIsDesktop(window.innerWidth >= 1024);
@@ -141,7 +138,7 @@ const GeminFlashImageEdit = () => {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
-  // ==========================================================
+  // ==============================================
 
   const fetchProfile = async () => {
     try {
@@ -160,10 +157,10 @@ const GeminFlashImageEdit = () => {
     }
   };
 
-  // ============ UPDATED fetchGenerations WITH RESPONSIVE LIMIT ============
+  // ============ RESPONSIVE FETCH GENERATIONS ============
   const fetchGenerations = async () => {
     try {
-      // Determine limit based on screen size: 2 for desktop, 10 for mobile/tablet
+      // Desktop: 2 items, Mobile/Tablet: 10 items
       const limit = isDesktop ? 2 : 10;
       
       const { data, error } = await supabase
@@ -172,7 +169,7 @@ const GeminFlashImageEdit = () => {
         .eq('user_id', user.id)
         .eq('tool_type', 'fal_gemini_flash_image_edit')
         .order('created_at', { ascending: false })
-        .limit(limit); // ============ DYNAMIC LIMIT BASED ON SCREEN SIZE ============
+        .limit(limit);
 
       if (error) throw error;
       setGenerations(data || []);
@@ -181,7 +178,7 @@ const GeminFlashImageEdit = () => {
       console.error('Error fetching generations:', error);
     }
   };
-  // =========================================================================
+  // ======================================================
 
   const handleRealtimeUpdate = (payload) => {
     const { eventType, new: newRecord, old: oldRecord } = payload;
@@ -246,8 +243,7 @@ const GeminFlashImageEdit = () => {
     }
   };
 
-  // ============ NEW HELPER FUNCTION FOR IMAGE URLS ============
-  // Helper function to get all image URLs from a generation's output
+  // ============ HELPER FUNCTION FOR IMAGE URLS ============
   const getAllImageUrls = (url) => {
     if (!url) return [];
     
@@ -264,7 +260,7 @@ const GeminFlashImageEdit = () => {
     
     return [url];
   };
-  // =============================================================
+  // =========================================================
 
   // Show themed alert
   const showAlert = (type, title, message, autoClose = true) => {
@@ -831,7 +827,6 @@ const GeminFlashImageEdit = () => {
 
               {/* Completed Generations */}
               <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6">
-                {/* ============ UPDATED HEADER WITH DESKTOP INDICATOR ============ */}
                 <div className="flex items-center justify-between mb-6">
                   <h3 className="text-lg font-semibold text-white">
                     Edited Images {isDesktop && generations.length > 0 && `(Showing latest 2)`}
@@ -843,7 +838,6 @@ const GeminFlashImageEdit = () => {
                     <RefreshCw className="w-4 h-4" />
                   </button>
                 </div>
-                {/* ================================================================ */}
 
                 {generations.length === 0 ? (
                   <div className="text-center py-12">
@@ -873,14 +867,12 @@ const GeminFlashImageEdit = () => {
                             </div>
                           </div>
 
-                          {/* ============ UPDATED IMAGE DISPLAY WITH CLICK HANDLER ============ */}
+                          {/* ============ CLICKABLE IMAGES ============ */}
                           {generation.output_file_url && generation.status === 'completed' && (
                             <div className="mb-4">
-                              {/* Handle multiple images */}
                               {(() => {
                                 let imageUrls = [];
                                 try {
-                                  // Check if output_file_url is a JSON array
                                   if (generation.output_file_url.startsWith('[')) {
                                     imageUrls = JSON.parse(generation.output_file_url);
                                   } else {
@@ -897,7 +889,6 @@ const GeminFlashImageEdit = () => {
                                         key={imgIndex} 
                                         className="relative group cursor-pointer"
                                         onClick={() => {
-                                          // Set selected generation and show detail modal
                                           setSelectedGeneration(generation);
                                           setShowDetailModal(true);
                                         }}
@@ -910,7 +901,7 @@ const GeminFlashImageEdit = () => {
                                         />
                                         <button
                                           onClick={(e) => {
-                                            e.stopPropagation(); // Prevent modal from opening
+                                            e.stopPropagation();
                                             handleDownload(imageUrl);
                                           }}
                                           className="absolute top-2 right-2 bg-black/50 hover:bg-black/70 text-white p-2 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
@@ -925,7 +916,7 @@ const GeminFlashImageEdit = () => {
                               })()}
                             </div>
                           )}
-                          {/* =================================================================== */}
+                          {/* =========================================== */}
 
                           {generation.status === 'processing' && (
                             <div className="mb-4 bg-gradient-to-br from-blue-500/20 to-purple-500/20 rounded-lg p-8 text-center">
@@ -1000,7 +991,7 @@ const GeminFlashImageEdit = () => {
                       </div>
                     ))}
 
-                    {/* ============ VIEW ALL LINK FOR DESKTOP USERS ============ */}
+                    {/* ============ VIEW ALL LINK FOR DESKTOP ============ */}
                     {isDesktop && generations.length >= 2 && (
                       <div className="mt-4 text-center">
                         <button
@@ -1011,7 +1002,7 @@ const GeminFlashImageEdit = () => {
                         </button>
                       </div>
                     )}
-                    {/* ========================================================== */}
+                    {/* ==================================================== */}
                   </div>
                 )}
               </div>
@@ -1020,7 +1011,7 @@ const GeminFlashImageEdit = () => {
         </div>
       </div>
 
-      {/* ============ NEW GENERATION DETAIL MODAL ============ */}
+      {/* ============ GENERATION DETAIL MODAL ============ */}
       {showDetailModal && selectedGeneration && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white/10 backdrop-blur-md rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto border border-white/20">
@@ -1035,7 +1026,7 @@ const GeminFlashImageEdit = () => {
                 </button>
               </div>
 
-              {/* Images Display */}
+              {/* Images Display - CLICKABLE */}
               {selectedGeneration.output_file_url && (
                 <div className="mb-6">
                   <h4 className="text-lg font-semibold text-white mb-3">
@@ -1043,12 +1034,20 @@ const GeminFlashImageEdit = () => {
                   </h4>
                   <div className="grid grid-cols-2 gap-4">
                     {getAllImageUrls(selectedGeneration.output_file_url).map((url, index) => (
-                      <img
+                      <div
                         key={index}
-                        src={toCdnUrl(url)}
-                        alt={`${selectedGeneration.generation_name} - Image ${index + 1}`}
-                        className="w-full rounded-lg"
-                      />
+                        className="cursor-pointer hover:opacity-80 transition-opacity"
+                        onClick={() => {
+                          setExpandedImageIndex(index);
+                          setShowExpandedImage(true);
+                        }}
+                      >
+                        <img
+                          src={toCdnUrl(url)}
+                          alt={`${selectedGeneration.generation_name} - Image ${index + 1}`}
+                          className="w-full rounded-lg"
+                        />
+                      </div>
                     ))}
                   </div>
                 </div>
@@ -1080,14 +1079,6 @@ const GeminFlashImageEdit = () => {
                         {new Date(selectedGeneration.created_at).toLocaleString()}
                       </span>
                     </div>
-                    {selectedGeneration.completed_at && (
-                      <div className="flex justify-between">
-                        <span className="text-purple-200">Completed:</span>
-                        <span className="text-white text-right">
-                          {new Date(selectedGeneration.completed_at).toLocaleString()}
-                        </span>
-                      </div>
-                    )}
                   </div>
                 </div>
 
@@ -1118,10 +1109,8 @@ const GeminFlashImageEdit = () => {
                 {selectedGeneration.output_file_url && (
                   <button
                     onClick={() => {
-                      // Handle multiple images download
                       const imageUrls = getAllImageUrls(selectedGeneration.output_file_url);
                       if (imageUrls.length > 1) {
-                        // Download each image with a small delay
                         imageUrls.forEach((url, index) => {
                           setTimeout(() => handleDownload(url), index * 500);
                         });
@@ -1146,9 +1135,9 @@ const GeminFlashImageEdit = () => {
           </div>
         </div>
       )}
-      {/* ====================================================== */}
+      {/* ================================================== */}
 
-      {/* ============ FULLSCREEN IMAGE VIEWER MODAL ============ */}
+      {/* ============ FULLSCREEN IMAGE VIEWER ============ */}
       {showExpandedImage && selectedGeneration && expandedImageIndex !== null && (
         <div className="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
           <div className="relative max-w-7xl w-full max-h-[95vh] flex items-center justify-center">
@@ -1175,7 +1164,7 @@ const GeminFlashImageEdit = () => {
               <span>Download</span>
             </button>
 
-            {/* Navigation Arrows (if multiple images) */}
+            {/* Navigation Arrows */}
             {getAllImageUrls(selectedGeneration.output_file_url).length > 1 && (
               <>
                 <button
@@ -1207,7 +1196,7 @@ const GeminFlashImageEdit = () => {
               className="max-w-full max-h-full object-contain rounded-lg"
             />
 
-            {/* Bottom Navigation with Counter */}
+            {/* Bottom Navigation with Arrows */}
             {getAllImageUrls(selectedGeneration.output_file_url).length > 1 && (
               <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex items-center space-x-2 bg-black/70 px-3 py-2 rounded-full">
                 <button
@@ -1216,7 +1205,6 @@ const GeminFlashImageEdit = () => {
                     setExpandedImageIndex((expandedImageIndex - 1 + imageUrls.length) % imageUrls.length);
                   }}
                   className="w-8 h-8 flex items-center justify-center text-white hover:bg-white/20 rounded-full transition-colors"
-                  aria-label="Previous image"
                 >
                   <ArrowLeft className="w-5 h-5" />
                 </button>
@@ -1231,7 +1219,6 @@ const GeminFlashImageEdit = () => {
                     setExpandedImageIndex((expandedImageIndex + 1) % imageUrls.length);
                   }}
                   className="w-8 h-8 flex items-center justify-center text-white hover:bg-white/20 rounded-full transition-colors"
-                  aria-label="Next image"
                 >
                   <ArrowLeft className="w-5 h-5 rotate-180" />
                 </button>
@@ -1240,7 +1227,7 @@ const GeminFlashImageEdit = () => {
           </div>
         </div>
       )}
-      {/* ======================================================== */}
+      {/* ================================================= */}
 
       {/* NSFW Alert Modal */}
       <NSFWAlert
