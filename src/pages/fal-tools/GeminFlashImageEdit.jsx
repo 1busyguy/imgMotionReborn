@@ -83,7 +83,6 @@ const GeminFlashImageEdit = () => {
     if (user) {
       fetchProfile();
       fetchGenerations();
-      fetchAllUniqueTools();
       
       console.log('🔗 Setting up real-time subscription for user:', user.id);
       
