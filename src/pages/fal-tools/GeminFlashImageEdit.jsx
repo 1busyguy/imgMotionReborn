@@ -41,8 +41,6 @@ const GeminFlashImageEdit = () => {
   });
   
   // Generation state
-  const [expandedImageIndex, setExpandedImageIndex] = useState(null);
-  const [showExpandedImage, setShowExpandedImage] = useState(false);
   const [generations, setGenerations] = useState([]);
   const [activeGenerations, setActiveGenerations] = useState([]);
   const [selectedGeneration, setSelectedGeneration] = useState(null);
