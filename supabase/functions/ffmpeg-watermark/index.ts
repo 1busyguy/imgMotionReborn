@@ -26,7 +26,7 @@ serve(async (req) => {
       watermarkPosition = 'bottom-right',
       watermarkOpacity = 0.7,
       watermarkScale = 0.15,
-      watermarkText = 'imgMotionMagic.com'
+      watermarkText = 'imgMotion.com'
     } = await req.json();
 
     console.log('🎨 Watermark application request:', {
