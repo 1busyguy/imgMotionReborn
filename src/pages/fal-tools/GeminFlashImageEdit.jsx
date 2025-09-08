@@ -58,6 +58,13 @@ const GeminFlashImageEdit = () => {
     message: ''
   });
 
+  // ============ NEW STATE FOR DESKTOP LIMIT & DETAIL MODAL ============
+  // Track if we're on desktop to limit generations display
+  const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 1024);
+  // State for showing generation detail modal
+  const [showDetailModal, setShowDetailModal] = useState(false);
+  // ======================================================================
+
   // Edit suggestions for different types of edits
   const editSuggestions = [
     "Change the background to a sunset beach scene",
@@ -76,6 +83,7 @@ const GeminFlashImageEdit = () => {
     if (user) {
       fetchProfile();
       fetchGenerations();
+      fetchAllUniqueTools();
       
       console.log('🔗 Setting up real-time subscription for user:', user.id);
       
@@ -119,7 +127,19 @@ const GeminFlashImageEdit = () => {
       console.log('✅ Real-time subscription set up for Gemini Flash Image Edit');
       return () => subscription.unsubscribe();
     }
-  }, [user]);
+  }, [user, isDesktop]); // ============ ADDED isDesktop TO DEPENDENCIES ============
+
+  // ============ NEW USEEFFECT FOR WINDOW RESIZE ============
+  // Handle window resize to detect desktop/mobile changes
+  useEffect(() => {
+    const handleResize = () => {
+      setIsDesktop(window.innerWidth >= 1024);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+  // ==========================================================
 
   const fetchProfile = async () => {
     try {
@@ -138,15 +158,19 @@ const GeminFlashImageEdit = () => {
     }
   };
 
+  // ============ UPDATED fetchGenerations WITH RESPONSIVE LIMIT ============
   const fetchGenerations = async () => {
     try {
+      // Determine limit based on screen size: 2 for desktop, 10 for mobile/tablet
+      const limit = isDesktop ? 2 : 10;
+      
       const { data, error } = await supabase
         .from('ai_generations')
         .select('*')
         .eq('user_id', user.id)
         .eq('tool_type', 'fal_gemini_flash_image_edit')
         .order('created_at', { ascending: false })
-        .limit(20);
+        .limit(limit); // ============ DYNAMIC LIMIT BASED ON SCREEN SIZE ============
 
       if (error) throw error;
       setGenerations(data || []);
@@ -155,6 +179,7 @@ const GeminFlashImageEdit = () => {
       console.error('Error fetching generations:', error);
     }
   };
+  // =========================================================================
 
   const handleRealtimeUpdate = (payload) => {
     const { eventType, new: newRecord, old: oldRecord } = payload;
@@ -218,6 +243,26 @@ const GeminFlashImageEdit = () => {
       }
     }
   };
+
+  // ============ NEW HELPER FUNCTION FOR IMAGE URLS ============
+  // Helper function to get all image URLs from a generation's output
+  const getAllImageUrls = (url) => {
+    if (!url) return [];
+    
+    // Handle JSON array format (multiple images)
+    if (typeof url === 'string' && url.startsWith('[')) {
+      try {
+        const urlArray = JSON.parse(url);
+        return Array.isArray(urlArray) ? urlArray : [url];
+      } catch (error) {
+        console.warn('Failed to parse image URL array:', error);
+        return [url];
+      }
+    }
+    
+    return [url];
+  };
+  // =============================================================
 
   // Show themed alert
   const showAlert = (type, title, message, autoClose = true) => {
@@ -784,8 +829,11 @@ const GeminFlashImageEdit = () => {
 
               {/* Completed Generations */}
               <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6">
+                {/* ============ UPDATED HEADER WITH DESKTOP INDICATOR ============ */}
                 <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-lg font-semibold text-white">Edited Images</h3>
+                  <h3 className="text-lg font-semibold text-white">
+                    Edited Images {isDesktop && generations.length > 0 && `(Showing latest 2)`}
+                  </h3>
                   <button
                     onClick={fetchGenerations}
                     className="text-purple-400 hover:text-purple-300 transition-colors"
@@ -793,6 +841,7 @@ const GeminFlashImageEdit = () => {
                     <RefreshCw className="w-4 h-4" />
                   </button>
                 </div>
+                {/* ================================================================ */}
 
                 {generations.length === 0 ? (
                   <div className="text-center py-12">
@@ -822,6 +871,7 @@ const GeminFlashImageEdit = () => {
                             </div>
                           </div>
 
+                          {/* ============ UPDATED IMAGE DISPLAY WITH CLICK HANDLER ============ */}
                           {generation.output_file_url && generation.status === 'completed' && (
                             <div className="mb-4">
                               {/* Handle multiple images */}
@@ -841,15 +891,26 @@ const GeminFlashImageEdit = () => {
                                 return (
                                   <div className="grid grid-cols-2 gap-4">
                                     {imageUrls.map((imageUrl, imgIndex) => (
-                                      <div key={imgIndex} className="relative group">
+                                      <div 
+                                        key={imgIndex} 
+                                        className="relative group cursor-pointer"
+                                        onClick={() => {
+                                          // Set selected generation and show detail modal
+                                          setSelectedGeneration(generation);
+                                          setShowDetailModal(true);
+                                        }}
+                                      >
                                         <img
                                           src={toCdnUrl(imageUrl)}
                                           alt={`Edited ${imgIndex + 1}`}
-                                          className="w-full rounded-lg"
+                                          className="w-full rounded-lg hover:opacity-90 transition-opacity"
                                           loading="lazy"
                                         />
                                         <button
-                                          onClick={() => handleDownload(imageUrl)}
+                                          onClick={(e) => {
+                                            e.stopPropagation(); // Prevent modal from opening
+                                            handleDownload(imageUrl);
+                                          }}
                                           className="absolute top-2 right-2 bg-black/50 hover:bg-black/70 text-white p-2 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
                                           title="Download image"
                                         >
@@ -862,6 +923,7 @@ const GeminFlashImageEdit = () => {
                               })()}
                             </div>
                           )}
+                          {/* =================================================================== */}
 
                           {generation.status === 'processing' && (
                             <div className="mb-4 bg-gradient-to-br from-blue-500/20 to-purple-500/20 rounded-lg p-8 text-center">
@@ -935,6 +997,19 @@ const GeminFlashImageEdit = () => {
                         </div>
                       </div>
                     ))}
+
+                    {/* ============ VIEW ALL LINK FOR DESKTOP USERS ============ */}
+                    {isDesktop && generations.length >= 2 && (
+                      <div className="mt-4 text-center">
+                        <button
+                          onClick={() => navigate('/gallery')}
+                          className="text-purple-400 hover:text-purple-300 transition-colors text-sm font-medium"
+                        >
+                          View all edited images in Gallery →
+                        </button>
+                      </div>
+                    )}
+                    {/* ========================================================== */}
                   </div>
                 )}
               </div>
@@ -942,6 +1017,134 @@ const GeminFlashImageEdit = () => {
           </div>
         </div>
       </div>
+
+      {/* ============ NEW GENERATION DETAIL MODAL ============ */}
+      {showDetailModal && selectedGeneration && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white/10 backdrop-blur-md rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto border border-white/20">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-bold text-white">{selectedGeneration.generation_name}</h3>
+                <button
+                  onClick={() => setShowDetailModal(false)}
+                  className="text-purple-400 hover:text-purple-300 transition-colors"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+
+              {/* Images Display */}
+              {selectedGeneration.output_file_url && (
+                <div className="mb-6">
+                  <h4 className="text-lg font-semibold text-white mb-3">
+                    Generated Images ({getAllImageUrls(selectedGeneration.output_file_url).length})
+                  </h4>
+                  <div className="grid grid-cols-2 gap-4">
+                    {getAllImageUrls(selectedGeneration.output_file_url).map((url, index) => (
+                      <img
+                        key={index}
+                        src={toCdnUrl(url)}
+                        alt={`${selectedGeneration.generation_name} - Image ${index + 1}`}
+                        className="w-full rounded-lg"
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Generation Details */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Details Card */}
+                <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                  <h4 className="text-lg font-semibold text-white mb-3">Generation Details</h4>
+                  <div className="space-y-3 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-purple-200">Status:</span>
+                      <span className={`px-2 py-1 rounded text-xs border ${getStatusColor(selectedGeneration.status)}`}>
+                        {selectedGeneration.status}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-purple-200">Tool:</span>
+                      <span className="text-white">Gemini 2.5 Flash</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-purple-200">Tokens Used:</span>
+                      <span className="text-white">{selectedGeneration.tokens_used}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-purple-200">Created:</span>
+                      <span className="text-white text-right">
+                        {new Date(selectedGeneration.created_at).toLocaleString()}
+                      </span>
+                    </div>
+                    {selectedGeneration.completed_at && (
+                      <div className="flex justify-between">
+                        <span className="text-purple-200">Completed:</span>
+                        <span className="text-white text-right">
+                          {new Date(selectedGeneration.completed_at).toLocaleString()}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Configuration Card */}
+                <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                  <h4 className="text-lg font-semibold text-white mb-3">Configuration</h4>
+                  <div className="space-y-3 text-sm">
+                    <div>
+                      <span className="text-purple-200">Edit Prompt:</span>
+                      <p className="text-white mt-1 bg-black/20 rounded p-2">
+                        {selectedGeneration.input_data?.prompt}
+                      </p>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-purple-200">Source Images:</span>
+                      <span className="text-white">{selectedGeneration.input_data?.imageUrls?.length || 0}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-purple-200">Generated:</span>
+                      <span className="text-white">{selectedGeneration.input_data?.numImages}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex justify-end gap-3 mt-6">
+                {selectedGeneration.output_file_url && (
+                  <button
+                    onClick={() => {
+                      // Handle multiple images download
+                      const imageUrls = getAllImageUrls(selectedGeneration.output_file_url);
+                      if (imageUrls.length > 1) {
+                        // Download each image with a small delay
+                        imageUrls.forEach((url, index) => {
+                          setTimeout(() => handleDownload(url), index * 500);
+                        });
+                      } else {
+                        handleDownload(selectedGeneration.output_file_url);
+                      }
+                    }}
+                    className="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors flex items-center space-x-2"
+                  >
+                    <Download className="w-4 h-4" />
+                    <span>Download All</span>
+                  </button>
+                )}
+                <button
+                  onClick={() => setShowDetailModal(false)}
+                  className="bg-white/10 hover:bg-white/20 text-white font-semibold py-2 px-4 rounded-lg transition-colors"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* ====================================================== */}
 
       {/* NSFW Alert Modal */}
       <NSFWAlert
