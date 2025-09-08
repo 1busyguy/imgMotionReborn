@@ -794,7 +794,7 @@ const GeminFlashImageEdit = () => {
                   </button>
                 </div>
 
-                {generations.length > 2 && window.innerWidth >= 1024 && (
+                {generations.length === 0 ? (
                   <div className="text-center py-12">
                     <Brain className="w-16 h-16 text-purple-300 mx-auto mb-4 opacity-50" />
                     <p className="text-purple-200 text-lg">No images edited yet</p>
