@@ -1145,6 +1145,100 @@ const GeminFlashImageEdit = () => {
       )}
       {/* ====================================================== */}
 
+      {/* ============ FULLSCREEN IMAGE VIEWER MODAL ============ */}
+      {showExpandedImage && selectedGeneration && expandedImageIndex !== null && (
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
+          <div className="relative max-w-7xl w-full max-h-[95vh] flex items-center justify-center">
+            {/* Close Button */}
+            <button
+              onClick={() => {
+                setShowExpandedImage(false);
+                setExpandedImageIndex(null);
+              }}
+              className="absolute top-4 right-4 z-10 w-12 h-12 bg-black/50 hover:bg-black/70 text-white rounded-full flex items-center justify-center transition-colors"
+            >
+              <X className="w-6 h-6" />
+            </button>
+
+            {/* Download Button */}
+            <button
+              onClick={() => {
+                const imageUrls = getAllImageUrls(selectedGeneration.output_file_url);
+                handleDownload(imageUrls[expandedImageIndex]);
+              }}
+              className="absolute top-4 left-4 z-10 bg-green-500/80 hover:bg-green-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors"
+            >
+              <Download className="w-5 h-5" />
+              <span>Download</span>
+            </button>
+
+            {/* Navigation Arrows (if multiple images) */}
+            {getAllImageUrls(selectedGeneration.output_file_url).length > 1 && (
+              <>
+                <button
+                  onClick={() => {
+                    const imageUrls = getAllImageUrls(selectedGeneration.output_file_url);
+                    setExpandedImageIndex((expandedImageIndex - 1 + imageUrls.length) % imageUrls.length);
+                  }}
+                  className="absolute left-4 top-1/2 transform -translate-y-1/2 z-10 w-12 h-12 bg-black/50 hover:bg-black/70 text-white rounded-full flex items-center justify-center transition-colors"
+                >
+                  <ArrowLeft className="w-6 h-6" />
+                </button>
+                
+                <button
+                  onClick={() => {
+                    const imageUrls = getAllImageUrls(selectedGeneration.output_file_url);
+                    setExpandedImageIndex((expandedImageIndex + 1) % imageUrls.length);
+                  }}
+                  className="absolute right-4 top-1/2 transform -translate-y-1/2 z-10 w-12 h-12 bg-black/50 hover:bg-black/70 text-white rounded-full flex items-center justify-center transition-colors"
+                >
+                  <ArrowLeft className="w-6 h-6 rotate-180" />
+                </button>
+              </>
+            )}
+
+            {/* Expanded Image */}
+            <img
+              src={toCdnUrl(getAllImageUrls(selectedGeneration.output_file_url)[expandedImageIndex])}
+              alt={`${selectedGeneration.generation_name} - Image ${expandedImageIndex + 1}`}
+              className="max-w-full max-h-full object-contain rounded-lg"
+            />
+
+            {/* Bottom Navigation with Counter */}
+            {getAllImageUrls(selectedGeneration.output_file_url).length > 1 && (
+              <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex items-center space-x-2 bg-black/70 px-3 py-2 rounded-full">
+                <button
+                  onClick={() => {
+                    const imageUrls = getAllImageUrls(selectedGeneration.output_file_url);
+                    setExpandedImageIndex((expandedImageIndex - 1 + imageUrls.length) % imageUrls.length);
+                  }}
+                  className="w-8 h-8 flex items-center justify-center text-white hover:bg-white/20 rounded-full transition-colors"
+                  aria-label="Previous image"
+                >
+                  <ArrowLeft className="w-5 h-5" />
+                </button>
+                
+                <span className="text-white text-sm font-medium px-2">
+                  {expandedImageIndex + 1} of {getAllImageUrls(selectedGeneration.output_file_url).length}
+                </span>
+                
+                <button
+                  onClick={() => {
+                    const imageUrls = getAllImageUrls(selectedGeneration.output_file_url);
+                    setExpandedImageIndex((expandedImageIndex + 1) % imageUrls.length);
+                  }}
+                  className="w-8 h-8 flex items-center justify-center text-white hover:bg-white/20 rounded-full transition-colors"
+                  aria-label="Next image"
+                >
+                  <ArrowLeft className="w-5 h-5 rotate-180" />
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+      {/* ======================================================== */}
+
       {/* NSFW Alert Modal */}
       <NSFWAlert
         isOpen={showNSFWAlert}
