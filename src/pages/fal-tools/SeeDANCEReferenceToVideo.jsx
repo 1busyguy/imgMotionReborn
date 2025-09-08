@@ -12,7 +12,7 @@ import ThemedAlert from '../../components/ThemedAlert';
 import {
     ArrowLeft,
     Zap,
-    Image as ImageIcon,
+    Image,
     Upload,
     Download,
     Trash2,
@@ -26,7 +26,8 @@ import {
     Clock,
     Camera,
     Sparkles,
-    Film
+    Film,
+    Maximize2
 } from 'lucide-react';
 
 const SeeDANCEReferenceToVideo = () => {
@@ -63,6 +64,12 @@ const SeeDANCEReferenceToVideo = () => {
         title: '',
         message: ''
     });
+
+    // ============ STATE FOR DESKTOP LIMIT & MODALS ============
+    const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 1024);
+    const [showDetailModal, setShowDetailModal] = useState(false);
+    const [showFullscreenVideo, setShowFullscreenVideo] = useState(false);
+    // ===========================================================
 
     // Video generation prompt suggestions
     const promptSuggestions = [
@@ -125,7 +132,18 @@ const SeeDANCEReferenceToVideo = () => {
             console.log('✅ Real-time subscription set up for SeeDANCE Reference-to-Video');
             return () => subscription.unsubscribe();
         }
-    }, [user]);
+    }, [user, isDesktop]); // Added isDesktop to dependencies
+
+    // ============ HANDLE WINDOW RESIZE ============
+    useEffect(() => {
+        const handleResize = () => {
+            setIsDesktop(window.innerWidth >= 1024);
+        };
+
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+    // ==============================================
 
     const fetchProfile = async () => {
         try {
@@ -144,15 +162,19 @@ const SeeDANCEReferenceToVideo = () => {
         }
     };
 
+    // ============ RESPONSIVE FETCH GENERATIONS ============
     const fetchGenerations = async () => {
         try {
+            // Desktop: 2 items, Mobile/Tablet: 10 items
+            const limit = isDesktop ? 2 : 10;
+            
             const { data, error } = await supabase
                 .from('ai_generations')
                 .select('*')
                 .eq('user_id', user.id)
                 .eq('tool_type', 'fal_seedance_reference_to_video')
                 .order('created_at', { ascending: false })
-                .limit(20);
+                .limit(limit);
 
             if (error) throw error;
             setGenerations(data || []);
@@ -161,6 +183,7 @@ const SeeDANCEReferenceToVideo = () => {
             console.error('Error fetching generations:', error);
         }
     };
+    // ======================================================
 
     const handleRealtimeUpdate = (payload) => {
         const { eventType, new: newRecord, old: oldRecord } = payload;
@@ -267,7 +290,7 @@ const SeeDANCEReferenceToVideo = () => {
         }
 
         // Check image dimensions
-        const img = new Image();
+        const img = new window.Image();
         const objectUrl = URL.createObjectURL(file);
 
         await new Promise((resolve, reject) => {
@@ -303,8 +326,6 @@ const SeeDANCEReferenceToVideo = () => {
         });
 
         try {
-            // Upload to user-specific folder using the storageHelpers uploadFile function
-            // This will automatically save to: user-files/{user_id}/seedance-reference-images/{timestamp}.{ext}
             const { url } = await uploadFile(file, 'seedance-reference-images');
 
             setConfig(prev => {
@@ -632,7 +653,7 @@ const SeeDANCEReferenceToVideo = () => {
                                 {/* Reference Images */}
                                 <div>
                                     <label className="block text-sm font-medium text-purple-200 mb-2">
-                                        <ImageIcon className="w-4 h-4 inline mr-1" />
+                                        <Image className="w-4 h-4 inline mr-1" />
                                         Reference Images * (Max 4)
                                     </label>
 
@@ -904,7 +925,9 @@ const SeeDANCEReferenceToVideo = () => {
                             {/* Completed Generations */}
                             <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6">
                                 <div className="flex items-center justify-between mb-6">
-                                    <h3 className="text-lg font-semibold text-white">Generated Videos</h3>
+                                    <h3 className="text-lg font-semibold text-white">
+                                        Generated Videos {isDesktop && generations.length > 0 && `(Showing latest 2)`}
+                                    </h3>
                                     <button
                                         onClick={fetchGenerations}
                                         className="text-purple-400 hover:text-purple-300 transition-colors"
@@ -941,18 +964,49 @@ const SeeDANCEReferenceToVideo = () => {
                                                         </div>
                                                     </div>
 
+                                                    {/* ============ CLICKABLE VIDEO ============ */}
                                                     {generation.output_file_url && generation.status === 'completed' && (
-                                                        <div className="mb-4">
+                                                        <div className="mb-4 relative group cursor-pointer"
+                                                            onClick={() => {
+                                                                setSelectedGeneration(generation);
+                                                                setShowDetailModal(true);
+                                                            }}
+                                                        >
                                                             <video
-                                                                controls
-                                                                className="w-full rounded-lg bg-black"
+                                                                className="w-full rounded-lg bg-black hover:opacity-90 transition-opacity"
                                                                 poster={generation.input_data?.referenceImageUrls?.[0]}
                                                             >
                                                                 <source src={toCdnUrl(generation.output_file_url)} type="video/mp4" />
-                                                                Your browser does not support the video tag.
                                                             </video>
+                                                            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                                                <div className="bg-black/50 rounded-full p-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                                    <Play className="w-8 h-8 text-white" />
+                                                                </div>
+                                                            </div>
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    handleDownload(generation.output_file_url);
+                                                                }}
+                                                                className="absolute top-2 right-2 bg-black/50 hover:bg-black/70 text-white p-2 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                                                                title="Download video"
+                                                            >
+                                                                <Download className="w-4 h-4" />
+                                                            </button>
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setSelectedGeneration(generation);
+                                                                    setShowFullscreenVideo(true);
+                                                                }}
+                                                                className="absolute bottom-2 right-2 bg-black/50 hover:bg-black/70 text-white p-2 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                                                                title="Fullscreen"
+                                                            >
+                                                                <Maximize2 className="w-4 h-4" />
+                                                            </button>
                                                         </div>
                                                     )}
+                                                    {/* =========================================== */}
 
                                                     {generation.status === 'processing' && (
                                                         <div className="mb-4 bg-gradient-to-br from-pink-500/20 to-purple-500/20 rounded-lg p-8 text-center">
@@ -1031,6 +1085,19 @@ const SeeDANCEReferenceToVideo = () => {
                                                 </div>
                                             </div>
                                         ))}
+
+                                        {/* ============ VIEW ALL LINK FOR DESKTOP ============ */}
+                                        {isDesktop && generations.length >= 2 && (
+                                            <div className="mt-4 text-center">
+                                                <button
+                                                    onClick={() => navigate('/gallery')}
+                                                    className="text-purple-400 hover:text-purple-300 transition-colors text-sm font-medium"
+                                                >
+                                                    View all generated videos in Gallery →
+                                                </button>
+                                            </div>
+                                        )}
+                                        {/* ==================================================== */}
                                     </div>
                                 )}
                             </div>
@@ -1038,6 +1105,190 @@ const SeeDANCEReferenceToVideo = () => {
                     </div>
                 </div>
             </div>
+
+            {/* ============ GENERATION DETAIL MODAL ============ */}
+            {showDetailModal && selectedGeneration && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                    <div className="bg-white/10 backdrop-blur-md rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto border border-white/20">
+                        <div className="p-6">
+                            <div className="flex items-center justify-between mb-6">
+                                <h3 className="text-xl font-bold text-white">{selectedGeneration.generation_name}</h3>
+                                <button
+                                    onClick={() => setShowDetailModal(false)}
+                                    className="text-purple-400 hover:text-purple-300 transition-colors"
+                                >
+                                    <X className="w-6 h-6" />
+                                </button>
+                            </div>
+
+                            {/* Video Display - CLICKABLE */}
+                            {selectedGeneration.output_file_url && (
+                                <div className="mb-6">
+                                    <h4 className="text-lg font-semibold text-white mb-3">Generated Video</h4>
+                                    <div
+                                        className="relative cursor-pointer hover:opacity-90 transition-opacity group"
+                                        onClick={() => {
+                                            setShowFullscreenVideo(true);
+                                        }}
+                                    >
+                                        <video
+                                            controls
+                                            className="w-full rounded-lg bg-black"
+                                            poster={selectedGeneration.input_data?.referenceImageUrls?.[0]}
+                                        >
+                                            <source src={toCdnUrl(selectedGeneration.output_file_url)} type="video/mp4" />
+                                            Your browser does not support the video tag.
+                                        </video>
+                                        <button
+                                            className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-black/50 rounded-full p-4 opacity-0 group-hover:opacity-100 transition-opacity"
+                                        >
+                                            <Maximize2 className="w-6 h-6 text-white" />
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Reference Images */}
+                            {selectedGeneration.input_data?.referenceImageUrls && (
+                                <div className="mb-6">
+                                    <h4 className="text-lg font-semibold text-white mb-3">Reference Images</h4>
+                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                        {selectedGeneration.input_data.referenceImageUrls.map((url, index) => (
+                                            <img
+                                                key={index}
+                                                src={url}
+                                                alt={`Reference ${index + 1}`}
+                                                className="w-full rounded-lg"
+                                            />
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Generation Details */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {/* Details Card */}
+                                <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                                    <h4 className="text-lg font-semibold text-white mb-3">Generation Details</h4>
+                                    <div className="space-y-3 text-sm">
+                                        <div className="flex justify-between">
+                                            <span className="text-purple-200">Status:</span>
+                                            <span className={`px-2 py-1 rounded text-xs border ${getStatusColor(selectedGeneration.status)}`}>
+                                                {selectedGeneration.status}
+                                            </span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-purple-200">Tool:</span>
+                                            <span className="text-white">SeeDANCE</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-purple-200">Tokens Used:</span>
+                                            <span className="text-white">{selectedGeneration.tokens_used}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-purple-200">Created:</span>
+                                            <span className="text-white text-right">
+                                                {new Date(selectedGeneration.created_at).toLocaleString()}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Configuration Card */}
+                                <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                                    <h4 className="text-lg font-semibold text-white mb-3">Configuration</h4>
+                                    <div className="space-y-3 text-sm">
+                                        <div>
+                                            <span className="text-purple-200">Prompt:</span>
+                                            <p className="text-white mt-1 bg-black/20 rounded p-2">
+                                                {selectedGeneration.input_data?.prompt}
+                                            </p>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div>
+                                                <span className="text-purple-200">Duration:</span>
+                                                <p className="text-white">{selectedGeneration.input_data?.duration}s</p>
+                                            </div>
+                                            <div>
+                                                <span className="text-purple-200">Resolution:</span>
+                                                <p className="text-white">{selectedGeneration.input_data?.resolution}</p>
+                                            </div>
+                                            <div>
+                                                <span className="text-purple-200">Camera:</span>
+                                                <p className="text-white">{selectedGeneration.input_data?.cameraFixed ? 'Fixed' : 'Dynamic'}</p>
+                                            </div>
+                                            {selectedGeneration.metadata?.seed && (
+                                                <div>
+                                                    <span className="text-purple-200">Seed:</span>
+                                                    <p className="text-white">{selectedGeneration.metadata.seed}</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Actions */}
+                            <div className="flex justify-end gap-3 mt-6">
+                                {selectedGeneration.output_file_url && (
+                                    <button
+                                        onClick={() => handleDownload(selectedGeneration.output_file_url)}
+                                        className="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors flex items-center space-x-2"
+                                    >
+                                        <Download className="w-4 h-4" />
+                                        <span>Download Video</span>
+                                    </button>
+                                )}
+                                <button
+                                    onClick={() => setShowDetailModal(false)}
+                                    className="bg-white/10 hover:bg-white/20 text-white font-semibold py-2 px-4 rounded-lg transition-colors"
+                                >
+                                    Close
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {/* ================================================== */}
+
+            {/* ============ FULLSCREEN VIDEO VIEWER ============ */}
+            {showFullscreenVideo && selectedGeneration && (
+                <div className="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
+                    <div className="relative max-w-7xl w-full max-h-[95vh] flex items-center justify-center">
+                        {/* Close Button */}
+                        <button
+                            onClick={() => {
+                                setShowFullscreenVideo(false);
+                            }}
+                            className="absolute top-4 right-4 z-10 w-12 h-12 bg-black/50 hover:bg-black/70 text-white rounded-full flex items-center justify-center transition-colors"
+                        >
+                            <X className="w-6 h-6" />
+                        </button>
+
+                        {/* Download Button */}
+                        <button
+                            onClick={() => handleDownload(selectedGeneration.output_file_url)}
+                            className="absolute top-4 left-4 z-10 bg-green-500/80 hover:bg-green-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors"
+                        >
+                            <Download className="w-5 h-5" />
+                            <span>Download</span>
+                        </button>
+
+                        {/* Fullscreen Video */}
+                        <video
+                            controls
+                            autoPlay
+                            className="max-w-full max-h-full rounded-lg"
+                            poster={selectedGeneration.input_data?.referenceImageUrls?.[0]}
+                        >
+                            <source src={toCdnUrl(selectedGeneration.output_file_url)} type="video/mp4" />
+                            Your browser does not support the video tag.
+                        </video>
+                    </div>
+                </div>
+            )}
+            {/* ================================================= */}
 
             {/* NSFW Alert Modal */}
             <NSFWAlert
