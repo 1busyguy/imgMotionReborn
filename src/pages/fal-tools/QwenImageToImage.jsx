@@ -46,7 +46,7 @@ const QwenImageToImage = () => {
     negative_prompt: '',
     image_url: '',
     strength: 0.8,
-    image_size: 'portrait_9_16',
+    image_size: 'portrait_16_9',
     num_inference_steps: 77,
     guidance_scale: 3.5,
     num_images: 1,
@@ -855,8 +855,8 @@ const QwenImageToImage = () => {
                   </label>
                   <input
                     type="range"
-                    min="2"
-                    max="50"
+                    min="20"
+                    max="100"
                     value={config.num_inference_steps}
                     onChange={(e) => setConfig(prev => ({ ...prev, num_inference_steps: parseInt(e.target.value) }))}
                     className="w-full h-2 bg-white/20 rounded-lg appearance-none cursor-pointer slider"
