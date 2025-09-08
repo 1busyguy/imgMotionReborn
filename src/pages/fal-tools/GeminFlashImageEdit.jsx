@@ -45,6 +45,9 @@ const GeminFlashImageEdit = () => {
   const [activeGenerations, setActiveGenerations] = useState([]);
   const [selectedGeneration, setSelectedGeneration] = useState(null);
   const [generating, setGenerating] = useState(false);
+  // Fullscreen image viewer states
+  const [expandedImageIndex, setExpandedImageIndex] = useState(null);
+  const [showExpandedImage, setShowExpandedImage] = useState(false);
   const [uploadingImages, setUploadingImages] = useState([]);
   const [showNSFWAlert, setShowNSFWAlert] = useState(false);
   const [nsfwError, setNsfwError] = useState(null);
