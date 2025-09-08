@@ -27,7 +27,8 @@ import {
   Smartphone,
   Square,
   Sliders,
-  Hash
+  Hash,
+  ZoomIn
 } from 'lucide-react';
 
 const QwenImage = () => {
@@ -67,6 +68,13 @@ const QwenImage = () => {
     title: '',
     message: ''
   });
+
+  // ============ STATE FOR DESKTOP LIMIT & MODALS ============
+  const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 1024);
+  const [showDetailModal, setShowDetailModal] = useState(false);
+  const [expandedImageIndex, setExpandedImageIndex] = useState(null);
+  const [showExpandedImage, setShowExpandedImage] = useState(false);
+  // ===========================================================
 
   // Image size options
   const imageSizeOptions = [
@@ -123,7 +131,18 @@ const QwenImage = () => {
       console.log('Real-time subscription set up for Qwen Image');
       return () => subscription.unsubscribe();
     }
-  }, [user]);
+  }, [user, isDesktop]); // Added isDesktop to dependencies
+
+  // ============ HANDLE WINDOW RESIZE ============
+  useEffect(() => {
+    const handleResize = () => {
+      setIsDesktop(window.innerWidth >= 1024);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+  // ==============================================
 
   const fetchProfile = async () => {
     try {
@@ -142,15 +161,19 @@ const QwenImage = () => {
     }
   };
 
+  // ============ RESPONSIVE FETCH GENERATIONS ============
   const fetchGenerations = async () => {
     try {
+      // Desktop: 2 items, Mobile/Tablet: 10 items
+      const limit = isDesktop ? 2 : 10;
+      
       const { data, error } = await supabase
         .from('ai_generations')
         .select('*')
         .eq('user_id', user.id)
         .eq('tool_type', 'fal_qwen_image')
         .order('created_at', { ascending: false })
-        .limit(20);
+        .limit(limit);
 
       if (error) throw error;
       setGenerations(data || []);
@@ -159,6 +182,7 @@ const QwenImage = () => {
       console.error('Error fetching generations:', error);
     }
   };
+  // ======================================================
 
   const handleRealtimeUpdate = (payload) => {
     const { eventType, new: newRecord, old: oldRecord } = payload;
@@ -194,6 +218,25 @@ const QwenImage = () => {
       }
     }
   };
+
+  // ============ HELPER FUNCTION FOR IMAGE URLS ============
+  const getAllImageUrls = (url) => {
+    if (!url) return [];
+    
+    // Handle JSON array format (multiple images)
+    if (typeof url === 'string' && url.startsWith('[')) {
+      try {
+        const urlArray = JSON.parse(url);
+        return Array.isArray(urlArray) ? urlArray : [url];
+      } catch (error) {
+        console.warn('Failed to parse image URL array:', error);
+        return [url];
+      }
+    }
+    
+    return [url];
+  };
+  // =========================================================
 
   // Show themed alert
   const showAlert = (type, title, message, autoClose = true) => {
@@ -876,7 +919,9 @@ const QwenImage = () => {
               {/* Completed Generations */}
               <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6">
                 <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-lg font-semibold text-white">Generated Images</h3>
+                  <h3 className="text-lg font-semibold text-white">
+                    Generated Images {isDesktop && generations.length > 0 && `(Showing latest 2)`}
+                  </h3>
                   <button
                     onClick={fetchGenerations}
                     className="text-purple-400 hover:text-purple-300 transition-colors"
@@ -913,33 +958,33 @@ const QwenImage = () => {
                             </div>
                           </div>
 
+                          {/* ============ CLICKABLE IMAGES ============ */}
                           {generation.output_file_url && generation.status === 'completed' && (
                             <div className="mb-4">
-                              {/* Handle multiple images */}
                               {(() => {
-                                let imageUrls = [];
-                                try {
-                                  if (generation.output_file_url.startsWith('[')) {
-                                    imageUrls = JSON.parse(generation.output_file_url);
-                                  } else {
-                                    imageUrls = [generation.output_file_url];
-                                  }
-                                } catch (e) {
-                                  imageUrls = [generation.output_file_url];
-                                }
-
+                                const imageUrls = getAllImageUrls(generation.output_file_url);
                                 return (
                                   <div className="grid grid-cols-2 gap-4">
                                     {imageUrls.map((imageUrl, imgIndex) => (
-                                      <div key={imgIndex} className="relative group">
+                                      <div 
+                                        key={imgIndex} 
+                                        className="relative group cursor-pointer"
+                                        onClick={() => {
+                                          setSelectedGeneration(generation);
+                                          setShowDetailModal(true);
+                                        }}
+                                      >
                                         <img
                                           src={toCdnUrl(imageUrl)}
                                           alt={`Generated ${imgIndex + 1}`}
-                                          className="w-full rounded-lg"
+                                          className="w-full rounded-lg hover:opacity-90 transition-opacity"
                                           loading="lazy"
                                         />
                                         <button
-                                          onClick={() => handleDownload(imageUrl)}
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleDownload(imageUrl);
+                                          }}
                                           className="absolute top-2 right-2 bg-black/50 hover:bg-black/70 text-white p-2 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
                                           title="Download image"
                                         >
@@ -952,6 +997,7 @@ const QwenImage = () => {
                               })()}
                             </div>
                           )}
+                          {/* =========================================== */}
 
                           {generation.status === 'processing' && (
                             <div className="mb-4 bg-gradient-to-br from-emerald-500/20 to-teal-500/20 rounded-lg p-8 text-center">
@@ -1025,6 +1071,19 @@ const QwenImage = () => {
                         </div>
                       </div>
                     ))}
+
+                    {/* ============ VIEW ALL LINK FOR DESKTOP ============ */}
+                    {isDesktop && generations.length >= 2 && (
+                      <div className="mt-4 text-center">
+                        <button
+                          onClick={() => navigate('/gallery')}
+                          className="text-purple-400 hover:text-purple-300 transition-colors text-sm font-medium"
+                        >
+                          View all generated images in Gallery →
+                        </button>
+                      </div>
+                    )}
+                    {/* ==================================================== */}
                   </div>
                 )}
               </div>
@@ -1032,6 +1091,242 @@ const QwenImage = () => {
           </div>
         </div>
       </div>
+
+      {/* ============ GENERATION DETAIL MODAL ============ */}
+      {showDetailModal && selectedGeneration && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white/10 backdrop-blur-md rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto border border-white/20">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-bold text-white">{selectedGeneration.generation_name}</h3>
+                <button
+                  onClick={() => setShowDetailModal(false)}
+                  className="text-purple-400 hover:text-purple-300 transition-colors"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+
+              {/* Images Display - CLICKABLE */}
+              {selectedGeneration.output_file_url && (
+                <div className="mb-6">
+                  <h4 className="text-lg font-semibold text-white mb-3">
+                    Generated Images ({getAllImageUrls(selectedGeneration.output_file_url).length})
+                  </h4>
+                  <div className="grid grid-cols-2 gap-4">
+                    {getAllImageUrls(selectedGeneration.output_file_url).map((url, index) => (
+                      <div
+                        key={index}
+                        className="cursor-pointer hover:opacity-80 transition-opacity"
+                        onClick={() => {
+                          setExpandedImageIndex(index);
+                          setShowExpandedImage(true);
+                        }}
+                      >
+                        <img
+                          src={toCdnUrl(url)}
+                          alt={`${selectedGeneration.generation_name} - Image ${index + 1}`}
+                          className="w-full rounded-lg"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Generation Details */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Details Card */}
+                <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                  <h4 className="text-lg font-semibold text-white mb-3">Generation Details</h4>
+                  <div className="space-y-3 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-purple-200">Status:</span>
+                      <span className={`px-2 py-1 rounded text-xs border ${getStatusColor(selectedGeneration.status)}`}>
+                        {selectedGeneration.status}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-purple-200">Tool:</span>
+                      <span className="text-white">Qwen Image</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-purple-200">Tokens Used:</span>
+                      <span className="text-white">{selectedGeneration.tokens_used}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-purple-200">Created:</span>
+                      <span className="text-white text-right">
+                        {new Date(selectedGeneration.created_at).toLocaleString()}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Configuration Card */}
+                <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                  <h4 className="text-lg font-semibold text-white mb-3">Configuration</h4>
+                  <div className="space-y-3 text-sm">
+                    <div>
+                      <span className="text-purple-200">Prompt:</span>
+                      <p className="text-white mt-1 bg-black/20 rounded p-2">
+                        {selectedGeneration.input_data?.prompt}
+                      </p>
+                    </div>
+                    {selectedGeneration.input_data?.negative_prompt && (
+                      <div>
+                        <span className="text-purple-200">Negative Prompt:</span>
+                        <p className="text-white mt-1 bg-black/20 rounded p-2">
+                          {selectedGeneration.input_data.negative_prompt}
+                        </p>
+                      </div>
+                    )}
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <span className="text-purple-200">Size:</span>
+                        <p className="text-white">{selectedGeneration.input_data?.image_size}</p>
+                      </div>
+                      <div>
+                        <span className="text-purple-200">Images:</span>
+                        <p className="text-white">{selectedGeneration.input_data?.num_images}</p>
+                      </div>
+                      <div>
+                        <span className="text-purple-200">Steps:</span>
+                        <p className="text-white">{selectedGeneration.input_data?.num_inference_steps}</p>
+                      </div>
+                      <div>
+                        <span className="text-purple-200">Guidance:</span>
+                        <p className="text-white">{selectedGeneration.input_data?.guidance_scale}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex justify-end gap-3 mt-6">
+                {selectedGeneration.output_file_url && (
+                  <button
+                    onClick={() => {
+                      const imageUrls = getAllImageUrls(selectedGeneration.output_file_url);
+                      if (imageUrls.length > 1) {
+                        imageUrls.forEach((url, index) => {
+                          setTimeout(() => handleDownload(url), index * 500);
+                        });
+                      } else {
+                        handleDownload(selectedGeneration.output_file_url);
+                      }
+                    }}
+                    className="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors flex items-center space-x-2"
+                  >
+                    <Download className="w-4 h-4" />
+                    <span>Download All</span>
+                  </button>
+                )}
+                <button
+                  onClick={() => setShowDetailModal(false)}
+                  className="bg-white/10 hover:bg-white/20 text-white font-semibold py-2 px-4 rounded-lg transition-colors"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* ================================================== */}
+
+      {/* ============ FULLSCREEN IMAGE VIEWER ============ */}
+      {showExpandedImage && selectedGeneration && expandedImageIndex !== null && (
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
+          <div className="relative max-w-7xl w-full max-h-[95vh] flex items-center justify-center">
+            {/* Close Button */}
+            <button
+              onClick={() => {
+                setShowExpandedImage(false);
+                setExpandedImageIndex(null);
+              }}
+              className="absolute top-4 right-4 z-10 w-12 h-12 bg-black/50 hover:bg-black/70 text-white rounded-full flex items-center justify-center transition-colors"
+            >
+              <X className="w-6 h-6" />
+            </button>
+
+            {/* Download Button */}
+            <button
+              onClick={() => {
+                const imageUrls = getAllImageUrls(selectedGeneration.output_file_url);
+                handleDownload(imageUrls[expandedImageIndex]);
+              }}
+              className="absolute top-4 left-4 z-10 bg-green-500/80 hover:bg-green-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors"
+            >
+              <Download className="w-5 h-5" />
+              <span>Download</span>
+            </button>
+
+            {/* Navigation Arrows */}
+            {getAllImageUrls(selectedGeneration.output_file_url).length > 1 && (
+              <>
+                <button
+                  onClick={() => {
+                    const imageUrls = getAllImageUrls(selectedGeneration.output_file_url);
+                    setExpandedImageIndex((expandedImageIndex - 1 + imageUrls.length) % imageUrls.length);
+                  }}
+                  className="absolute left-4 top-1/2 transform -translate-y-1/2 z-10 w-12 h-12 bg-black/50 hover:bg-black/70 text-white rounded-full flex items-center justify-center transition-colors"
+                >
+                  <ArrowLeft className="w-6 h-6" />
+                </button>
+                
+                <button
+                  onClick={() => {
+                    const imageUrls = getAllImageUrls(selectedGeneration.output_file_url);
+                    setExpandedImageIndex((expandedImageIndex + 1) % imageUrls.length);
+                  }}
+                  className="absolute right-4 top-1/2 transform -translate-y-1/2 z-10 w-12 h-12 bg-black/50 hover:bg-black/70 text-white rounded-full flex items-center justify-center transition-colors"
+                >
+                  <ArrowLeft className="w-6 h-6 rotate-180" />
+                </button>
+              </>
+            )}
+
+            {/* Expanded Image */}
+            <img
+              src={toCdnUrl(getAllImageUrls(selectedGeneration.output_file_url)[expandedImageIndex])}
+              alt={`${selectedGeneration.generation_name} - Image ${expandedImageIndex + 1}`}
+              className="max-w-full max-h-full object-contain rounded-lg"
+            />
+
+            {/* Bottom Navigation with Arrows */}
+            {getAllImageUrls(selectedGeneration.output_file_url).length > 1 && (
+              <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex items-center space-x-2 bg-black/70 px-3 py-2 rounded-full">
+                <button
+                  onClick={() => {
+                    const imageUrls = getAllImageUrls(selectedGeneration.output_file_url);
+                    setExpandedImageIndex((expandedImageIndex - 1 + imageUrls.length) % imageUrls.length);
+                  }}
+                  className="w-8 h-8 flex items-center justify-center text-white hover:bg-white/20 rounded-full transition-colors"
+                >
+                  <ArrowLeft className="w-5 h-5" />
+                </button>
+                
+                <span className="text-white text-sm font-medium px-2">
+                  {expandedImageIndex + 1} of {getAllImageUrls(selectedGeneration.output_file_url).length}
+                </span>
+                
+                <button
+                  onClick={() => {
+                    const imageUrls = getAllImageUrls(selectedGeneration.output_file_url);
+                    setExpandedImageIndex((expandedImageIndex + 1) % imageUrls.length);
+                  }}
+                  className="w-8 h-8 flex items-center justify-center text-white hover:bg-white/20 rounded-full transition-colors"
+                >
+                  <ArrowLeft className="w-5 h-5 rotate-180" />
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+      {/* ================================================= */}
 
       {/* NSFW Alert Modal */}
       <NSFWAlert
