@@ -87,7 +87,7 @@ const QwenImageToImage = () => {
     { label: 'Square HD', value: 'square_hd', icon: <Square className="w-4 h-4" /> },
     { label: 'Square', value: 'square', icon: <Square className="w-4 h-4" /> },
     { label: 'Portrait 4:3', value: 'portrait_4_3', icon: <Smartphone className="w-4 h-4" /> },
-    { label: 'Portrait 9:16', value: 'portrait_9_16', icon: <Smartphone className="w-4 h-4" /> },
+    { label: 'Portrait 9:16', value: 'portrait_16_9', icon: <Smartphone className="w-4 h-4" /> },
     { label: 'Landscape 4:3', value: 'landscape_4_3', icon: <Monitor className="w-4 h-4" /> },
     { label: 'Landscape 16:9', value: 'landscape_16_9', icon: <Monitor className="w-4 h-4" /> }
   ];
