@@ -427,7 +427,7 @@ const MMAudioVideo2 = () => {
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `${generationName.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.mp3`;
+      link.download = `${generationName.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.mp4`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -437,7 +437,7 @@ const MMAudioVideo2 = () => {
       // Fallback to direct link
       const link = document.createElement('a');
       link.href = toCdnUrl(audioUrl);
-      link.download = `${generationName.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.mp3`;
+      link.download = `${generationName.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.mp4`;
       link.target = '_blank';
       document.body.appendChild(link);
       link.click();
