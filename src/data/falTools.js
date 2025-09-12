@@ -19,7 +19,7 @@ export const falTools = [
         id: 40,
         name: "ByteDance SeeDream v4 Edit",
         description: "AI-powered virtual fashion & clothing transfer - dress models in any outfit",
-        image: toCdnUrl("https://xisxqackivlrakfszfop.supabase.co/storage/v1/object/public/user-files/seedance_imgs_2_vid.png?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1"),
+        image: toCdnUrl("https://xisxqackivlrakfszfop.supabase.co/storage/v1/object/public/user-files/seedance.png?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1"),
         tokensRequired: "10+",
         category: "image",
         toolType: "fal_seedream_v4_edit",
