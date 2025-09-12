@@ -40,7 +40,7 @@ const SeeDreamImageEdit = () => {
         imageUrls: [],
         imageSize: 'square_hd', // String format, not object
         numImages: 3, // 1-6 range
-        maxImages: 3, // NEW: 1-4 range
+        maxImages: 3, // 1-6 range
         enableSafetyChecker: true,
         seed: Math.floor(Math.random() * 100000000)
     });
@@ -300,7 +300,7 @@ const SeeDreamImageEdit = () => {
     };
 
     const calculateTokenCost = () => {
-        return config.numImages * 5;
+        return config.numImages * config.maxImages * 3;
     };
 
     const handleGenerate = async () => {
@@ -380,7 +380,7 @@ const SeeDreamImageEdit = () => {
                     imageUrls: validImageUrls,
                     imageSize: config.imageSize, // String format
                     numImages: config.numImages, // 1-6
-                    maxImages: config.maxImages, // 1-4
+                    maxImages: config.maxImages, // 1-6
                     enableSafetyChecker: config.enableSafetyChecker,
                     seed: config.seed
                 })
@@ -714,7 +714,7 @@ const SeeDreamImageEdit = () => {
                                     </div>
                                 </div>
 
-                                {/* Max Images - NEW parameter 1-4 range */}
+                                {/* Max Images - 1-6 range */}
                                 <div>
                                     <label className="block text-sm font-medium text-purple-200 mb-2">
                                         Max Variations per Image: {config.maxImages}
@@ -722,7 +722,7 @@ const SeeDreamImageEdit = () => {
                                     <input
                                         type="range"
                                         min="1"
-                                        max="4"
+                                        max="6"
                                         value={config.maxImages}
                                         onChange={(e) => setConfig(prev => ({ ...prev, maxImages: parseInt(e.target.value) }))}
                                         className="w-full h-2 bg-white/20 rounded-lg appearance-none cursor-pointer slider"
@@ -732,6 +732,8 @@ const SeeDreamImageEdit = () => {
                                         <span>2</span>
                                         <span>3</span>
                                         <span>4</span>
+                                        <span>5</span>
+                                        <span>6</span>
                                     </div>
                                     <p className="text-purple-300 text-xs mt-1">
                                         Controls variation diversity in output
@@ -784,7 +786,8 @@ const SeeDreamImageEdit = () => {
                                     </h3>
                                     <div className="text-pink-300 text-sm space-y-1">
                                         <p>Images: {config.numImages}</p>
-                                        <p>Rate: 5 tokens per image</p>
+                                        <p>Variations: {config.maxImages}</p>
+                                        <p>Rate: 3 tokens per image</p>
                                         <p className="font-medium text-pink-200">Total: {calculateTokenCost()} tokens</p>
                                     </div>
                                 </div>
@@ -812,7 +815,7 @@ const SeeDreamImageEdit = () => {
                                 <div className="bg-pink-500/10 border border-pink-500/30 rounded-lg p-3">
                                     <p className="text-pink-200 text-xs">
                                         <Sparkles className="w-3 h-3 inline mr-1" />
-                                        Processing typically takes 15-30 seconds. Cost: 5 tokens per image.
+                                        Processing typically takes 15-30 seconds. Cost: 3 tokens × images × variations.
                                     </p>
                                 </div>
                             </div>
