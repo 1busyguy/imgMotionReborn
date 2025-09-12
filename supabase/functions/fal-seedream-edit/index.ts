@@ -89,13 +89,14 @@ serve(async (req) => {
             throw new Error('Unauthorized');
         }
 
-        // Parse request body
+        // Parse request body with ALL parameters including max_images
         const {
             generationId: reqGenerationId,
             prompt,
             imageUrls = [],
-            imageSize = { width: 1024, height: 1024 },
-            numImages = 3,
+            imageSize = 'square_hd', // String format, not object
+            numImages = 3, // 1-6 range
+            maxImages = 3, // NEW: 1-4 range for variation diversity
             enableSafetyChecker = true,
             seed
         } = await req.json();
@@ -107,6 +108,7 @@ serve(async (req) => {
             prompt: prompt?.substring(0, 50) + '...',
             numSourceImages: imageUrls.length,
             numImages,
+            maxImages,
             imageSize,
             seed,
             enableSafetyChecker
@@ -117,32 +119,32 @@ serve(async (req) => {
             throw new Error('Missing required parameters: generationId, prompt, and imageUrls are required');
         }
 
-        // SeeDream requires exactly 4 images
-        if (imageUrls.length !== 4) {
-            throw new Error('SeeDream v4 Edit requires exactly 4 images: 1 model image and 3 clothing reference images');
+        // SeeDream accepts 2-10 images for general image editing
+        if (imageUrls.length < 2) {
+            throw new Error('SeeDream v4 Edit requires at least 2 images to edit/combine');
         }
 
-        if (numImages < 1 || numImages > 4) {
-            throw new Error('Number of images must be between 1 and 4');
+        if (imageUrls.length > 10) {
+            throw new Error('Maximum 10 images allowed for SeeDream v4 Edit');
         }
 
-        // Validate image size
-        const validSizes = [
-            { width: 1024, height: 1024 },
-            { width: 768, height: 1024 },
-            { width: 1024, height: 768 },
-            { width: 1024, height: 576 },
-            { width: 576, height: 1024 }
-        ];
+        // Validate numImages range (1-6)
+        if (numImages < 1 || numImages > 6) {
+            throw new Error('Number of images must be between 1 and 6');
+        }
 
-        const isValidSize = validSizes.some(size =>
-            size.width === imageSize.width && size.height === imageSize.height
-        );
+        // Validate maxImages range (1-4)
+        if (maxImages < 1 || maxImages > 4) {
+            throw new Error('Max images (variation diversity) must be between 1 and 4');
+        }
 
-        if (!isValidSize) {
-            console.warn('Invalid image size provided, defaulting to 1024x1024');
-            imageSize.width = 1024;
-            imageSize.height = 1024;
+        // Validate image size - must be one of the string options
+        const validSizes = ['square_hd', 'square', 'portrait_4_3', 'portrait_16_9', 'landscape_4_3', 'landscape_16_9'];
+        let finalImageSize = imageSize;
+
+        if (!validSizes.includes(imageSize)) {
+            console.warn(`Invalid image size provided: ${imageSize}, defaulting to square_hd`);
+            finalImageSize = 'square_hd';
         }
 
         // Update generation status to processing
@@ -162,11 +164,13 @@ serve(async (req) => {
         }
 
         // Prepare FAL.ai API request for SeeDream v4 Edit
+        // All parameters matching the FAL.ai specification
         const falParams = {
             prompt: prompt.trim(),
             image_urls: imageUrls,
-            image_size: imageSize,
-            num_images: Math.max(1, Math.min(4, numImages)),
+            image_size: finalImageSize, // String format
+            num_images: Math.max(1, Math.min(6, numImages)), // 1-6 range
+            max_images: Math.max(1, Math.min(4, maxImages)), // 1-4 range
             enable_safety_checker: enableSafetyChecker,
             seed: seed || Math.floor(Math.random() * 100000000)
         };
@@ -257,11 +261,12 @@ serve(async (req) => {
                     webhook_url: webhookUrl,
                     webhook_enabled: true,
                     queue_submission_time: new Date().toISOString(),
-                    // Store generation parameters
+                    // Store all generation parameters
                     prompt: prompt,
                     num_source_images: imageUrls.length,
                     num_images: numImages,
-                    image_size: imageSize,
+                    max_images: maxImages, // Store max_images
+                    image_size: finalImageSize,
                     seed: falParams.seed,
                     enable_safety_checker: enableSafetyChecker
                 }
