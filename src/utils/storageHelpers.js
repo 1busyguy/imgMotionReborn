@@ -275,7 +275,13 @@ export const AI_TOOLS = {
     description: 'Generate videos from reference images with AI-powered motion',
     tokensRequired: 50, // Base cost, varies by settings
     category: 'video'
-  },
+    },
+    fal_seedream_v4_edit: {
+        name: 'SeeDream v4 Edit',
+        description: 'AI-powered virtual fashion & clothing transfer - dress models in any outfit',
+        tokensRequired: 10, // Base cost per image generated
+        category: 'image'
+    },
   fal_wan22_s2v: {
     name: 'WAN 22 S2V',
     description: 'Speech-to-Video: Transform speech audio into dynamic videos',
