@@ -232,7 +232,7 @@ function App() {
               } 
             />
             <Route
-                path="/tools/seedream-edit"
+                path="/seedream-edit"
                 element={
                     <ProtectedRoute>
                         <SeeDreamImageEdit />
