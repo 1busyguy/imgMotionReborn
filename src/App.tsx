@@ -36,6 +36,7 @@ import GeminiFlashImageEdit from './pages/fal-tools/GeminFlashImageEdit';
 import QwenImage from './pages/fal-tools/QwenImage';
 import QwenImageToImage from './pages/fal-tools/QwenImageToImage';
 import WAN22S2V from './pages/fal-tools/WAN22S2V';
+import SeeDANCEReferenceToVideo from './pages/fal-tools/SeeDANCEReferenceToVideo';
 import Admin from './pages/Admin';
 import RecentGenerations from './pages/RecentGenerations';
 import Showcase from './pages/Showcase';
