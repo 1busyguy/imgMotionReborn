@@ -282,6 +282,12 @@ export const AI_TOOLS = {
     tokensRequired: 35, // Base cost, varies by resolution and duration
     category: 'video'
   }
+  fal_seedream_v4_edit: {
+    name: 'SeeDream v4 Edit',
+    description: 'AI-powered virtual fashion & clothing transfer - dress models in any outfit',
+    tokensRequired: 10, // Base cost per image generated
+    category: 'image'
+  }
 };
 
 /**
