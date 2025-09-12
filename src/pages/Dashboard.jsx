@@ -399,6 +399,7 @@ const Dashboard = () => {
       'fal_qwen_image': 'QWEN T2I',
       'fal_qwen_image_to_image': 'QWEN I2I',
       'fal_gemini_flash_image_edit': 'Gemini Flash Img Edit',
+      'fal-seedream-edit': 'SeeDance Img Edit',
       'fal_hidream_i1': 'HiDream T2I',
       
       
@@ -771,13 +772,22 @@ const Dashboard = () => {
             {/* Quick Actions */}
             <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6">
               <h3 className="text-lg font-semibold text-white mb-4">Quick Actions</h3>
-              <div className="space-y-3">
+                 <div className="space-y-3">
+
                 <button 
                   onClick={() => navigate('/flux-kontext')}
                   className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-semibold py-2 px-4 rounded-lg transition-all duration-300 text-sm"
                 >
                   Create AI Image
                 </button>
+
+                <button
+                    onClick={() => navigate('/seedream-edit')}
+                    className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-semibold py-2 px-4 rounded-lg transition-all duration-300 text-sm"
+                >
+                    NanoBanana Killer
+                </button>
+
                 <button 
                   onClick={() => navigate('/kling-pro')}
                   className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white font-semibold py-2 px-4 rounded-lg transition-all duration-300 text-sm"

@@ -47,7 +47,7 @@ import FAQ from './pages/FAQ';
 import Careers from './pages/Careers';
 import Pricing from './pages/Pricing';
 import ImgMotionApp from './pages/ImgMotionApp';
-import SeeDANCEReferenceToVideo from './pages/fal-tools/SeeDANCEReferenceToVideo';
+import SeeDreamImageEdit from './pages/fal-tools/SeeDreamImageEdit';
 
 // Protected Route Component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -230,6 +230,14 @@ function App() {
                   <FluxKontext />
                 </ProtectedRoute>
               } 
+            />
+            <Route
+                path="/tools/seedream-edit"
+                element={
+                    <ProtectedRoute>
+                        <SeeDreamImageEdit />
+                    </ProtectedRoute>
+                }
             />
             <Route 
               path="/flux-kontext-max-multi"
