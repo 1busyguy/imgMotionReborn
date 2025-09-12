@@ -287,7 +287,7 @@ export const AI_TOOLS = {
     description: 'Speech-to-Video: Transform speech audio into dynamic videos',
     tokensRequired: 35, // Base cost, varies by resolution and duration
     category: 'video'
-  }
+  },
   fal_seedream_v4_edit: {
     name: 'SeeDream v4 Edit',
     description: 'AI-powered virtual fashion & clothing transfer - dress models in any outfit',
