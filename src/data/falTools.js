@@ -24,7 +24,7 @@ export const falTools = [
         category: "image",
         toolType: "fal_gemini_flash_image_edit",
         route: "/gemini-flash-image-edit"
-    }
+    },
     {
         id: 40,
         name: "ByteDance SeeDream v4 Edit",
