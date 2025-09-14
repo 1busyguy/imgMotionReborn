@@ -16,6 +16,16 @@ export const falTools = [
     },
     // GEMINI 2.5 FLASH IMAGE EDIT - NEW TOOL
     {
+        id: 35,
+        name: "Google Nano Banana TEXT2img",
+        description: "Advanced AI image editing with edit and enhance images with your own words",
+        image: toCdnUrl("https://xisxqackivlrakfszfop.supabase.co/storage/v1/object/public/user-files/txt2img_v1.jpg?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1"),
+        tokensRequired: "8+",
+        category: "image",
+        toolType: "fal_gemini_flash_image_edit",
+        route: "/gemini-flash-image-edit"
+    }
+    {
         id: 40,
         name: "ByteDance SeeDream v4 Edit",
         description: "AI-powered virtual fashion & clothing transfer - dress models in any outfit",
