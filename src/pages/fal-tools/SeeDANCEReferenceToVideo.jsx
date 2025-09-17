@@ -301,9 +301,24 @@ const SeeDANCEReferenceToVideo = () => {
                 if (img.width < 300 || img.height < 300) {
                     showAlert('error', 'Image Too Small', `Your image is ${img.width}x${img.height}px. Please upload images at least 300x300px for better video quality.`);
                     reject(new Error('Image dimensions too small'));
-                } else {
-                    resolve();
+                    return;
                 }
+
+                // Check aspect ratio (must be between 0.40 and 2.50)
+                const aspectRatio = img.width / img.height;
+                if (aspectRatio < 0.40 || aspectRatio > 2.50) {
+                    let message = `Your image has an aspect ratio of ${aspectRatio.toFixed(2)}. `;
+                    if (aspectRatio < 0.40) {
+                        message += 'The image is too tall. Please use an image that is less than 2.5x taller than it is wide.';
+                    } else {
+                        message += 'The image is too wide. Please use an image that is less than 2.5x wider than it is tall.';
+                    }
+                    showAlert('error', 'Invalid Aspect Ratio', message);
+                    reject(new Error('Image aspect ratio out of range'));
+                    return;
+                }
+
+                resolve();
             };
 
             img.onerror = () => {
