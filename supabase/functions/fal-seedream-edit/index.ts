@@ -94,9 +94,9 @@ serve(async (req) => {
             generationId: reqGenerationId,
             prompt,
             imageUrls = [],
-            imageSize = 'square_hd', // String format, not object
+            imageSize, // Can be object {width, height} or string
             numImages = 3, // 1-6 range
-            maxImages = 3, // NEW: 1-4 range for variation diversity
+            maxImages = 3, // 1-6 range (updated from 1-4)
             enableSafetyChecker = true,
             seed
         } = await req.json();
@@ -119,9 +119,9 @@ serve(async (req) => {
             throw new Error('Missing required parameters: generationId, prompt, and imageUrls are required');
         }
 
-        // SeeDream accepts 2-10 images for general image editing
-        if (imageUrls.length < 2) {
-            throw new Error('SeeDream v4 Edit requires at least 2 images to edit/combine');
+        // SeeDream accepts 1-10 images (updated from 2-10)
+        if (imageUrls.length < 1) {
+            throw new Error('SeeDream v4 Edit requires at least 1 image');
         }
 
         if (imageUrls.length > 10) {
@@ -133,18 +133,39 @@ serve(async (req) => {
             throw new Error('Number of images must be between 1 and 6');
         }
 
-        // Validate maxImages range (1-4)
-        if (maxImages < 1 || maxImages > 4) {
-            throw new Error('Max images (variation diversity) must be between 1 and 4');
+        // Validate maxImages range (1-6, updated from 1-4)
+        if (maxImages < 1 || maxImages > 6) {
+            throw new Error('Max images (variation diversity) must be between 1 and 6');
         }
 
-        // Validate image size - must be one of the string options
-        const validSizes = ['square_hd', 'square', 'portrait_4_3', 'portrait_16_9', 'landscape_4_3', 'landscape_16_9'];
-        let finalImageSize = imageSize;
+        // Handle image_size - can be object or string
+        let finalImageSize: any;
 
-        if (!validSizes.includes(imageSize)) {
-            console.warn(`Invalid image size provided: ${imageSize}, defaulting to square_hd`);
-            finalImageSize = 'square_hd';
+        if (typeof imageSize === 'object' && imageSize.width && imageSize.height) {
+            // Object format with width/height
+            finalImageSize = {
+                width: imageSize.width,
+                height: imageSize.height
+            };
+            console.log(`Using custom image size: ${imageSize.width}x${imageSize.height}`);
+        } else if (typeof imageSize === 'string') {
+            // String format (legacy support)
+            const validSizes = ['square_hd', 'square', 'portrait_4_3', 'portrait_16_9', 'landscape_4_3', 'landscape_16_9'];
+            if (validSizes.includes(imageSize)) {
+                finalImageSize = imageSize;
+                console.log(`Using preset image size: ${imageSize}`);
+            } else {
+                // Default to square_hd if invalid string
+                console.warn(`Invalid image size string: ${imageSize}, defaulting to square_hd`);
+                finalImageSize = 'square_hd';
+            }
+        } else {
+            // Default to 1024x1024 if no valid size provided
+            finalImageSize = {
+                width: 1024,
+                height: 1024
+            };
+            console.log('No valid image size provided, defaulting to 1024x1024');
         }
 
         // Update generation status to processing
@@ -168,9 +189,9 @@ serve(async (req) => {
         const falParams = {
             prompt: prompt.trim(),
             image_urls: imageUrls,
-            image_size: finalImageSize, // String format
+            image_size: finalImageSize, // Can be object or string
             num_images: Math.max(1, Math.min(6, numImages)), // 1-6 range
-            max_images: Math.max(1, Math.min(4, maxImages)), // 1-4 range
+            max_images: Math.max(1, Math.min(6, maxImages)), // 1-6 range (updated)
             enable_safety_checker: enableSafetyChecker,
             seed: seed || Math.floor(Math.random() * 100000000)
         };
@@ -265,7 +286,7 @@ serve(async (req) => {
                     prompt: prompt,
                     num_source_images: imageUrls.length,
                     num_images: numImages,
-                    max_images: maxImages, // Store max_images
+                    max_images: maxImages,
                     image_size: finalImageSize,
                     seed: falParams.seed,
                     enable_safety_checker: enableSafetyChecker

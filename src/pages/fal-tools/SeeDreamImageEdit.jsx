@@ -34,13 +34,13 @@ const SeeDreamImageEdit = () => {
     const [profile, setProfile] = useState(null);
     const [loading, setLoading] = useState(true);
 
-    // Configuration state with ALL new parameters
+    // Configuration state with updated parameters
     const [config, setConfig] = useState({
         prompt: '',
-        imageUrls: [],
-        imageSize: 'square_hd', // String format, not object
+        imageUrls: [''], // Start with 1 empty slot
+        imageSize: { width: 1024, height: 1024 }, // Object format with width/height
         numImages: 3, // 1-6 range
-        maxImages: 3, // 1-6 range
+        maxImages: 3, // 1-6 range (updated from 1-4)
         enableSafetyChecker: true,
         seed: Math.floor(Math.random() * 100000000)
     });
@@ -69,9 +69,9 @@ const SeeDreamImageEdit = () => {
     const [expandedImageIndex, setExpandedImageIndex] = useState(null);
     const [showExpandedImage, setShowExpandedImage] = useState(false);
 
-    // General image editing suggestions (not fashion-specific)
+    // General image editing suggestions
     const editSuggestions = [
-        "Put the alien in the clothes",
+        "Dress the model in the clothes",
         "Combine these elements into one scene",
         "Replace the background with the second image",
         "Merge the subjects from different images",
@@ -83,14 +83,16 @@ const SeeDreamImageEdit = () => {
         "Transfer the texture to the subject"
     ];
 
-    // String-based size options
+    // Predefined size options with width/height
     const sizeOptions = [
-        { value: 'square_hd', label: 'Square HD (1:1)' },
-        { value: 'square', label: 'Square (1:1)' },
-        { value: 'portrait_4_3', label: 'Portrait 4:3' },
-        { value: 'portrait_16_9', label: 'Portrait 16:9' },
-        { value: 'landscape_4_3', label: 'Landscape 4:3' },
-        { value: 'landscape_16_9', label: 'Landscape 16:9' }
+        { value: 'square_hd', label: 'Square HD (1:1)', width: 1024, height: 1024 },
+        { value: 'square', label: 'Square (1:1)', width: 512, height: 512 },
+        { value: 'portrait_4_3', label: 'Portrait 4:3', width: 768, height: 1024 },
+        { value: 'portrait_16_9', label: 'Portrait 16:9', width: 576, height: 1024 },
+        { value: 'landscape_4_3', label: 'Landscape 4:3', width: 1024, height: 768 },
+        { value: 'landscape_16_9', label: 'Landscape 16:9', width: 1024, height: 576 },
+        { value: 'ultra_wide', label: 'Ultra Wide', width: 3840, height: 2160 },
+        { value: 'tall', label: 'Tall (9:16)', width: 1080, height: 1920 }
     ];
 
     useEffect(() => {
@@ -283,8 +285,7 @@ const SeeDreamImageEdit = () => {
     };
 
     const addImageSlot = () => {
-        const validImageCount = config.imageUrls.filter(url => url.trim()).length;
-        if (validImageCount < 10 && config.imageUrls.length < 10) {
+        if (config.imageUrls.length < 10) {
             setConfig(prev => ({
                 ...prev,
                 imageUrls: [...prev.imageUrls, '']
@@ -293,22 +294,43 @@ const SeeDreamImageEdit = () => {
     };
 
     const removeImageSlot = (index) => {
-        setConfig(prev => ({
-            ...prev,
-            imageUrls: prev.imageUrls.filter((_, i) => i !== index)
-        }));
+        // Don't allow removing if it would leave 0 slots
+        if (config.imageUrls.length > 1) {
+            setConfig(prev => ({
+                ...prev,
+                imageUrls: prev.imageUrls.filter((_, i) => i !== index)
+            }));
+        }
     };
 
     const calculateTokenCost = () => {
         return config.numImages * config.maxImages * 3;
     };
 
+    const handleSizeChange = (selectedValue) => {
+        const selected = sizeOptions.find(opt => opt.value === selectedValue);
+        if (selected) {
+            setConfig(prev => ({
+                ...prev,
+                imageSize: { width: selected.width, height: selected.height }
+            }));
+        }
+    };
+
+    const getCurrentSizeValue = () => {
+        const current = sizeOptions.find(opt =>
+            opt.width === config.imageSize.width &&
+            opt.height === config.imageSize.height
+        );
+        return current?.value || 'custom';
+    };
+
     const handleGenerate = async () => {
         const validImageUrls = config.imageUrls.filter(url => url.trim());
 
-        // Minimum 2 images required
-        if (validImageUrls.length < 2) {
-            showAlert('error', 'Insufficient Images', 'Please upload at least 2 images');
+        // Minimum 1 image required (updated from 2)
+        if (validImageUrls.length < 1) {
+            showAlert('error', 'No Images', 'Please upload at least 1 image');
             return;
         }
 
@@ -378,9 +400,9 @@ const SeeDreamImageEdit = () => {
                     generationId: generation.id,
                     prompt: config.prompt,
                     imageUrls: validImageUrls,
-                    imageSize: config.imageSize, // String format
+                    imageSize: config.imageSize, // Object format with width/height
                     numImages: config.numImages, // 1-6
-                    maxImages: config.maxImages, // 1-6
+                    maxImages: config.maxImages, // 1-6 (updated from 1-4)
                     enableSafetyChecker: config.enableSafetyChecker,
                     seed: config.seed
                 })
@@ -557,12 +579,12 @@ const SeeDreamImageEdit = () => {
                                     <textarea
                                         value={config.prompt}
                                         onChange={(e) => setConfig(prev => ({ ...prev, prompt: e.target.value }))}
-                                        placeholder="Describe how to edit or combine the images..."
+                                        placeholder="Describe how to edit or transform the images..."
                                         className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-purple-300 focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
                                         rows={3}
                                     />
                                     <p className="text-purple-300 text-xs mt-1">
-                                        E.g., "Put the alien in the clothes" or "Combine these elements"
+                                        E.g., "Dress the model in the clothes" or "Apply style from image 2"
                                     </p>
                                 </div>
 
@@ -585,15 +607,15 @@ const SeeDreamImageEdit = () => {
                                     </div>
                                 </div>
 
-                                {/* Image Upload Slots - 2-10 images */}
+                                {/* Image Upload Slots - 1-10 images */}
                                 <div>
                                     <label className="block text-sm font-medium text-purple-200 mb-2">
                                         <ImageIcon className="w-4 h-4 inline mr-1" />
-                                        Source Images * (2-10 images)
+                                        Source Images * (1-10 images)
                                     </label>
 
-                                    <div className="space-y-3">
-                                        {Array.from({ length: Math.max(2, Math.min(10, config.imageUrls.length + 1)) }).map((_, index) => (
+                                    <div className="space-y-3 max-h-96 overflow-y-auto">
+                                        {config.imageUrls.map((imageUrl, index) => (
                                             <div key={index} className="relative">
                                                 <div
                                                     className="border-2 border-dashed border-white/30 rounded-lg p-3 text-center transition-colors hover:border-white/50"
@@ -624,10 +646,10 @@ const SeeDreamImageEdit = () => {
                                                         disabled={uploadingImages[index]}
                                                     />
                                                     <label htmlFor={`image-upload-${index}`} className="cursor-pointer">
-                                                        {config.imageUrls[index] ? (
+                                                        {imageUrl ? (
                                                             <div className="space-y-2">
                                                                 <img
-                                                                    src={config.imageUrls[index]}
+                                                                    src={imageUrl}
                                                                     alt={`Source ${index + 1}`}
                                                                     className="w-full h-20 object-contain rounded-lg bg-black/20"
                                                                     loading="lazy"
@@ -644,8 +666,8 @@ const SeeDreamImageEdit = () => {
                                                         )}
                                                     </label>
 
-                                                    {/* Remove button for images after the first 2 */}
-                                                    {index >= 2 && config.imageUrls[index] && (
+                                                    {/* Remove button for all slots except the first if there's more than 1 */}
+                                                    {config.imageUrls.length > 1 && imageUrl && (
                                                         <button
                                                             onClick={() => removeImageSlot(index)}
                                                             className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center transition-colors"
@@ -669,26 +691,29 @@ const SeeDreamImageEdit = () => {
                                         )}
                                     </div>
                                     <p className="text-purple-300 text-xs mt-2">
-                                        Upload 2-10 images • JPG and PNG only • Max 10MB each
+                                        Upload 1-10 images • JPG and PNG only • Max 10MB each
                                     </p>
                                 </div>
 
-                                {/* Image Size Selection - String format */}
+                                {/* Image Size Selection */}
                                 <div>
                                     <label className="block text-sm font-medium text-purple-200 mb-2">
                                         Output Size
                                     </label>
                                     <select
-                                        value={config.imageSize}
-                                        onChange={(e) => setConfig(prev => ({ ...prev, imageSize: e.target.value }))}
+                                        value={getCurrentSizeValue()}
+                                        onChange={(e) => handleSizeChange(e.target.value)}
                                         className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
                                     >
                                         {sizeOptions.map((option) => (
                                             <option key={option.value} value={option.value}>
-                                                {option.label}
+                                                {option.label} ({option.width}x{option.height})
                                             </option>
                                         ))}
                                     </select>
+                                    <div className="mt-2 text-xs text-purple-300">
+                                        Current: {config.imageSize.width} x {config.imageSize.height}px
+                                    </div>
                                 </div>
 
                                 {/* Number of Images - 1-6 range */}
@@ -714,7 +739,7 @@ const SeeDreamImageEdit = () => {
                                     </div>
                                 </div>
 
-                                {/* Max Images - 1-6 range */}
+                                {/* Max Images - 1-6 range (updated from 1-4) */}
                                 <div>
                                     <label className="block text-sm font-medium text-purple-200 mb-2">
                                         Max Variations per Image: {config.maxImages}
@@ -792,10 +817,10 @@ const SeeDreamImageEdit = () => {
                                     </div>
                                 </div>
 
-                                {/* Generate Button - works with 2+ images */}
+                                {/* Generate Button - works with 1+ images */}
                                 <button
                                     onClick={handleGenerate}
-                                    disabled={generating || !config.prompt.trim() || config.imageUrls.filter(url => url.trim()).length < 2}
+                                    disabled={generating || !config.prompt.trim() || config.imageUrls.filter(url => url.trim()).length < 1}
                                     className="w-full bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white font-semibold py-4 px-6 rounded-lg transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center space-x-2"
                                 >
                                     {generating ? (
@@ -902,20 +927,21 @@ const SeeDreamImageEdit = () => {
 
                                                     {generation.output_file_url && generation.status === 'completed' && (
                                                         <div className="mb-4">
-                                                            <div className="grid grid-cols-2 gap-4">
-                                                                {getAllImageUrls(generation.output_file_url).map((imageUrl, imgIndex) => (
+                                                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                                                                {getAllImageUrls(generation.output_file_url).slice(0, 6).map((imageUrl, imgIndex) => (
                                                                     <div
                                                                         key={imgIndex}
-                                                                        className="relative group cursor-pointer"
+                                                                        className="relative group cursor-pointer aspect-square"
                                                                         onClick={() => {
                                                                             setSelectedGeneration(generation);
-                                                                            setShowDetailModal(true);
+                                                                            setExpandedImageIndex(imgIndex);
+                                                                            setShowExpandedImage(true);
                                                                         }}
                                                                     >
                                                                         <img
                                                                             src={toCdnUrl(imageUrl)}
                                                                             alt={`Edit ${imgIndex + 1}`}
-                                                                            className="w-full rounded-lg hover:opacity-90 transition-opacity"
+                                                                            className="w-full h-full object-cover rounded-lg hover:opacity-90 transition-opacity"
                                                                             loading="lazy"
                                                                         />
                                                                         <button
@@ -926,10 +952,24 @@ const SeeDreamImageEdit = () => {
                                                                             className="absolute top-2 right-2 bg-black/50 hover:bg-black/70 text-white p-2 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
                                                                             title="Download image"
                                                                         >
-                                                                            <Download className="w-4 h-4" />
+                                                                            <Download className="w-3 h-3" />
                                                                         </button>
                                                                     </div>
                                                                 ))}
+                                                                {getAllImageUrls(generation.output_file_url).length > 6 && (
+                                                                    <div
+                                                                        className="relative aspect-square bg-white/10 rounded-lg flex items-center justify-center cursor-pointer hover:bg-white/20 transition-colors"
+                                                                        onClick={() => {
+                                                                            setSelectedGeneration(generation);
+                                                                            setShowDetailModal(true);
+                                                                        }}
+                                                                    >
+                                                                        <div className="text-center">
+                                                                            <ZoomIn className="w-8 h-8 text-purple-300 mx-auto mb-2" />
+                                                                            <span className="text-white text-sm">+{getAllImageUrls(generation.output_file_url).length - 6} more</span>
+                                                                        </div>
+                                                                    </div>
+                                                                )}
                                                             </div>
                                                         </div>
                                                     )}
@@ -987,11 +1027,14 @@ const SeeDreamImageEdit = () => {
                                                         <div className="flex space-x-2">
                                                             {generation.output_file_url && generation.status === 'completed' && (
                                                                 <button
-                                                                    onClick={() => handleDownload(generation.output_file_url)}
-                                                                    className="bg-green-500 hover:bg-green-600 text-white p-2 rounded-lg transition-colors"
-                                                                    title="Download images"
+                                                                    onClick={() => {
+                                                                        setSelectedGeneration(generation);
+                                                                        setShowDetailModal(true);
+                                                                    }}
+                                                                    className="bg-blue-500 hover:bg-blue-600 text-white p-2 rounded-lg transition-colors"
+                                                                    title="View all images"
                                                                 >
-                                                                    <Download className="w-4 h-4" />
+                                                                    <ZoomIn className="w-4 h-4" />
                                                                 </button>
                                                             )}
                                                             <button
@@ -1028,7 +1071,7 @@ const SeeDreamImageEdit = () => {
             {/* Generation Detail Modal */}
             {showDetailModal && selectedGeneration && (
                 <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-                    <div className="bg-white/10 backdrop-blur-md rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto border border-white/20">
+                    <div className="bg-white/10 backdrop-blur-md rounded-2xl max-w-5xl w-full max-h-[90vh] overflow-y-auto border border-white/20">
                         <div className="p-6">
                             <div className="flex items-center justify-between mb-6">
                                 <h3 className="text-xl font-bold text-white">{selectedGeneration.generation_name}</h3>
@@ -1045,11 +1088,11 @@ const SeeDreamImageEdit = () => {
                                     <h4 className="text-lg font-semibold text-white mb-3">
                                         Generated Images ({getAllImageUrls(selectedGeneration.output_file_url).length})
                                     </h4>
-                                    <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                                         {getAllImageUrls(selectedGeneration.output_file_url).map((url, index) => (
                                             <div
                                                 key={index}
-                                                className="cursor-pointer hover:opacity-80 transition-opacity"
+                                                className="cursor-pointer hover:opacity-80 transition-opacity aspect-square"
                                                 onClick={() => {
                                                     setExpandedImageIndex(index);
                                                     setShowExpandedImage(true);
@@ -1058,7 +1101,7 @@ const SeeDreamImageEdit = () => {
                                                 <img
                                                     src={toCdnUrl(url)}
                                                     alt={`${selectedGeneration.generation_name} - Image ${index + 1}`}
-                                                    className="w-full rounded-lg"
+                                                    className="w-full h-full object-cover rounded-lg"
                                                 />
                                             </div>
                                         ))}
