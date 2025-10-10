@@ -49,6 +49,8 @@ import Careers from './pages/Careers';
 import Pricing from './pages/Pricing';
 import ImgMotionApp from './pages/ImgMotionApp';
 import SeeDreamImageEdit from './pages/fal-tools/SeeDreamImageEdit';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 
 // Protected Route Component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -200,6 +202,8 @@ function App() {
             />
             <Route path="/signup" element={<Signup />} />
             <Route path="/login" element={<Login />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route 
               path="/dashboard" 
               element={
