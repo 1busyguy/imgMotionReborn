@@ -51,6 +51,7 @@ import ImgMotionApp from './pages/ImgMotionApp';
 import SeeDreamImageEdit from './pages/fal-tools/SeeDreamImageEdit';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
+import Feedback from './pages/Feedback';
 
 // Protected Route Component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -477,6 +478,7 @@ function App() {
             <Route path="/pricing" element={<Pricing />} />
             <Route path="/imgmotionapp" element={<ImgMotionApp />} />
             <Route path="/showcase" element={<Showcase />} />
+            <Route path="/feedback" element={<Feedback />} />
             {/* Catch all route - redirect to home */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
