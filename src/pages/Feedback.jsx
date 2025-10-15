@@ -98,9 +98,7 @@ const Feedback = () => {
                         We Value Your Feedback
                     </h1>
                     <p className="text-xl text-purple-200 max-w-3xl mx-auto">
-                        Hello, from time to time we ask our users how they like our services. This helps us understand 
-                        our users and create better tools and experiences for them. If you could take 2 minutes to fill 
-                        out this quick survey that would be amazing. Thanks!
+                        Hello! We occasionally ask our users for feedback on our services to better understand their needs and improve our tools and experiences. If you could take 2 minutes to complete this quick survey, we would greatly appreciate it. Thank you!
                     </p>
                 </div>
 
