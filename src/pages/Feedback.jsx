@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import { ArrowLeft, MessageSquare, Send, CheckCircle, AlertCircle } from 'lucide-react';
 import emailjs from '@emailjs/browser';
 
-// Initialize EmailJS with your public key
 emailjs.init('Qp-NYaynQrixPbaC2');
 
 const Feedback = () => {
@@ -35,13 +34,11 @@ const Feedback = () => {
         setError('');
 
         try {
-            // Send email using EmailJS
-            // Replace 'YOUR_SERVICE_ID' and 'YOUR_TEMPLATE_ID' with your actual IDs from EmailJS
             const result = await emailjs.sendForm(
-                'service_imgmotionapp', // Your EmailJS service ID
-                'template_feedback',     // Create a new template in EmailJS for feedback
+                'service_imgmotionapp',
+                'template_feedback',
                 form.current,
-                'Qp-NYaynQrixPbaC2'     // Your public key (already initialized above)
+                'Qp-NYaynQrixPbaC2'
             );
 
             if (result.status === 200) {
@@ -66,7 +63,6 @@ const Feedback = () => {
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
-            {/* Header */}
             <header className="bg-white/10 backdrop-blur-md border-b border-white/20">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
                     <div className="flex items-center justify-between">
@@ -90,9 +86,7 @@ const Feedback = () => {
                 </div>
             </header>
 
-            {/* Main Content */}
             <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-                {/* Hero Section */}
                 <div className="text-center mb-12">
                     <h1 className="text-4xl md:text-6xl font-bold text-white mb-6">
                         We Value Your Feedback
@@ -104,7 +98,6 @@ const Feedback = () => {
                     </p>
                 </div>
 
-                {/* Feedback Form */}
                 <div className="bg-white/10 backdrop-blur-md rounded-3xl p-8">
                     {submitted ? (
                         <div className="text-center py-8">
@@ -127,7 +120,6 @@ const Feedback = () => {
                         </div>
                     ) : (
                         <form ref={form} onSubmit={handleSubmit} className="space-y-6">
-                            {/* Error Alert */}
                             {error && (
                                 <div className="bg-red-500/20 border border-red-500/50 rounded-lg p-4 flex items-start space-x-3">
                                     <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
@@ -135,7 +127,6 @@ const Feedback = () => {
                                 </div>
                             )}
 
-                            {/* Name and Email Row */}
                             <div className="grid md:grid-cols-2 gap-6">
                                 <div>
                                     <label htmlFor="user_name" className="block text-sm font-medium text-purple-200 mb-2">
@@ -169,7 +160,6 @@ const Feedback = () => {
                                 </div>
                             </div>
 
-                            {/* Question 1: What did you like most */}
                             <div>
                                 <label htmlFor="liked_most" className="block text-sm font-medium text-purple-200 mb-2">
                                     What did you like most about the imgMotion tools? *
@@ -186,7 +176,6 @@ const Feedback = () => {
                                 />
                             </div>
 
-                            {/* Question 2: Easy to use */}
                             <div>
                                 <label className="block text-sm font-medium text-purple-200 mb-3">
                                     Were the imgMotion tools easy to use? *
@@ -219,7 +208,6 @@ const Feedback = () => {
                                 </div>
                             </div>
 
-                            {/* Question 3: Needs improvement */}
                             <div>
                                 <label htmlFor="needs_improvement" className="block text-sm font-medium text-purple-200 mb-2">
                                     What would you say needs improvement? *
@@ -236,7 +224,6 @@ const Feedback = () => {
                                 />
                             </div>
 
-                            {/* Question 4: Recommend to friend */}
                             <div>
                                 <label className="block text-sm font-medium text-purple-200 mb-3">
                                     Would you be likely to recommend a friend to use imgMotion? *
@@ -269,7 +256,6 @@ const Feedback = () => {
                                 </div>
                             </div>
 
-                            {/* Question 5: Additional comments */}
                             <div>
                                 <label htmlFor="additional_comments" className="block text-sm font-medium text-purple-200 mb-2">
                                     Any Additional Comments
@@ -285,7 +271,6 @@ const Feedback = () => {
                                 />
                             </div>
 
-                            {/* Submit Button */}
                             <button
                                 type="submit"
                                 disabled={isSubmitting}
@@ -307,7 +292,6 @@ const Feedback = () => {
                     )}
                 </div>
 
-                {/* Additional Info */}
                 <div className="mt-8 text-center">
                     <p className="text-purple-300 text-sm">
                         Your feedback helps us improve imgMotion for everyone. Thank you for your time!
@@ -319,35 +303,3 @@ const Feedback = () => {
 };
 
 export default Feedback;
-```
-
-**Important Setup Steps:**
-
-1. **Create a new EmailJS template** for feedback with these field names:
-   - `user_name`
-   - `user_email`
-   - `liked_most`
-   - `easy_to_use`
-   - `needs_improvement`
-   - `recommend_friend`
-   - `additional_comments`
-
-2. **In your EmailJS template**, use this format:
-```
-New Feedback Submission
-
-Name: {{user_name}}
-Email: {{user_email}}
-
-What they liked most:
-{{liked_most}}
-
-Were tools easy to use: {{easy_to_use}}
-
-Needs improvement:
-{{needs_improvement}}
-
-Would recommend to friend: {{recommend_friend}}
-
-Additional comments:
-{{additional_comments}}
