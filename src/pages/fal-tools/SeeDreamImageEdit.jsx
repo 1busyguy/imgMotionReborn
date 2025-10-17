@@ -703,11 +703,15 @@ const SeeDreamImageEdit = () => {
                                     <select
                                         value={getCurrentSizeValue()}
                                         onChange={(e) => handleSizeChange(e.target.value)}
-                                        className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                        className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500 [&>option]:bg-gray-800 [&>option]:text-white"
                                     >
                                         {sizeOptions.map((option) => (
-                                            <option key={option.value} value={option.value}>
-                                                {option.label} ({option.width}x{option.height})
+                                            <option 
+                                                key={option.value} 
+                                                value={option.value}
+                                                className="bg-gray-800 text-white py-2"
+                                            >
+                                                {option.label}
                                             </option>
                                         ))}
                                     </select>
