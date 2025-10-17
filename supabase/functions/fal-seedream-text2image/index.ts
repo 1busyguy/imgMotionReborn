@@ -69,7 +69,10 @@ const corsHeaders = {
 
 serve(async (req) => {
     if (req.method === 'OPTIONS') {
-        return new Response('ok', { headers: corsHeaders });
+        return new Response('ok', { 
+            headers: corsHeaders,
+            status: 200
+        });
     }
 
     let generationId: string | undefined;
@@ -81,12 +84,28 @@ serve(async (req) => {
         );
 
         // Authenticate user
-        const authHeader = req.headers.get('Authorization')!;
+        const authHeader = req.headers.get('Authorization');
+        if (!authHeader) {
+            return new Response(
+                JSON.stringify({ success: false, error: 'Missing Authorization header' }),
+                { 
+                    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+                    status: 401 
+                }
+            );
+        }
+        
         const token = authHeader.replace('Bearer ', '');
         const { data: { user } } = await supabase.auth.getUser(token);
 
         if (!user) {
-            throw new Error('Unauthorized');
+            return new Response(
+                JSON.stringify({ success: false, error: 'Unauthorized' }),
+                { 
+                    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+                    status: 401 
+                }
+            );
         }
 
         // Parse request body with ALL parameters
