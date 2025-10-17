@@ -317,35 +317,3 @@ const Feedback = () => {
 };
 
 export default Feedback;
-```
-
-**Important Setup Steps:**
-
-1. **Create a new EmailJS template** for feedback with these field names:
-   - `user_name`
-   - `user_email`
-   - `liked_most`
-   - `easy_to_use`
-   - `needs_improvement`
-   - `recommend_friend`
-   - `additional_comments`
-
-2. **In your EmailJS template**, use this format:
-```
-New Feedback Submission
-
-Name: {{user_name}}
-Email: {{user_email}}
-
-What they liked most:
-{{liked_most}}
-
-Were tools easy to use: {{easy_to_use}}
-
-Needs improvement:
-{{needs_improvement}}
-
-Would recommend to friend: {{recommend_friend}}
-
-Additional comments:
-{{additional_comments}}
