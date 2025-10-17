@@ -49,6 +49,7 @@ import Careers from './pages/Careers';
 import Pricing from './pages/Pricing';
 import ImgMotionApp from './pages/ImgMotionApp';
 import SeeDreamImageEdit from './pages/fal-tools/SeeDreamImageEdit';
+import SeeDreamText2Image from './pages/fal-tools/SeeDreamText2Image';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import Feedback from './pages/Feedback';
@@ -242,6 +243,14 @@ function App() {
                 element={
                     <ProtectedRoute>
                         <SeeDreamImageEdit />
+                    </ProtectedRoute>
+                }
+            />
+            <Route
+                path="/seedream-text2image"
+                element={
+                    <ProtectedRoute>
+                        <SeeDreamText2Image />
                     </ProtectedRoute>
                 }
             />

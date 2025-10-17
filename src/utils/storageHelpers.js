@@ -282,6 +282,12 @@ export const AI_TOOLS = {
         tokensRequired: 10, // Base cost per image generated
         category: 'image'
     },
+    fal_seedream_v4_text2image: {
+    name: 'SeeDream v4 Text-to-Image',
+    description: 'Advanced text-to-image generation with ByteDance\'s SeeDream v4 model',
+    tokensRequired: 8,
+    category: 'image'
+    },
   fal_wan22_s2v: {
     name: 'WAN 22 S2V',
     description: 'Speech-to-Video: Transform speech audio into dynamic videos',

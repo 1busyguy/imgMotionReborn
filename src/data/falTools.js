@@ -2,7 +2,17 @@
 import { toCdnUrl } from '../utils/cdnHelpers';
 
 export const falTools = [
-
+    // SeeDream v4 Text-to-Image - NEW TOOL
+    {
+        id: 41,
+        name: "SeeDream v4 Text-to-Image",
+        description: "Advanced text-to-image generation with ByteDance's SeeDream v4 model",
+        image: toCdnUrl("https://xisxqackivlrakfszfop.supabase.co/storage/v1/object/public/user-files/txt2img_v1.jpg"),
+        tokensRequired: "8+",
+        category: "image",
+        toolType: "fal_seedream_v4_text2image",
+        route: "/seedream-text2image"
+    },
     // SeeDance lite - NEW TOOL
     {
         id: 39, // or next available ID
