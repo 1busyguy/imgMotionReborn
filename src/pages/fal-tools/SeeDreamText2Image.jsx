@@ -276,12 +276,18 @@ const handleCustomSizeChange = () => {
 };
 
     const getCurrentSizeValue = () => {
-        const current = sizeOptions.find(opt =>
-            opt.width === config.imageSize.width &&
-            opt.height === config.imageSize.height
-        );
-        return current?.value || 'custom';
-    };
+    // If custom inputs are shown, always return 'custom'
+    if (showCustomInputs) {
+        return 'custom';
+    }
+    
+    const current = sizeOptions.find(opt =>
+        !opt.isCustom &&
+        opt.width === config.imageSize.width &&
+        opt.height === config.imageSize.height
+    );
+    return current?.value || 'custom';
+};
 
     const handleGenerate = async () => {
         if (!config.prompt.trim()) {
@@ -571,41 +577,38 @@ const handleCustomSizeChange = () => {
                                             >
                                                 {option.label}
                                             </option>
-                                        ))}
-                                    </select>
-    
-                                    {/* Custom size inputs - only shown when Custom is selected */}
-                                    {showCustomInputs && (
-                                        <div className="mt-3 space-y-2">
-                                            <div className="flex items-center space-x-2">
-                                                <input
-                                                    type="number"
-                                                    value={customWidth}
-                                                    onChange={(e) => setCustomWidth(parseInt(e.target.value) || 1024)}
-                                                    placeholder="Width"
-                                                    className="flex-1 px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white text-center focus:outline-none focus:ring-2 focus:ring-purple-500"
-                                                />
-                                                <span className="text-purple-300">×</span>
-                                                <input
-                                                    type="number"
-                                                    value={customHeight}
-                                                    onChange={(e) => setCustomHeight(parseInt(e.target.value) || 1024)}
-                                                    placeholder="Height"
-                                                    className="flex-1 px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white text-center focus:outline-none focus:ring-2 focus:ring-purple-500"
-                                                />
-                                                <button
-                                                    onClick={handleCustomSizeChange}
-                                                    className="px-3 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg transition-colors"
-                                                    title="Apply custom size"
-                                                >
-                                                    <RefreshCw className="w-4 h-4" />
-                                                </button>
-                                            </div>
-                                            <p className="text-purple-300 text-xs">
-                                                Note: When "sync_mode" is "true", the media will be returned as base64 encoded string
-                                            </p>
-                                        </div>
-                                    )}
+                                        ))}{/* Custom size inputs - only shown when Custom is selected */}
+                                            {showCustomInputs && (
+                                                <div className="mt-3 space-y-2">
+                                                    <div className="flex items-center space-x-2">
+                                                        <input
+                                                            type="number"
+                                                            value={customWidth}
+                                                            onChange={(e) => setCustomWidth(parseInt(e.target.value) || 1024)}
+                                                            placeholder="Width"
+                                                            className="w-20 px-2 py-2 bg-white/10 border border-white/20 rounded-lg text-white text-center text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                                        />
+                                                        <span className="text-purple-300 text-sm">×</span>
+                                                        <input
+                                                            type="number"
+                                                            value={customHeight}
+                                                            onChange={(e) => setCustomHeight(parseInt(e.target.value) || 1024)}
+                                                            placeholder="Height"
+                                                            className="w-20 px-2 py-2 bg-white/10 border border-white/20 rounded-lg text-white text-center text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                                        />
+                                                        <button
+                                                            onClick={handleCustomSizeChange}
+                                                            className="p-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg transition-colors flex-shrink-0"
+                                                            title="Apply custom size"
+                                                        >
+                                                            <RefreshCw className="w-4 h-4" />
+                                                        </button>
+                                                    </div>
+                                                    <p className="text-purple-300 text-xs break-words">
+                                                        Note: When "sync_mode" is "true", the media will be returned as base64 encoded string
+                                                    </p>
+                                                </div>
+                                            )}
     
                                     {!showCustomInputs && (
                                         <div className="mt-2 text-xs text-purple-300">
