@@ -646,11 +646,21 @@ const collapseUrlString = (s) => {
   const getMediaType = useCallback((generation) => {
     const toolType = generation.tool_type;
     
+    // Check for text-to-image tools first (to avoid false matches)
+    if (toolType === 'fal_seedream_v4_text2image' || 
+        toolType === 'fal_seedream_v4_edit' ||
+        toolType === 'fal_flux_kontext' ||
+        toolType === 'fal_flux_redux' ||
+        toolType?.includes('text2image') ||
+        toolType?.includes('image2image')) {
+      return 'image';
+    }
+    
     if (toolType?.includes('video') || toolType?.includes('kling') || toolType?.includes('wan') || 
         toolType?.includes('minimax') || toolType?.includes('veo') || toolType?.includes('ltxv') || 
         toolType?.includes('seedance') || toolType?.includes('fal_wan_v22_a14b') || 
         toolType?.includes('ai_scene_gen') || toolType?.includes('fal_omnihuman') ||
-        toolType?.includes('fal_mmaudio_video2') || toolType?.includes('fal_seedream_v4_text2image')) {
+        toolType?.includes('fal_mmaudio_video2')) {
       return 'video';
     } else if (toolType?.includes('music') || toolType?.includes('cassetteai') || 
                toolType?.includes('fal_mmaudio_v2')) {

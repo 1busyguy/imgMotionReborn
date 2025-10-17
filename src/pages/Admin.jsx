@@ -648,20 +648,30 @@ const formatConfigValue = (key, value) => {
 
     // Helper function to determine media type
     const getMediaType = (generation) => {
-        const toolType = generation.tool_type;
+    const toolType = generation.tool_type;
 
-        if (toolType?.includes('video') || toolType?.includes('kling') || toolType?.includes('wan') ||
-            toolType?.includes('minimax') || toolType?.includes('veo') || toolType?.includes('ltxv') ||
-            toolType?.includes('seedance') || toolType?.includes('fal_wan_v22_a14b') ||
-            toolType?.includes('ai_scene_gen') || toolType?.includes('fal_omnihuman')) {
-            return 'video';
-        } else if (toolType?.includes('music') || toolType?.includes('cassetteai') ||
-            toolType?.includes('mmaudio')) {  // Added mmaudio check
-            return 'audio';
-        } else {
-            return 'image';
-        }
-    };
+    // Check for text-to-image tools first (to avoid false matches)
+    if (toolType === 'fal_seedream_v4_text2image' || 
+        toolType === 'fal_seedream_v4_edit' ||
+        toolType === 'fal_flux_kontext' ||
+        toolType === 'fal_flux_redux' ||
+        toolType?.includes('text2image') ||
+        toolType?.includes('image2image')) {
+        return 'image';
+    }
+
+    if (toolType?.includes('video') || toolType?.includes('kling') || toolType?.includes('wan') ||
+        toolType?.includes('minimax') || toolType?.includes('veo') || toolType?.includes('ltxv') ||
+        toolType?.includes('seedance') || toolType?.includes('fal_wan_v22_a14b') ||
+        toolType?.includes('ai_scene_gen') || toolType?.includes('fal_omnihuman')) {
+        return 'video';
+    } else if (toolType?.includes('music') || toolType?.includes('cassetteai') ||
+        toolType?.includes('mmaudio')) {
+        return 'audio';
+    } else {
+        return 'image';
+    }
+};
 
     const getStatusColor = (status) => {
         switch (status) {
