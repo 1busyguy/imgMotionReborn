@@ -38,9 +38,14 @@ const SeeDreamText2Image = () => {
         imageSize: { width: 1024, height: 1024 },
         numImages: 3,
         maxImages: 3,
-        enableSafetyChecker: true,
+        enableSafetyChecker: false,
         seed: Math.floor(Math.random() * 100000000)
     });
+
+    // Custom size inputs (only shown when "Custom" is selected)
+    const [customWidth, setCustomWidth] = useState(4096);
+    const [customHeight, setCustomHeight] = useState(4096);
+    const [showCustomInputs, setShowCustomInputs] = useState(false);
 
     // Generation state
     const [generations, setGenerations] = useState([]);
@@ -79,16 +84,19 @@ const SeeDreamText2Image = () => {
         "Northern lights over snowy landscape"
     ];
 
-    // Predefined size options
+    // Predefined size options - matching FAL.ai SeeDream v4 specifications
     const sizeOptions = [
-        { value: 'square_hd', label: 'Square HD (1:1)', width: 1024, height: 1024 },
-        { value: 'square', label: 'Square (1:1)', width: 512, height: 512 },
-        { value: 'portrait_4_3', label: 'Portrait 4:3', width: 768, height: 1024 },
-        { value: 'portrait_16_9', label: 'Portrait 16:9', width: 576, height: 1024 },
+        { value: 'default', label: 'Default', width: 1024, height: 1024 },
+        { value: 'custom', label: 'Custom', width: 1024, height: 1024, isCustom: true },
+        { value: 'square_hd', label: 'Square HD', width: 1024, height: 1024 },
+        { value: 'square', label: 'Square', width: 512, height: 512 },
+        { value: 'portrait_3_4', label: 'Portrait 3:4', width: 768, height: 1024 },
+        { value: 'portrait_9_16', label: 'Portrait 9:16', width: 576, height: 1024 },
         { value: 'landscape_4_3', label: 'Landscape 4:3', width: 1024, height: 768 },
         { value: 'landscape_16_9', label: 'Landscape 16:9', width: 1024, height: 576 },
-        { value: 'ultra_wide', label: 'Ultra Wide', width: 3840, height: 2160 },
-        { value: 'tall', label: 'Tall (9:16)', width: 1080, height: 1920 }
+        { value: 'auto', label: 'Auto', width: 1024, height: 1024 },
+        { value: 'auto_2k', label: 'Auto 2K', width: 2048, height: 2048 },
+        { value: 'auto_4k', label: 'Auto 4K', width: 4096, height: 4096 }
     ];
 
     useEffect(() => {
@@ -240,14 +248,32 @@ const SeeDreamText2Image = () => {
     };
 
     const handleSizeChange = (selectedValue) => {
-        const selected = sizeOptions.find(opt => opt.value === selectedValue);
-        if (selected) {
+    const selected = sizeOptions.find(opt => opt.value === selectedValue);
+    if (selected) {
+        if (selected.isCustom) {
+            // Show custom input fields
+            setShowCustomInputs(true);
+            setConfig(prev => ({
+                ...prev,
+                imageSize: { width: customWidth, height: customHeight }
+            }));
+        } else {
+            // Use preset size
+            setShowCustomInputs(false);
             setConfig(prev => ({
                 ...prev,
                 imageSize: { width: selected.width, height: selected.height }
             }));
         }
-    };
+    }
+};
+
+const handleCustomSizeChange = () => {
+    setConfig(prev => ({
+        ...prev,
+        imageSize: { width: customWidth, height: customHeight }
+    }));
+};
 
     const getCurrentSizeValue = () => {
         const current = sizeOptions.find(opt =>
@@ -528,8 +554,9 @@ const SeeDreamText2Image = () => {
 
                                 {/* Image Size Selection */}
                                 <div>
-                                    <label className="block text-sm font-medium text-purple-200 mb-2">
-                                        Output Size
+                                    <label className="block text-sm font-medium text-purple-200 mb-2 flex items-center">
+                                        <span>Image Size</span>
+                                        <span className="ml-2 w-4 h-4 rounded-full bg-purple-500/30 flex items-center justify-center text-xs">ⓘ</span>
                                     </label>
                                     <select
                                         value={getCurrentSizeValue()}
@@ -538,13 +565,49 @@ const SeeDreamText2Image = () => {
                                     >
                                         {sizeOptions.map((option) => (
                                             <option key={option.value} value={option.value}>
-                                                {option.label} ({option.width}x{option.height})
+                                                {option.label}
                                             </option>
                                         ))}
                                     </select>
-                                    <div className="mt-2 text-xs text-purple-300">
-                                        Current: {config.imageSize.width} x {config.imageSize.height}px
-                                    </div>
+    
+                                    {/* Custom size inputs - only shown when Custom is selected */}
+                                    {showCustomInputs && (
+                                        <div className="mt-3 space-y-2">
+                                            <div className="flex items-center space-x-2">
+                                                <input
+                                                    type="number"
+                                                    value={customWidth}
+                                                    onChange={(e) => setCustomWidth(parseInt(e.target.value) || 1024)}
+                                                    placeholder="Width"
+                                                    className="flex-1 px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white text-center focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                                />
+                                                <span className="text-purple-300">×</span>
+                                                <input
+                                                    type="number"
+                                                    value={customHeight}
+                                                    onChange={(e) => setCustomHeight(parseInt(e.target.value) || 1024)}
+                                                    placeholder="Height"
+                                                    className="flex-1 px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white text-center focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                                />
+                                                <button
+                                                    onClick={handleCustomSizeChange}
+                                                    className="px-3 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg transition-colors"
+                                                    title="Apply custom size"
+                                                >
+                                                    <RefreshCw className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                            <p className="text-purple-300 text-xs">
+                                                Note: When "sync_mode" is "true", the media will be returned as base64 encoded string
+                                            </p>
+                                        </div>
+                                    )}
+    
+                                    {!showCustomInputs && (
+                                        <div className="mt-2 text-xs text-purple-300">
+                                            Current: {config.imageSize.width} × {config.imageSize.height}px
+                                        </div>
+                                    )}
                                 </div>
 
                                 {/* Number of Images */}
