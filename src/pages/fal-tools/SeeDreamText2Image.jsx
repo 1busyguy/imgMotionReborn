@@ -298,11 +298,6 @@ const handleCustomSizeChange = () => {
             showAlert('error', 'No Prompt', 'Please enter a description of what you want to generate');
             return;
         }
-        const handleGenerate = async () => {
-        if (!config.prompt.trim()) {
-            showAlert('error', 'No Prompt', 'Please enter a description of what you want to generate');
-            return;
-        }
 
         // Optional: Warn if too many concurrent generations
         if (activeGenerations.length >= 3) {
