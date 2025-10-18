@@ -261,9 +261,9 @@ const SeeDreamText2Image = () => {
             setShowCustomInputs(true);
             setConfig(prev => ({
                 ...prev,
-                imageSize: { width: customWidth, height: customHeight }
+                // Don't clear prompt - allow multiple generations with same prompt
+                seed: Math.floor(Math.random() * 100000000)
             }));
-        } else {
             // Use preset size
             setShowCustomInputs(false);
             setConfig(prev => ({
