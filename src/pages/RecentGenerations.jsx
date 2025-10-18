@@ -27,7 +27,7 @@ import {
     ChevronRight,
     Activity,
     Clock,
-    ZoomIn
+    ZoomIn,
     Wrench
 } from 'lucide-react';
 
