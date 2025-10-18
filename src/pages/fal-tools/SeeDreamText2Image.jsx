@@ -69,6 +69,8 @@ const SeeDreamText2Image = () => {
     const [showDetailModal, setShowDetailModal] = useState(false);
     const [expandedImageIndex, setExpandedImageIndex] = useState(null);
     const [showExpandedImage, setShowExpandedImage] = useState(false);
+    const [imageScale, setImageScale] = useState(1);
+    const [imageFit, setImageFit] = useState(true); // true = fit to screen, false = actual size
 
     // Prompt suggestions for text-to-image
     const promptSuggestions = [
@@ -296,6 +298,18 @@ const handleCustomSizeChange = () => {
             showAlert('error', 'No Prompt', 'Please enter a description of what you want to generate');
             return;
         }
+        const handleGenerate = async () => {
+        if (!config.prompt.trim()) {
+            showAlert('error', 'No Prompt', 'Please enter a description of what you want to generate');
+            return;
+        }
+
+        // Optional: Warn if too many concurrent generations
+        if (activeGenerations.length >= 3) {
+            if (!confirm(`You have ${activeGenerations.length} generations processing. Are you sure you want to start another?`)) {
+                return;
+            }
+        }
 
         if (!bypassSafetyCheck) {
             try {
@@ -326,7 +340,7 @@ const handleCustomSizeChange = () => {
             return;
         }
 
-        setGenerating(true);
+        // Remove: setGenerating(true);
         let generation = null;
 
         try {
@@ -387,7 +401,7 @@ const handleCustomSizeChange = () => {
                 showAlert('error', 'Generation Failed', `SeeDream Text-to-Image failed: ${error.message}`);
             }
         } finally {
-            setGenerating(false);
+            // Remove: setGenerating(false);
         }
     };
 
@@ -709,6 +723,19 @@ const handleCustomSizeChange = () => {
                                     </button>
                                 </div>
 
+                                {/* Active Queue Indicator */}
+                                {activeGenerations.length > 0 && (
+                                    <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4">
+                                        <h3 className="text-yellow-200 font-medium mb-2 flex items-center">
+                                            <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                                            Active Generations
+                                        </h3>
+                                        <p className="text-yellow-300 text-sm">
+                                            {activeGenerations.length} generation{activeGenerations.length !== 1 ? 's' : ''} currently processing
+                                        </p>
+                                    </div>
+                                )}
+
                                 {/* Cost Display */}
                                 <div className="bg-pink-500/10 border border-pink-500/30 rounded-lg p-4">
                                     <h3 className="text-pink-200 font-medium mb-2 flex items-center">
@@ -726,20 +753,14 @@ const handleCustomSizeChange = () => {
                                 {/* Generate Button */}
                                 <button
                                     onClick={handleGenerate}
-                                    disabled={generating || !config.prompt.trim()}
+                                    disabled={!config.prompt.trim()}
                                     className="w-full bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white font-semibold py-4 px-6 rounded-lg transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center space-x-2"
                                 >
-                                    {generating ? (
-                                        <>
-                                            <RefreshCw className="w-4 h-4 animate-spin" />
-                                            <span>Generating...</span>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Sparkles className="w-4 h-4" />
-                                            <span>Generate ({calculateTokenCost()} tokens)</span>
-                                        </>
-                                    )}
+                                    <Sparkles className="w-4 h-4" />
+                                    <span>
+                                        Generate ({calculateTokenCost()} tokens)
+                                        {activeGenerations.length > 0 && ` • ${activeGenerations.length} processing`}
+                                    </span>
                                 </button>
 
                                 {/* Processing Note */}
@@ -1092,8 +1113,8 @@ const handleCustomSizeChange = () => {
 
             {/* Fullscreen Image Viewer */}
             {showExpandedImage && selectedGeneration && expandedImageIndex !== null && (
-                <div className="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
-                    <div className="relative max-w-7xl w-full max-h-[95vh] flex items-center justify-center">
+                <div className="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center z-[60] p-4 overflow-auto">
+                    <div className="relative w-full min-h-full flex items-center justify-center py-20">
                         <button
                             onClick={() => {
                                 setShowExpandedImage(false);
@@ -1103,6 +1124,54 @@ const handleCustomSizeChange = () => {
                         >
                             <X className="w-6 h-6" />
                         </button>
+                        <button
+                            onClick={() => {
+                                setShowExpandedImage(false);
+                                setExpandedImageIndex(null);
+                                setImageFit(true);
+                                setImageScale(1);
+                            }}
+                            className="absolute top-4 right-4 z-10 w-12 h-12 bg-black/50 hover:bg-black/70 text-white rounded-full flex items-center justify-center transition-colors"
+                        >
+                            <X className="w-6 h-6" />
+                        </button>
+
+                        {/* Zoom Controls */}
+                        <div className="absolute top-20 right-4 z-10 flex flex-col gap-2">
+                            <button
+                                onClick={() => setImageFit(!imageFit)}
+                                className="w-12 h-12 bg-black/50 hover:bg-black/70 text-white rounded-full flex items-center justify-center transition-colors"
+                                title={imageFit ? "View actual size" : "Fit to screen"}
+                            >
+                                {imageFit ? <ZoomIn className="w-5 h-5" /> : <ZoomIn className="w-5 h-5 rotate-180" />}
+                            </button>
+                            
+                            {!imageFit && (
+                                <>
+                                    <button
+                                        onClick={() => setImageScale(prev => Math.min(prev + 0.25, 3))}
+                                        className="w-12 h-12 bg-black/50 hover:bg-black/70 text-white rounded-full flex items-center justify-center transition-colors"
+                                        title="Zoom in"
+                                    >
+                                        <span className="text-xl font-bold">+</span>
+                                    </button>
+                                    <button
+                                        onClick={() => setImageScale(prev => Math.max(prev - 0.25, 0.25))}
+                                        className="w-12 h-12 bg-black/50 hover:bg-black/70 text-white rounded-full flex items-center justify-center transition-colors"
+                                        title="Zoom out"
+                                    >
+                                        <span className="text-xl font-bold">−</span>
+                                    </button>
+                                    <button
+                                        onClick={() => setImageScale(1)}
+                                        className="w-12 h-12 bg-black/50 hover:bg-black/70 text-white rounded-full flex items-center justify-center transition-colors text-xs"
+                                        title="Reset zoom"
+                                    >
+                                        100%
+                                    </button>
+                                </>
+                            )}
+                        </div>
 
                         <button
                             onClick={() => {
@@ -1142,7 +1211,14 @@ const handleCustomSizeChange = () => {
                         <img
                             src={toCdnUrl(getAllImageUrls(selectedGeneration.output_file_url)[expandedImageIndex])}
                             alt={`${selectedGeneration.generation_name} - Image ${expandedImageIndex + 1}`}
-                            className="max-w-full max-h-full object-contain rounded-lg"
+                            className={`rounded-lg shadow-2xl transition-transform duration-200 ${
+                                imageFit ? 'max-w-full max-h-[90vh] object-contain' : 'w-auto h-auto'
+                            }`}
+                            style={{
+                                transform: imageFit ? 'none' : `scale(${imageScale})`,
+                                cursor: imageFit ? 'zoom-in' : 'zoom-out'
+                            }}
+                            onClick={() => setImageFit(!imageFit)}
                         />
 
                         {getAllImageUrls(selectedGeneration.output_file_url).length > 1 && (
