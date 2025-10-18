@@ -183,7 +183,9 @@ const SeeDreamText2Image = () => {
         setGenerations(current => {
             switch (eventType) {
                 case 'INSERT':
-                    return [newRecord, ...current];
+                    // Check if already exists before adding
+                    const exists = current.find(g => g.id === newRecord.id);
+                    return exists ? current : [newRecord, ...current];
                 case 'UPDATE':
                     return current.map(item =>
                         item.id === newRecord.id ? newRecord : item
