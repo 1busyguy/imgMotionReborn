@@ -88,6 +88,8 @@ const SeeDreamText2Image = () => {
     const sizeOptions = [
         { value: 'default', label: 'Default', width: 1024, height: 1024 },
         { value: 'custom', label: 'Custom', width: 1024, height: 1024, isCustom: true },
+        { value: 'custom', label: 'Portrait UHD', width: 2160, height: 3840 },
+        { value: 'custom', label: 'Landscape UHD', width: 3840, height: 2160 },
         { value: 'square_hd', label: 'Square HD', width: 1024, height: 1024 },
         { value: 'square', label: 'Square', width: 512, height: 512 },
         { value: 'portrait_3_4', label: 'Portrait 3:4', width: 768, height: 1024 },
