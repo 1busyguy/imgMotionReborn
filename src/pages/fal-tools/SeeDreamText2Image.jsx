@@ -558,17 +558,27 @@ const handleCustomSizeChange = () => {
                                         <Sparkles className="w-4 h-4 inline mr-1" />
                                         Quick Prompts
                                     </label>
-                                    <div className="grid grid-cols-1 gap-2 max-h-32 overflow-y-auto">
-                                        {promptSuggestions.slice(0, 4).map((suggestion, index) => (
-                                            <button
-                                                key={index}
-                                                onClick={() => setConfig(prev => ({ ...prev, prompt: suggestion }))}
-                                                className="text-left px-3 py-2 bg-white/5 hover:bg-white/10 text-purple-200 rounded-lg text-xs transition-colors"
+                                    <select
+                                        onChange={(e) => {
+                                            if (e.target.value) {
+                                                setConfig(prev => ({ ...prev, prompt: e.target.value }));
+                                                e.target.value = ''; // Reset dropdown
+                                            }
+                                        }}
+                                        className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500 [&>option]:bg-gray-800 [&>option]:text-white"
+                                        defaultValue=""
+                                    >
+                                        <option value="" disabled>Select a suggestion...</option>
+                                        {promptSuggestions.map((suggestion, index) => (
+                                            <option 
+                                                key={index} 
+                                                value={suggestion}
+                                                className="bg-gray-800 text-white py-2"
                                             >
                                                 {suggestion}
-                                            </button>
+                                            </option>
                                         ))}
-                                    </div>
+                                    </select>
                                 </div>
 
                                 {/* Image Size Selection */}
