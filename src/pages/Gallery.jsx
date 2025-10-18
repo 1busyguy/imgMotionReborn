@@ -89,6 +89,8 @@ const Gallery = () => {
   const [allUniqueTools, setAllUniqueTools] = useState([]);
   const [expandedImageIndex, setExpandedImageIndex] = useState(null);
   const [showExpandedImage, setShowExpandedImage] = useState(false);
+  const [imageScale, setImageScale] = useState(1);
+  const [imageFit, setImageFit] = useState(true); // true = fit to screen, false = actual size
   
   // Pagination settings
   const ITEMS_PER_PAGE = 24;
@@ -1312,18 +1314,57 @@ const collapseUrlString = (s) => {
 
       {/* Expanded Image Viewer */}
       {showExpandedImage && selectedGeneration && expandedImageIndex !== null && (
-        <div className="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
-          <div className="relative max-w-7xl w-full max-h-[95vh] flex items-center justify-center">
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center z-[60] p-4 overflow-auto">
+          <div className="relative w-full min-h-full flex items-center justify-center py-20">
             {/* Close Button */}
             <button
               onClick={() => {
                 setShowExpandedImage(false);
                 setExpandedImageIndex(null);
+                setImageFit(true);
+                setImageScale(1);
               }}
               className="absolute top-4 right-4 z-10 w-12 h-12 bg-black/50 hover:bg-black/70 text-white rounded-full flex items-center justify-center transition-colors"
             >
               <X className="w-6 h-6" />
             </button>
+
+            {/* Zoom Controls */}
+            <div className="absolute top-20 right-4 z-10 flex flex-col gap-2">
+              <button
+                onClick={() => setImageFit(!imageFit)}
+                className="w-12 h-12 bg-black/50 hover:bg-black/70 text-white rounded-full flex items-center justify-center transition-colors"
+                title={imageFit ? "View actual size" : "Fit to screen"}
+              >
+                {imageFit ? <ZoomIn className="w-5 h-5" /> : <ZoomIn className="w-5 h-5 rotate-180" />}
+              </button>
+              
+              {!imageFit && (
+                <>
+                  <button
+                    onClick={() => setImageScale(prev => Math.min(prev + 0.25, 3))}
+                    className="w-12 h-12 bg-black/50 hover:bg-black/70 text-white rounded-full flex items-center justify-center transition-colors"
+                    title="Zoom in"
+                  >
+                    <span className="text-xl font-bold">+</span>
+                  </button>
+                  <button
+                    onClick={() => setImageScale(prev => Math.max(prev - 0.25, 0.25))}
+                    className="w-12 h-12 bg-black/50 hover:bg-black/70 text-white rounded-full flex items-center justify-center transition-colors"
+                    title="Zoom out"
+                  >
+                    <span className="text-xl font-bold">−</span>
+                  </button>
+                  <button
+                    onClick={() => setImageScale(1)}
+                    className="w-12 h-12 bg-black/50 hover:bg-black/70 text-white rounded-full flex items-center justify-center transition-colors text-xs"
+                    title="Reset zoom"
+                  >
+                    100%
+                  </button>
+                </>
+              )}
+            </div>
 
             {/* Navigation Arrows */}
             {getImageUrls(selectedGeneration.output_file_url).length > 1 && (
@@ -1354,7 +1395,14 @@ const collapseUrlString = (s) => {
             <OptimizedImage
               src={getImageUrls(selectedGeneration.output_file_url)[expandedImageIndex]}
               alt={`${selectedGeneration.generation_name} - Image ${expandedImageIndex + 1}`}
-              className="max-w-full max-h-full object-contain rounded-lg"
+              className={`rounded-lg shadow-2xl transition-transform duration-200 ${
+                imageFit ? 'max-w-full max-h-[90vh] object-contain' : 'w-auto h-auto'
+              }`}
+              style={{
+                transform: imageFit ? 'none' : `scale(${imageScale})`,
+                cursor: imageFit ? 'zoom-in' : 'zoom-out'
+              }}
+              onClick={() => setImageFit(!imageFit)}
             />
 
             {/* Image Counter */}
