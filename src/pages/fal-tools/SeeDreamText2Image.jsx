@@ -254,25 +254,25 @@ const SeeDreamText2Image = () => {
     };
 
     const handleSizeChange = (selectedValue) => {
-    const selected = sizeOptions.find(opt => opt.value === selectedValue);
-    if (selected) {
-        if (selected.isCustom) {
-            // Show custom input fields
-            setShowCustomInputs(true);
-            setConfig(prev => ({
-                ...prev,
-                // Don't clear prompt - allow multiple generations with same prompt
-                seed: Math.floor(Math.random() * 100000000)
-            }));
-            // Use preset size
-            setShowCustomInputs(false);
-            setConfig(prev => ({
-                ...prev,
-                imageSize: { width: selected.width, height: selected.height }
-            }));
+        const selected = sizeOptions.find(opt => opt.value === selectedValue);
+        if (selected) {
+            if (selected.isCustom) {
+                // Show custom input fields
+                setShowCustomInputs(true);
+                setConfig(prev => ({
+                    ...prev,
+                    imageSize: { width: customWidth, height: customHeight }
+                }));
+            } else {
+                // Use preset size
+                setShowCustomInputs(false);
+                setConfig(prev => ({
+                    ...prev,
+                    imageSize: { width: selected.width, height: selected.height }
+                }));
+            }
         }
-    }
-};
+    };
 
 const handleCustomSizeChange = () => {
     setConfig(prev => ({
