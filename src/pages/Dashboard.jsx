@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { useRealtimeActivity } from '../hooks/useRealtimeActivity';
+import AIToolModal from '../components/AIToolModal';
 import { allTools } from '../data/data';
 import EmailVerificationBanner from '../components/EmailVerificationBanner';
 import { 
@@ -34,6 +35,8 @@ const Dashboard = () => {
   });
   const [loading, setLoading] = useState(true);
   const [currentToolPage, setCurrentToolPage] = useState(0);
+  const [selectedTool, setSelectedTool] = useState(null);
+  const [showToolModal, setShowToolModal] = useState(false);
   const [showAllTools, setShowAllTools] = useState(false);
   const navigate = useNavigate();
 
@@ -222,7 +225,18 @@ const Dashboard = () => {
   };
 
   const handleToolClick = (tool) => {
-    navigate('/builder', { state: { toolId: tool.id } });
+    setSelectedTool(tool);
+    setShowToolModal(true);
+  };
+
+  const handleToolSuccess = (result) => {
+    // Refresh profile to update token count
+    getUser();
+    // Refresh creations count
+    fetchCreationsCount();
+    // Close modal
+    setShowToolModal(false);
+    setSelectedTool(null);
   };
 
   const getCurrentTools = () => {
@@ -362,8 +376,49 @@ const Dashboard = () => {
     }
   };
 
+  const getUniqueButtonText = (tool) => {
+    const buttonTextMap = {
+      // Text-to-Video Tools
+      'fal_wan_v22_text2video_lora': 'WAN v2.2-a14b T2V',
+      'fal_minimax_hailuo': 'Hailuo 2.1 Pro',
+      'fal_kling_pro': 'Kling 2.1 I2V',
+      'fal_ltxv': 'LTXV I2V',
+      'fal_seedance_pro': 'SeeDance I2V',
+      'fal_veo3_fast': 'VEO3 Fast',
+      'fal_veo3': 'VEO3 Pro',
+      'ai_scene_gen': 'Build Scene',
+      
+      // Image-to-Video Tools  
+      'fal_wan_v22_img2video_lora': 'WAN v2.2-a14b I2V',
+      'fal_wan_v22_video2video': 'WAN v2.2-a14b V2V',
+      'fal_wan22_s2v': 'WAN S2V',
+      
+      // Image Generation Tools
+      'fal_flux_kontext': 'Flux Kontext',
+      'fal_flux_kontext_max_multi': 'Flux Kontext Multi',
+      'fal_qwen_image': 'QWEN T2I',
+      'fal_qwen_image_to_image': 'QWEN I2I',
+      'fal_gemini_flash_image_edit': 'Gemini Flash Img Edit',
+      'fal-seedream-edit': 'SeeDance Img Edit',
+      'fal_hidream_i1': 'HiDream T2I',
+      
+      
+      // Audio Tools
+      'fal_mmaudio_v2': 'MMAudio T2Audio',
+      'fal_mmaudio_video2': 'MMAudio V2Audio',
+      'fal_cassetteai_music': 'Make RETRO Music',
+      
+      // Enhancement Tools
+      'fal_video_upscaler': 'Video Upscaler',
+      'fal_bria_bg_remove': 'Background Remover',
+      
+      // Avatar Tools
+      'fal_omnihuman': 'OmniHUMAN I2Audio'
+    };
+    
+    return buttonTextMap[tool.toolType] || 'Try Now';
+  };
   if (loading) {
-
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center">
         <div className="text-white text-xl">Loading...</div>
@@ -452,29 +507,25 @@ const Dashboard = () => {
                   </div>
                   <p className="text-purple-200 text-xs mb-3 line-clamp-2 flex-grow">{tool.description}</p>
                   
-                  <button
+                  <button 
                     onClick={() => {
-                      if (tool.comingSoon) return;
-                      handleToolClick(tool);
+                      if (tool.comingSoon) {
+                        return;
+                      } else if (tool.route) {
+                        navigate(tool.route);
+                      } else {
+                        handleToolClick(tool);
+                      }
                     }}
                     className={`font-semibold py-2 px-4 rounded-lg transition-all duration-300 text-sm ${
-                      tool.comingSoon
-                        ? 'bg-gray-500 text-gray-300 cursor-not-allowed'
+                      tool.comingSoon 
+                        ? 'bg-gray-500 text-gray-300 cursor-not-allowed' 
                         : 'bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white'
                     }`}
                     disabled={tool.comingSoon}
                   >
-                    {tool.comingSoon ? 'Coming Soon' : 'Add to Builder'}
+                    {tool.comingSoon ? 'Coming Soon' : getUniqueButtonText(tool)}
                   </button>
-                  {!tool.comingSoon && tool.route && (
-                    <button
-                      onClick={() => navigate(tool.route)}
-                      className="mt-2 text-xs font-semibold text-purple-200 underline-offset-4 hover:underline"
-                      type="button"
-                    >
-                      Open legacy workflow
-                    </button>
-                  )}
                 </div>
               </div>
             ))}
@@ -775,6 +826,18 @@ const Dashboard = () => {
         </div>
       </main>
 
+      {/* AI Tool Modal */}
+      <AIToolModal
+        tool={selectedTool}
+        isOpen={showToolModal}
+        onClose={() => {
+          setShowToolModal(false);
+          setSelectedTool(null);
+        }}
+        user={user}
+        profile={profile}
+        onSuccess={handleToolSuccess}
+      />
     </div>
   );
 };
