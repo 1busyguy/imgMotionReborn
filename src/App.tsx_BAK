@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import ProtectedAdminRoute from './components/ProtectedAdminRoute';
 import AdminLoraManager from './components/AdminLoraManager';
@@ -53,8 +53,6 @@ import SeeDreamText2Image from './pages/fal-tools/SeeDreamText2Image';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import Feedback from './pages/Feedback';
-import CanvasBuilder from './pages/CanvasBuilder';
-import BuilderRedirect from './pages/BuilderRedirect';
 
 // Protected Route Component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -114,6 +112,13 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     />;
   }
 
+  return children;
+};
+
+// Admin Route Component
+const AdminRoute = ({ children }: { children: React.ReactNode }) => {
+  // Let the Admin component handle its own auth checking
+  // This prevents double auth checks and state conflicts
   return children;
 };
 
@@ -183,31 +188,6 @@ function App() {
     window.dispatchEvent(new PopStateEvent('popstate'));
   };
 
-  const builderRedirectRoutes: string[] = [
-    '/flux-kontext',
-    '/flux-kontext-max-multi',
-    '/wan22-pro',
-    '/gemini-flash-image-edit',
-    '/wan-22-s2v',
-    '/qwen-image',
-    '/qwen-image-to-image',
-    '/wan-v22-text2video-lora',
-    '/wan-v22-video2video',
-    '/veo3-fast',
-    '/veo3-standard',
-    '/minimax-hailuo',
-    '/kling-pro',
-    '/ltxv-video',
-    '/mmaudio-v2',
-    '/mmaudio-video2',
-    '/omnihuman',
-    '/bria-bg-remove',
-    '/fal-video-upscaler',
-    '/cassetteai-music',
-    '/ai-scene-gen',
-    '/hidream-i1',
-  ];
-
   return (
     <Router>
       <MaintenanceWrapper>
@@ -226,21 +206,13 @@ function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
-            <Route
-              path="/dashboard"
+            <Route 
+              path="/dashboard" 
               element={
                 <ProtectedRoute>
                   <Dashboard />
                 </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/builder"
-              element={
-                <ProtectedRoute>
-                  <CanvasBuilder />
-                </ProtectedRoute>
-              }
+              } 
             />
             <Route 
               path="/settings" 
@@ -250,25 +222,22 @@ function App() {
                 </ProtectedRoute>
               } 
             />
-            <Route
-              path="/gallery"
+            <Route 
+              path="/gallery" 
               element={
                 <ProtectedRoute>
                   <Gallery />
                 </ProtectedRoute>
-              }
+              } 
             />
-            {builderRedirectRoutes.map(path => (
-              <Route
-                key={path}
-                path={path}
-                element={
-                  <ProtectedRoute>
-                    <BuilderRedirect toolRoute={path} />
-                  </ProtectedRoute>
-                }
-              />
-            ))}
+            <Route 
+              path="/flux-kontext" 
+              element={
+                <ProtectedRoute>
+                  <FluxKontext />
+                </ProtectedRoute>
+              } 
+            />
             <Route
                 path="/seedream-edit"
                 element={
@@ -285,21 +254,189 @@ function App() {
                     </ProtectedRoute>
                 }
             />
-            <Route
-              path="/seedance-pro"
+            <Route 
+              path="/flux-kontext-max-multi"
+              element={
+                <ProtectedRoute>
+                  <FluxKontextMaxMulti />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/minimax-hailuo" 
+              element={
+                <ProtectedRoute>
+                  <MinimaxHailuo />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/wan22-pro" 
+              element={
+                <ProtectedRoute>
+                  <Navigate to="/dashboard" replace />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/kling-pro" 
+              element={
+                <ProtectedRoute>
+                  <KlingPro />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/ltxv-video" 
+              element={
+                <ProtectedRoute>
+                  <LTXVVideo />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/fal-video-upscaler" 
+              element={
+                <ProtectedRoute>
+                  <FalVideoUpscaler />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/bria-bg-remove" 
+              element={
+                <ProtectedRoute>
+                  <BriaBackgroundRemover />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/ai-scene-gen" 
+              element={
+                <ProtectedRoute>
+                  <AISceneGen />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/hidream-i1" 
+              element={
+                <ProtectedRoute>
+                  <HiDreamI1 />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/seedance-pro" 
               element={
                 <ProtectedRoute>
                   <SeedancePro />
                 </ProtectedRoute>
-              }
+              } 
             />
-            <Route
-              path="/wan-v22-img2video-lora"
+            <Route 
+              path="/wan-v22-text2video-lora" 
+              element={
+                <ProtectedRoute>
+                  <WanV22Text2VideoLora />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/cassetteai-music" 
+              element={
+                <ProtectedRoute>
+                  <CassetteAIMusic />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/mmaudio-v2" 
+              element={
+                <ProtectedRoute>
+                  <MMAudioV2 />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/mmaudio-video2" 
+              element={
+                <ProtectedRoute>
+                  <MMAudioVideo2 />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/omnihuman" 
+              element={
+                <ProtectedRoute>
+                  <Omnihuman />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/wan-v22-img2video-lora" 
               element={
                 <ProtectedRoute>
                   <WanV22Img2VideoLora />
                 </ProtectedRoute>
-              }
+              } 
+            />
+            <Route 
+              path="/wan-v22-video2video" 
+              element={
+                <ProtectedRoute>
+                  <WanV22Video2Video />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/veo3-fast" 
+              element={
+                <ProtectedRoute>
+                  <VEO3Fast />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/veo3-standard" 
+              element={
+                <ProtectedRoute>
+                  <VEO3Standard />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/gemini-flash-image-edit" 
+              element={
+                <ProtectedRoute>
+                  <GeminiFlashImageEdit />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/qwen-image" 
+              element={
+                <ProtectedRoute>
+                  <QwenImage />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/qwen-image-to-image" 
+              element={
+                <ProtectedRoute>
+                  <QwenImageToImage />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/wan-22-s2v" 
+              element={
+                <ProtectedRoute>
+                  <WAN22S2V />
+                </ProtectedRoute>
+              } 
             />
             <Route
                 path="/seedance-reference-video"

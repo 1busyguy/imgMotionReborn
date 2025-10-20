@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
-import { executeToolRun } from '../utils/toolExecution';
+import { createAIGeneration, updateTokenCount } from '../utils/storageHelpers';
 import { 
   X, 
   Upload, 
@@ -29,13 +29,6 @@ const AIToolModal = ({ tool, isOpen, onClose, user, profile, onSuccess }) => {
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
   const [generationId, setGenerationId] = useState(null);
-
-  const parseTokenRequirement = (value) => {
-    if (typeof value === 'number') return value;
-    if (!value) return 0;
-    const numeric = parseInt(String(value).replace(/[^0-9]/g, ''), 10);
-    return Number.isNaN(numeric) ? 0 : numeric;
-  };
 
   if (!isOpen || !tool) return null;
 
@@ -89,49 +82,62 @@ const AIToolModal = ({ tool, isOpen, onClose, user, profile, onSuccess }) => {
       setStep(2);
       setProgress(10);
 
+      // Check if user has enough tokens
+      if (profile.tokens < tool.tokensRequired) {
+        throw new Error('Insufficient tokens. Please upgrade your plan.');
+      }
+
+      // Create generation record
       const toolTypeMap = {
         1: 'gen_01', 2: 'gen_02', 3: 'gen_03',
         4: 'gen_04', 5: 'gen_05', 6: 'gen_06'
       };
 
-      const requiredTokens = parseTokenRequirement(tool.tokensRequired);
-      const availableTokens = (profile?.tokens || 0) + (profile?.purchased_tokens || 0);
-      if (availableTokens < requiredTokens) {
-        throw new Error('Insufficient tokens. Please upgrade your plan.');
-      }
+      const generation = await createAIGeneration(
+        toolTypeMap[tool.id],
+        formData.prompt || `${tool.name} - ${Date.now()}`,
+        {
+          ...formData,
+          uploadedFileUrl: uploadedFileUrl || null
+        },
+        tool.tokensRequired
+      );
 
+      setGenerationId(generation.id);
+      setProgress(30);
+
+      // Deduct tokens immediately
+      await updateTokenCount(user.id, tool.tokensRequired);
+      setProgress(50);
+
+      // Call appropriate Edge Function
       const endpoint = getEndpointForTool(tool.id);
-      const toolType = toolTypeMap[tool.id];
-      if (!endpoint || !toolType) {
-        throw new Error('This tool is not yet available in the builder.');
-      }
+      const payload = buildPayloadForTool(tool.id, formData, uploadedFileUrl, generation.id);
 
-      const payload = buildPayloadForTool(tool.id, formData, uploadedFileUrl);
-
-      setProgress(35);
-
-      const execution = await executeToolRun({
-        toolType,
-        edgeFunction: endpoint,
-        tokensRequired: requiredTokens,
-        generationName: formData.prompt || `${tool.name} - ${Date.now()}`,
-        input: {
-          ...payload,
-          uploadedFileUrl: uploadedFileUrl || null,
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/${endpoint}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session.access_token}`,
+          'Content-Type': 'application/json'
         },
-        onGenerationCreated: (generation) => {
-          setGenerationId(generation.id);
-          setProgress(65);
-        },
+        body: JSON.stringify(payload)
       });
 
-      setProgress(100);
-      setResult(execution.response);
-      setStep(3);
-      setProcessing(false);
+      setProgress(80);
 
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Generation failed');
+      }
+
+      const result = await response.json();
+      setProgress(100);
+      setResult(result);
+      setStep(3);
+
+      // Notify parent component of success
       if (onSuccess) {
-        onSuccess(execution.response);
+        onSuccess(result);
       }
 
     } catch (error) {
@@ -154,10 +160,13 @@ const AIToolModal = ({ tool, isOpen, onClose, user, profile, onSuccess }) => {
     return endpoints[toolId];
   };
 
-  const buildPayloadForTool = (toolId, formData, fileUrl) => {
+  const buildPayloadForTool = (toolId, formData, fileUrl, generationId) => {
+    const basePayload = { generationId };
+
     switch (toolId) {
       case 1: // AI Image Generator
         return {
+          ...basePayload,
           prompt: formData.prompt,
           style: formData.style,
           width: formData.width,
@@ -165,31 +174,36 @@ const AIToolModal = ({ tool, isOpen, onClose, user, profile, onSuccess }) => {
         };
       case 2: // Motion Graphics Creator
         return {
+          ...basePayload,
           imageUrl: fileUrl,
           animationType: formData.animationType,
           duration: formData.duration
         };
       case 3: // Video Style Transfer
         return {
+          ...basePayload,
           videoUrl: fileUrl,
           styleUrl: formData.styleImageUrl
         };
       case 4: // Background Remover
         return {
+          ...basePayload,
           inputUrl: fileUrl
         };
       case 5: // Face Swap AI
         return {
+          ...basePayload,
           sourceUrl: fileUrl,
           targetUrl: formData.targetImageUrl
         };
       case 6: // Video Upscaler
         return {
+          ...basePayload,
           videoUrl: fileUrl,
           scaleFactor: formData.scaleFactor || 2
         };
       default:
-        return {};
+        return basePayload;
     }
   };
 

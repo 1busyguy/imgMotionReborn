@@ -2,8 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabaseClient';
 import { useAuth } from '../../hooks/useAuth';
-import { uploadFile } from '../../utils/storageHelpers';
-import { executeToolRun } from '../../utils/toolExecution';
+import { createAIGeneration, updateTokenCount, uploadFile } from '../../utils/storageHelpers';
 import { isNSFWError, parseNSFWError } from '../../utils/errorHandlers';
 import { toCdnUrl } from '../../utils/cdnHelpers';
 import { performSafetyAnalysis, shouldShowWarning, getSafetyWarningMessage, logSafetyAnalysis } from '../../utils/safescan';
@@ -342,22 +341,52 @@ const SeedancePro = () => {
     setGenerating(true);
     try {
       console.log('Starting Seedance Pro generation...');
+      
+      // Create generation record
+      const generation = await createAIGeneration(
+        'fal_seedance_pro',
+        config.prompt.substring(0, 50) + '...',
+        config,
+        tokenCost
+      );
 
-      const execution = await executeToolRun({
-        toolType: 'fal_seedance_pro',
-        edgeFunction: 'fal_seedance_pro',
-        tokensRequired: tokenCost,
-        generationName: `${config.prompt.substring(0, 50)}...`,
-        input: config,
-        onGenerationCreated: generation => {
-          setGenerations(current => [generation, ...current]);
-          setActiveGenerations(current => [generation, ...current]);
+      console.log('Generation record created:', generation.id);
+
+      // Immediately add to local state for instant UI feedback
+      setGenerations(current => [generation, ...current]);
+      setActiveGenerations(current => [generation, ...current]);
+      
+      // Deduct tokens
+      await updateTokenCount(user.id, tokenCost);
+      
+      // Refresh profile to get accurate token counts from database
+      await fetchProfile();
+
+      console.log('Tokens deducted, calling Edge Function...');
+
+      // Call Edge Function using direct fetch (same pattern as KlingPro)
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/fal-seedance-pro`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session.access_token}`,
+          'Content-Type': 'application/json'
         },
+        body: JSON.stringify({
+          generationId: generation.id,
+          ...config
+        })
       });
 
-      console.log('Generation submitted to queue:', execution);
+      console.log('Edge Function response status:', response.status);
 
-      await fetchProfile();
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Edge Function error:', errorData);
+        throw new Error(errorData.error || 'Generation failed');
+      }
+
+      const result = await response.json();
+      console.log('Edge Function result:', result);
 
       // Clear prompt after successful generation
       setConfig(prev => ({ ...prev, prompt: '' }));
