@@ -16,11 +16,11 @@ An AI-powered creative content generation platform built with React, TypeScript,
 
 - **Frontend**: React 18, TypeScript, Vite, Tailwind CSS
 - **Backend**: Supabase (PostgreSQL + Edge Functions/Deno)
-- **Video Generation Microservice**: Python/FastAPI on Railway
+- **Video Processing Microservice**: Python/FastAPI on Railway (FFmpeg)
 - **AI Services**: FAL.ai
 - **Payments**: Stripe
 - **Security**: Cloudflare Turnstile (CAPTCHA)
-- **Deployment**: Vercel (frontend) + Railway (video microservice)
+- **Deployment**: Vercel (frontend) + Railway (video processing)
 
 ## Architecture
 
@@ -32,21 +32,21 @@ An AI-powered creative content generation platform built with React, TypeScript,
 │                 │     │                 │     │                 │
 └─────────────────┘     └────────┬────────┘     └─────────────────┘
                                  │
-                                 │ Video Generation
+                                 │ Video Post-Processing
                                  ▼
                         ┌─────────────────┐
                         │                 │
                         │  Railway        │
-                        │  (Python API)   │
+                        │  (FFmpeg API)   │
                         │                 │
                         └─────────────────┘
 ```
 
 The platform uses a microservice architecture:
 - **Vercel** hosts the React frontend
-- **Supabase Edge Functions** handle most AI operations via FAL.ai
-- **Railway** runs a Python/FastAPI microservice for advanced video generation (WAN, Pixverse, LUMA, VEO3 models)
-- Supabase receives webhooks from Railway when video processing completes
+- **Supabase Edge Functions** handle AI operations via FAL.ai
+- **Railway** runs a Python/FastAPI microservice for video post-processing (thumbnails, watermarks, resizing)
+- Webhooks notify Supabase when video processing completes
 
 ## Prerequisites
 
@@ -57,7 +57,7 @@ Before you begin, ensure you have:
 - A [FAL.ai](https://fal.ai) account and API key
 - A [Stripe](https://stripe.com) account (for payments)
 - A [Cloudflare Turnstile](https://www.cloudflare.com/products/turnstile/) site key (for CAPTCHA)
-- A [Railway](https://railway.app) account (for video generation microservice - optional)
+- A [Railway](https://railway.app) account (for video processing microservice - optional)
 
 ## Installation
 
@@ -154,8 +154,7 @@ The following secrets need to be configured in your Supabase project:
 - `STRIPE_SECRET_KEY` - Stripe secret key
 - `STRIPE_WEBHOOK_SECRET` - Stripe webhook signing secret
 - `OPENAI_API_KEY` - OpenAI API key (for image analysis)
-- `RAILWAY_API_URL` - Your Railway microservice URL (e.g., `https://your-app.up.railway.app`)
-- `RAILWAY_API_KEY` - API key for Railway microservice authentication
+- `FFMPEG_SERVICE_URL` - Your Railway FFmpeg service URL (e.g., `https://your-ffmpeg-service.up.railway.app`)
 
 ## Scripts
 
@@ -183,6 +182,11 @@ imgMotionReborn/
 ├── supabase/
 │   ├── functions/      # Edge Functions (53 functions)
 │   └── migrations/     # Database migrations
+├── ffmpeg-service/     # Railway microservice (Python/FastAPI)
+│   ├── main.py         # FastAPI application
+│   ├── utils/          # FFmpeg, storage, webhook utilities
+│   ├── models/         # Pydantic schemas
+│   └── Dockerfile      # Railway deployment
 ├── public/             # Static assets
 └── ...
 ```
@@ -274,25 +278,46 @@ supabase secrets set STRIPE_SECRET_KEY=your_key
 # ... etc
 ```
 
-### Railway (Video Microservice)
+### Railway (FFmpeg Video Processing)
 
-The video generation feature requires a separate Python microservice. This is **not included** in this repository.
+The `ffmpeg-service/` directory contains a Python/FastAPI microservice for video post-processing. This handles:
 
-To use video generation, you'll need to:
+- **Thumbnail extraction** from videos
+- **Watermark addition** to videos
+- **Video resizing/compression**
+- **Metadata extraction**
 
-1. Create your own Python/FastAPI service that handles video generation
-2. Deploy it to [Railway](https://railway.app) (or similar platform)
-3. Configure the following endpoints:
-   - `POST /api/v1/generate-scene` - Accepts video generation requests
-4. Implement webhook callbacks to `https://your-supabase-project.supabase.co/functions/v1/railway-webhook`
+**Deployment:**
 
-**Supported video models** (via FAL.ai):
-- WAN (Default & Pro)
-- Pixverse v3.5
-- LUMA Ray2
-- VEO3 (Standard & Fast)
+```bash
+cd ffmpeg-service
 
-The Edge Function `supabase/functions/railway-webhook/index.ts` handles incoming webhooks from the Railway service when video processing completes.
+# Option 1: Railway CLI
+railway login
+railway init
+railway up
+
+# Option 2: Connect GitHub repo to Railway
+# Railway will auto-detect the Dockerfile
+```
+
+**Required environment variables** (set in Railway dashboard):
+
+```env
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+```
+
+**API Endpoints:**
+
+| Endpoint | Description |
+|----------|-------------|
+| `POST /api/v1/extract-thumbnail` | Extract frame from video |
+| `POST /api/v1/add-watermark` | Add watermark to video |
+| `POST /api/v1/resize-video` | Resize/compress video |
+| `POST /api/v1/get-metadata` | Get video metadata |
+
+See `ffmpeg-service/README.md` for full documentation.
 
 ## Configuration
 
