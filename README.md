@@ -16,10 +16,37 @@ An AI-powered creative content generation platform built with React, TypeScript,
 
 - **Frontend**: React 18, TypeScript, Vite, Tailwind CSS
 - **Backend**: Supabase (PostgreSQL + Edge Functions/Deno)
+- **Video Generation Microservice**: Python/FastAPI on Railway
 - **AI Services**: FAL.ai
 - **Payments**: Stripe
 - **Security**: Cloudflare Turnstile (CAPTCHA)
-- **Deployment**: Vercel
+- **Deployment**: Vercel (frontend) + Railway (video microservice)
+
+## Architecture
+
+```
+┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
+│                 │     │                 │     │                 │
+│  Vercel         │────▶│  Supabase       │────▶│  FAL.ai         │
+│  (React App)    │     │  (Edge Funcs)   │     │  (AI Models)    │
+│                 │     │                 │     │                 │
+└─────────────────┘     └────────┬────────┘     └─────────────────┘
+                                 │
+                                 │ Video Generation
+                                 ▼
+                        ┌─────────────────┐
+                        │                 │
+                        │  Railway        │
+                        │  (Python API)   │
+                        │                 │
+                        └─────────────────┘
+```
+
+The platform uses a microservice architecture:
+- **Vercel** hosts the React frontend
+- **Supabase Edge Functions** handle most AI operations via FAL.ai
+- **Railway** runs a Python/FastAPI microservice for advanced video generation (WAN, Pixverse, LUMA, VEO3 models)
+- Supabase receives webhooks from Railway when video processing completes
 
 ## Prerequisites
 
@@ -30,6 +57,7 @@ Before you begin, ensure you have:
 - A [FAL.ai](https://fal.ai) account and API key
 - A [Stripe](https://stripe.com) account (for payments)
 - A [Cloudflare Turnstile](https://www.cloudflare.com/products/turnstile/) site key (for CAPTCHA)
+- A [Railway](https://railway.app) account (for video generation microservice - optional)
 
 ## Installation
 
@@ -98,6 +126,8 @@ The following secrets need to be configured in your Supabase project:
 - `STRIPE_SECRET_KEY` - Stripe secret key
 - `STRIPE_WEBHOOK_SECRET` - Stripe webhook signing secret
 - `OPENAI_API_KEY` - OpenAI API key (for image analysis)
+- `RAILWAY_API_URL` - Your Railway microservice URL (e.g., `https://your-app.up.railway.app`)
+- `RAILWAY_API_KEY` - API key for Railway microservice authentication
 
 ## Scripts
 
@@ -141,21 +171,60 @@ The platform includes 53 Edge Functions for various AI operations:
 
 ## Deployment
 
-### Vercel
+### Vercel (Frontend)
 
 1. Connect your GitHub repository to Vercel
-2. Configure the environment variables in Vercel dashboard
+2. Configure the environment variables in Vercel dashboard:
+   - `VITE_SUPABASE_URL`
+   - `VITE_SUPABASE_ANON_KEY`
+   - `VITE_STRIPE_PUBLISHABLE_KEY`
+   - `VITE_TURNSTILE_SITE_KEY`
+   - `VITE_CDN_URL` (optional)
 3. Deploy
 
-The included `vercel.json` configures security headers and routing.
+The included `vercel.json` configures:
+- Security headers (X-Frame-Options, X-Content-Type-Options, X-XSS-Protection, Referrer-Policy)
+- SPA routing (all routes rewrite to index.html)
 
-### Supabase
+### Supabase (Backend)
 
 Deploy Edge Functions using the Supabase CLI:
 
 ```bash
+# Login to Supabase
+supabase login
+
+# Link to your project
+supabase link --project-ref your-project-ref
+
+# Deploy all functions
 supabase functions deploy
+
+# Set secrets
+supabase secrets set FAL_API_KEY=your_key
+supabase secrets set STRIPE_SECRET_KEY=your_key
+# ... etc
 ```
+
+### Railway (Video Microservice)
+
+The video generation feature requires a separate Python microservice. This is **not included** in this repository.
+
+To use video generation, you'll need to:
+
+1. Create your own Python/FastAPI service that handles video generation
+2. Deploy it to [Railway](https://railway.app) (or similar platform)
+3. Configure the following endpoints:
+   - `POST /api/v1/generate-scene` - Accepts video generation requests
+4. Implement webhook callbacks to `https://your-supabase-project.supabase.co/functions/v1/railway-webhook`
+
+**Supported video models** (via FAL.ai):
+- WAN (Default & Pro)
+- Pixverse v3.5
+- LUMA Ray2
+- VEO3 (Standard & Fast)
+
+The Edge Function `supabase/functions/railway-webhook/index.ts` handles incoming webhooks from the Railway service when video processing completes.
 
 ## Configuration
 
