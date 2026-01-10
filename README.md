@@ -66,7 +66,7 @@ Before you begin, ensure you have:
 1. **Clone the repository**
 
    ```bash
-   git clone https://github.com/yourusername/imgMotionReborn.git
+   git clone https://github.com/1busyguy/imgMotionReborn.git
    cd imgMotionReborn
    ```
 
