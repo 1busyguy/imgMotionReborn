@@ -86,11 +86,39 @@ Before you begin, ensure you have:
 
 4. **Set up Supabase**
 
-   - Create a new Supabase project
-   - Run the migrations in `/supabase/migrations`
-   - Deploy the Edge Functions from `/supabase/functions`
+   ```bash
+   # Install Supabase CLI
+   npm install -g supabase
 
-5. **Start the development server**
+   # Login to Supabase
+   supabase login
+
+   # Link to your project
+   supabase link --project-ref your-project-ref
+
+   # Run database migrations (creates tables, RLS policies, functions)
+   supabase db push
+
+   # Deploy Edge Functions
+   supabase functions deploy
+
+   # Set required secrets
+   supabase secrets set FAL_API_KEY=your_fal_api_key
+   supabase secrets set STRIPE_SECRET_KEY=your_stripe_secret_key
+   supabase secrets set STRIPE_WEBHOOK_SECRET=your_stripe_webhook_secret
+   supabase secrets set OPENAI_API_KEY=your_openai_api_key
+   ```
+
+   See [Database Schema](#database-schema) for details on the database structure.
+
+5. **Create Storage Bucket**
+
+   In your Supabase Dashboard:
+   - Go to Storage → Create new bucket
+   - Name it `user-files`
+   - Set appropriate policies (see migration file for examples)
+
+6. **Start the development server**
 
    ```bash
    npm run dev
@@ -158,6 +186,46 @@ imgMotionReborn/
 ├── public/             # Static assets
 └── ...
 ```
+
+## Database Schema
+
+The platform uses PostgreSQL via Supabase with the following tables:
+
+### Tables
+
+| Table | Purpose |
+|-------|---------|
+| `profiles` | User profiles, token balance, subscription status |
+| `ai_generations` | All AI generation records with status and outputs |
+| `subscriptions` | Stripe subscription tracking |
+| `preset_loras` | Admin-managed LoRA model presets |
+| `ip_signup_tracking` | Abuse prevention (limits free accounts per IP) |
+
+### Key Relationships
+
+```
+profiles (id) ← ai_generations (user_id)
+profiles (id) ← subscriptions (user_id)
+```
+
+### Row Level Security (RLS)
+
+All tables have RLS enabled with policies ensuring:
+- Users can only access their own data
+- Service role has full access for backend operations
+- Public read access for showcased content
+- IP tracking is service-role only (security)
+
+### Database Functions
+
+| Function | Purpose |
+|----------|---------|
+| `check_ip_signup_limit(ip)` | Check if IP can create free accounts |
+| `increment_ip_signup_count(ip)` | Track successful signups |
+| `admin_block_ip(ip, reason, admin_id)` | Manual IP blocking |
+| `increment_showcase_views(id)` | Track public gallery views |
+
+See `supabase/migrations/00000000000000_initial_schema.sql` for the complete schema definition.
 
 ## Supabase Edge Functions
 
