@@ -55,6 +55,7 @@ Before you begin, ensure you have:
 - Node.js 18+ installed
 - A [Vercel](https://vercel.com) account (for frontend deployment)
 - A [Supabase](https://supabase.com) account and project
+- A [Google Cloud Console](https://console.cloud.google.com) project (for OAuth login)
 - A [FAL.ai](https://fal.ai) account and API key
 - A [Stripe](https://stripe.com) account (for payments)
 - A [Cloudflare Turnstile](https://www.cloudflare.com/products/turnstile/) site key (for CAPTCHA)
@@ -119,7 +120,27 @@ Before you begin, ensure you have:
    - Name it `user-files`
    - Set appropriate policies (see migration file for examples)
 
-6. **Start the development server**
+6. **Set up Google OAuth**
+
+   The app uses Google for authentication. Configure OAuth in Google Cloud Console:
+
+   1. Go to [Google Cloud Console](https://console.cloud.google.com)
+   2. Create a new project (or select existing)
+   3. Navigate to **APIs & Services → Credentials**
+   4. Click **Create Credentials → OAuth client ID**
+   5. Select **Web application**
+   6. Add authorized redirect URIs:
+      - `https://your-project.supabase.co/auth/v1/callback` (production)
+      - `http://localhost:5173/auth/callback` (development)
+   7. Copy the **Client ID** and **Client Secret**
+
+   Then configure in Supabase:
+   1. Go to Supabase Dashboard → **Authentication → Providers**
+   2. Enable **Google**
+   3. Paste your Client ID and Client Secret
+   4. Save
+
+7. **Start the development server**
 
    ```bash
    npm run dev
