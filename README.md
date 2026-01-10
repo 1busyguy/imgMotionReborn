@@ -53,6 +53,7 @@ The platform uses a microservice architecture:
 Before you begin, ensure you have:
 
 - Node.js 18+ installed
+- A [Vercel](https://vercel.com) account (for frontend deployment)
 - A [Supabase](https://supabase.com) account and project
 - A [FAL.ai](https://fal.ai) account and API key
 - A [Stripe](https://stripe.com) account (for payments)
