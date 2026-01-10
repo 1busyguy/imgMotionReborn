@@ -13,13 +13,12 @@ export const maintenanceConfig = {
   // Estimated completion
   estimatedCompletion: "We'll be back online soon",
   
-  // Contact information
-  contactEmail: "jim@imgmotion.com",
+  // Contact information (update with your email)
+  contactEmail: "support@example.com",
   
-  // Social links (optional)
+  // Social links (optional - update with your links)
   socialLinks: {
-    twitter: "https://x.com/ImgMotion"
-    
+    twitter: ""
   },
   
   // Allow specific routes during maintenance (for admin access)
