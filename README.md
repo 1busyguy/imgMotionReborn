@@ -1,4 +1,4 @@
-# imgMotion
+# imgMotion AI Tool Platfrom
 
 An AI-powered creative content generation platform built with React, TypeScript, and Supabase. Generate images, videos, music, and more using state-of-the-art AI models.
 
